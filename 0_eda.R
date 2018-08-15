@@ -4,6 +4,8 @@
 # 8/14/18
 
 library(tidyverse)
+library(sf)
+
 
 setwd("D:/Dropbox/Predator Diets/")
 
@@ -94,6 +96,26 @@ ggplot(frdata, aes(x = season)) +
 frdata %>% count(geoarea)
 
 # Make a map, need some shapefiles for NE
+plot(frdata$declon, frdata$declat)
+
+frspace = frdata %>% 
+  filter(complete.cases(.)) %>%
+  st_as_sf(coords = c("declon", "declat"), crs = 4326)
+
+
+library(maps)
+mass = map_data("state") %>% 
+  filter(region == "massachusetts") %>%
+  st_as_sf(coords = c("long", "lat"), crs = 4326)
+
+ggplot() + 
+  # geom_sf(data = frspace, alpha = 0.5) +
+  geom_sf(data = mass) 
+  # coord_sf(expand = FALSE) +
+  # coord_sf(xlim = c(730000, 1200000), 
+  #          ylim = c(630000, 1350527)) +
+  # theme(panel.grid.major = element_line(color = "grey"),
+  #       panel.background = element_blank())
 
 
 # How are observations distributed by season/location/predator
