@@ -34,14 +34,39 @@ frdata %>%
 unique(frdata$cruise6) %>% length
 
 # so maybe more like 113 cruises over 43 years?
-frdata %>%
+cruise_count = frdata %>%
   group_by(cruise6) %>%
-  count(year)
+  count(year) %>%
+  ungroup()
+  # %>%
+  # count(year)
 
-frdata %>%
-  group_by(year) %>%
-  count(cruise6)
   
+ggplot(cruise_count, aes(x = year)) + 
+  geom_bar() +
+  theme(axis.text.x = element_text(angle = 45, hjust = 1))
+ggsave("output/eda/cruises_per_year.jpg")
+
+cruise_count_mo = frdata %>%
+  group_by(cruise6) %>%
+  count(year, month) %>%
+  ungroup()
+
+ggplot(cruise_count_mo, aes(x = year, y = as.factor(month))) + 
+  geom_tile(aes(fill = n))
+ggsave("output/eda/tows_per_year_month.jpg")
+
+cruise_count_mo = frdata %>%
+  group_by(cruise6) %>%
+  count(year, month) %>%
+  ungroup() %>%
+  count(year, month)
+
+ggplot(cruise_count_mo, aes(x = year, y = as.factor(month))) + 
+  geom_tile(aes(fill = as.factor(nn)))
+ggsave("output/eda/cruises_per_year_month.jpg")
+
+
 # How many predator species -----------------------------------------------
 frdata %>% count(pdcomnam)
 # top 14 like Brian said
@@ -53,7 +78,7 @@ frdata$pdcomnam %>%
 ggplot(frdata, aes(x = pdcomnam)) + 
   geom_bar() +
   theme(axis.text.x = element_text(angle = 45, hjust = 1))
-
+ggsave("output/eda/predator_occurence.jpg")
 
 
 # How many years ----------------------------------------------------------
@@ -72,7 +97,7 @@ frdata %>% count(year)
 ggplot(frdata, aes(x = year)) + 
   geom_bar() +
   theme(axis.text.x = element_text(angle = 45, hjust = 1))
-
+ggsave("output/eda/samples_per_year.jpg")
 
 
 
@@ -82,13 +107,14 @@ frdata %>% count(month)
 ggplot(frdata, aes(x = month)) + 
   geom_bar() +
   theme(axis.text.x = element_text(angle = 45, hjust = 1))
+ggsave("output/eda/samples_per_month.jpg")
 
 frdata %>% count(season)
 
 ggplot(frdata, aes(x = season)) + 
   geom_bar() +
   theme(axis.text.x = element_text(angle = 45, hjust = 1))
-
+ggsave("output/eda/samples_per_season.jpg")
 
 
 # How many locations ------------------------------------------------------
@@ -99,28 +125,55 @@ frdata %>% count(geoarea)
 plot(frdata$declon, frdata$declat)
 
 frspace = frdata %>% 
+  mutate(declon = -declon) %>%
   filter(complete.cases(.)) %>%
   st_as_sf(coords = c("declon", "declat"), crs = 4326)
 
+frspace_small = sample_frac(frspace, 0.01)
+plot(st_geometry(frspace_small))
 
-library(maps)
-mass = map_data("state") %>% 
-  filter(region == "massachusetts") %>%
-  st_as_sf(coords = c("long", "lat"), crs = 4326)
+# library(ggmap)
+# mapImage = get_map(location = c(lon = -68, lat =  40),
+#                    color = "color",
+#                    source = "osm",
+#                    zoom = 6)
+
+
+library(USAboundaries)
+myregion = us_states(states = c("CT", "RI", "MA", "NH", "VT","ME", "PA", "NY", "NJ", "DE", "WV", "MD", "VA", "NC", "SC"))
+plot(st_geometry(myregion))
 
 ggplot() + 
-  # geom_sf(data = frspace, alpha = 0.5) +
-  geom_sf(data = mass) 
-  # coord_sf(expand = FALSE) +
-  # coord_sf(xlim = c(730000, 1200000), 
-  #          ylim = c(630000, 1350527)) +
-  # theme(panel.grid.major = element_line(color = "grey"),
-  #       panel.background = element_blank())
+  geom_sf(data = frspace_small, aes(color = geoarea, fill = geoarea), alpha = 0.5) +
+  geom_sf(data = myregion) +
+  theme(panel.grid.major = element_line(color = "grey"),
+        panel.background = element_blank())
+ggsave("output/eda/map_of_sampling.jpg")
 
+
+# How much area does a single cruise cover? -------------------------------
+ggplot() + 
+  geom_sf(data = frspace_small, aes(color = geoarea, fill = geoarea), alpha = 0.5) +
+  geom_sf(data = myregion) +
+  facet_wrap(~cruise6) +
+  theme(panel.grid.major = element_line(color = "grey"),
+        panel.background = element_blank(),
+        axis.text.x = element_text(angle = 45, hjust = 1))
+ggsave("output/eda/map_of_sampling_by_cruise.jpg")
+
+
+
+# Look at predators -------------------------------------------------------
+# Each row is an observation of a stomach content item.  Predators have a unique id
+frdata %>%
+  count(pdid)
+
+frdata$pdid %>% unique %>% summary
 
 # How are observations distributed by season/location/predator
 
 # How many different kinds of prey are represented
+
 
 # How many prey/observations have atlantic herring
 
