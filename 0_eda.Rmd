@@ -15,31 +15,18 @@ localfile = c("D:/Dropbox/Predator Diets/")
 ```
 
 
-Load the data, omitting the first column, which is simply a unique ID from the database (I assume).  Also note, they are not consecutive entries probably because Brian just pulled out the top 14 herring predators.  
+Load the data, omitting the first column, which is simply a unique ID from the database (I assume).  Also note, they are not consecutive entries probably because Brian just pulled out the top 14 herring predators.  I needed to sex the max lines read, since I was getting errors for inconsistent types within columns (note: I could use `problems(dataframe)` or add `tokenizer_csv()` to the read statement to check that out).
 ```{r load data, include = FALSE}
-frdata = read_csv("data/fr_diet.csv", guess_max = 365080) %>%
+frdata = read_csv(paste0(localfile, "data/fr_diet.csv"), guess_max = 365080) %>%
   select(-X1)
-```
 
-
-
-# X1 is just the identifier from the database. Not consecutvie because it's only for a subset of predators.
-
-problems(frdata) # was having read errors, that's why I bumbed up guess_max
 colnames(frdata)
 summary(frdata)
+```
 
-# Things that I want to know
+There are `{r} frdata %>% count` rows, which represent individual items/species of prey in each predator's stomach. 
 
-
-# How many observations ---------------------------------------------------
-frdata %>% count
-nrow(frdata)
-
-# But rows may not be independent because they come from the same tow. 
-frdata %>% 
-  count(cruise6) %>% # 6 digit cruise number
-  count
+There are `{r} frdata %>% count(cruise6) %>% count` cruises (should be one per season per year). 
 
 unique(frdata$cruise6) %>% length
 
