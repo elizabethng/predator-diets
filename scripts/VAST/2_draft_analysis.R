@@ -14,7 +14,7 @@ Species = c("SILVER HAKE", "RED HAKE", "FOURSPOT FLOUNDER", "ATLANTIC COD",
 Species_name = gsub(" ", "_", Species)
 
 # 0. Create output directory ----------------------------------------------
-DateFile = paste("output", "VAST", paste0("rho_22_draft_", Species_name), sep = "/")
+DateFile = paste("output", "VAST", paste0("TEST_", Species_name), sep = "/")
 dir.create(here(DateFile))
 
 
@@ -86,14 +86,14 @@ RhoConfig = c(
   "Epsilon2" = 0) 
 
 Options = c(        # calculate derived quantities?
-  "SD_site_density" = 0,
-  "SD_site_logdensity" = 0,
+  "SD_site_density" = 1,
+  "SD_site_logdensity" = 1,
   "Calculate_Range" = 0,
   "Calculate_evenness" = 0,
   "Calculate_effective_area" = 0,
   "Calculate_Cov_SE" = 0,
   "Calculate_Synchrony" = 0, 
-  "Calculate_Cojerence" = 0)
+  "Calculate_Coherence" = 0)
 
 # Save settings
 Record = ThorsonUtilities::bundlelist(c(
@@ -259,6 +259,28 @@ Dens_xt = plot_maps(
   cex = 1.8,
   plot_legend_fig = FALSE)
 
+# Predicted CV
+CV_xt = plot_maps(
+  plot_set = c(10),
+  MappingDetails = MapDetails_List[["MappingDetails"]], 
+  Report = Report_orig, 
+  Sdreport = Opt_orig$SD, 
+  PlotDF = MapDetails_List[["PlotDF"]], 
+  MapSizeRatio = MapDetails_List[["MapSizeRatio"]], 
+  Xlim = MapDetails_List[["Xlim"]], 
+  Ylim = MapDetails_List[["Ylim"]], 
+  FileName = DateFile, 
+  Year_Set = Year_Set, 
+  Years2Include = Years2Include, 
+  Rotate = MapDetails_List[["Rotate"]], 
+  Cex = MapDetails_List[["Cex"]], 
+  Legend = MapDetails_List[["Legend"]], 
+  zone = MapDetails_List[["Zone"]], 
+  mar = c(0,0,2,0), 
+  oma = c(3.5,3.5,0,0), 
+  cex = 1.8, 
+  category_names = levels(Data_Geostat[,'spp']) )
+
 # UTM output for plotting
 Dens_DF = data.frame(
   Density = as.vector(Dens_xt),
@@ -284,13 +306,13 @@ Index = plot_biomass_index(
 pander::pandoc.table(Index$Table[,c("Year","Fleet","Estimate_metric_tons","SD_log","SD_mt")])
 
 # Range shifts (not run)
-plot_range_index(
-  Report = Report,
-  TmbData = TmbData,
-  Sdreport = Opt[["SD"]],
-  Znames = colnames(TmbData$Z_xm),
-  PlotDir = here(DateFile), 
-  Year_Set = Year_Set)
+# plot_range_index(
+#   Report = Report,
+#   TmbData = TmbData,
+#   Sdreport = Opt[["SD"]],
+#   Znames = colnames(TmbData$Z_xm),
+#   PlotDir = here(DateFile), 
+#   Year_Set = Year_Set)
 
 
 
