@@ -50,3 +50,44 @@ dat = read_table(here("data", "depth_data.txt"), col_names = FALSE) %>%
 
 ggplot(dat, aes(lon, lat, fill = depth)) + geom_raster()
 # hmm looks wonky. come back to this
+
+
+# Closer look at stuff inside VAST
+data(northwest_atlantic_grid, package = "FishStatsUtils")
+
+with(northwest_atlantic_grid, plot(Lon, Lat, pch = "."))
+ggplot(northwest_atlantic_grid, aes(Lon, Lat, color = factor(stratum_number))) + geom_point() + theme(legend.title = element_blank())
+ggplot(northwest_atlantic_grid, aes(Lon, Lat, color = Area_in_survey_km2)) + geom_point() + theme(legend.position = "none") + facet_wrap(~EPU)
+
+# Looks like the small areas are weird boundaries? Maybe left over from a shapefile...
+ggplot(filter(northwest_atlantic_grid, Area_in_survey_km2 < 13), aes(Lon, Lat, color = Area_in_survey_km2)) + 
+  geom_point() + theme(legend.position = "none")
+
+ggplot(filter(northwest_atlantic_grid, Area_in_survey_km2 > 13), aes(Lon, Lat, color = Area_in_survey_km2)) + 
+  geom_point() + theme(legend.position = "none")
+
+ggplot(filter(northwest_atlantic_grid, Area_in_survey_km2 > 13), aes(Lon, Lat)) + 
+  geom_point(pch = ".") + theme(legend.position = "none")
+
+# Then I end up with weird shadows. 
+# I wonder if I can just use this to get an outer boundary, and then just use sf to get a regular grid
+
+nw_perimeter = northwest_atlantic_grid %>%
+  st_as_sf(coords = c("Lon", "Lat"), crs = 4326) %>%
+  concaveman::concaveman()
+
+nw_grid = nw_perimeter %>%
+  st_make_grid(cellsize = 0.09^2)
+
+plot(nw_grid)
+plot(nw_perimeter, add = TRUE)
+
+
+plot(st_make_grid(what = "centers"), axes = TRUE)
+plot(st_make_grid(what = "corners"), add = TRUE, col = 'green', pch=3)
+sfc = st_sfc(st_polygon(list(rbind(c(0,0), c(1,0), c(1,1), c(0,0)))))
+plot(st_make_grid(sfc, cellsize = .1, square = FALSE))
+plot(sfc, add = TRUE)
+# non-default offset:
+plot(st_make_grid(sfc, cellsize = .1, square = FALSE, offset = c(0, .05 / (sqrt(3)/2))))
+plot(sfc, add = TRUE)
