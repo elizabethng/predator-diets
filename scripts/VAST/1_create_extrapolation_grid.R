@@ -76,12 +76,21 @@ nw_perimeter = northwest_atlantic_grid %>%
   st_as_sf(coords = c("Lon", "Lat"), crs = 4326) %>%
   concaveman::concaveman()
 
+# Default is 10 x 10 grid (or ~1.3 x 1.2 degrees)
 nw_grid = nw_perimeter %>%
-  st_make_grid(cellsize = 0.09^2)
+  st_make_grid(n = c(40, 40)) %>%      # 0.09^2 # takes about 10 min
+  st_intersection(nw_perimeter)
 
-plot(nw_grid)
+plot(nw_grid) # takes about 
 plot(nw_perimeter, add = TRUE)
 
+# calculat areas of polygons
+# may want to do this for UTM stuff instead?
+nw_grid %>% mutate(areast_area()) # how to track units automatically? need to set units for object?
+
+# Get centroids for VAST stuff
+mutate(centroid = st_centroid())     # probably need a pull here
+plot(st_centroid(nw_grid)) # good enough to do after clipping? yes, since those are the areas I'm looking at
 
 plot(st_make_grid(what = "centers"), axes = TRUE)
 plot(st_make_grid(what = "corners"), add = TRUE, col = 'green', pch=3)
