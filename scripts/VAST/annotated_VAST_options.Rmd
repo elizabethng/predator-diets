@@ -1,0 +1,553 @@
+---
+title: "Annotate guide to VAST options and model"
+output: html_notebook
+editor_options: 
+  chunk_output_type: inline
+---
+
+```{r preliminaries}
+library(here)
+library(VAST)
+library(TMB)
+
+Run_Example = TRUE
+
+# Create location for saving results
+DateFile = paste("output", "VAST", "VAST_output_2", sep = "/")
+dir.create(here(DateFile))
+```
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(cache = TRUE, cache.path = here(DateFile, "cache"))
+```
+
+
+QUESTION: what/how do you determine the number of spatial factors?
+QUESTION: are factors just groupings of the multimariate response vector?? so irrelevant if you have only univariate response???
+
+Options for built-in example
+```{r}
+if(Run_Example == TRUE){
+  Data_Set = "GB_spring_haddock"
+  strata.limits = 
+    list('Georges_Bank'= c(1130, 1140, 1150, 1160, 1170, 1180, 1190, 1200, 1210, 1220, 1230, 1240, 1250, 1290, 1300))
+  Region = "Northwest_Atlantic"
+  data(georges_bank_haddock_spring, package="FishStatsUtils")         
+  Data_Geostat = data.frame("Catch_KG" = georges_bank_haddock_spring[,'CATCH_WT_CAL'],
+                            "Year" = georges_bank_haddock_spring[,'YEAR'], 
+                            "Vessel" = "missing", 
+                            "AreaSwept_km2" = 0.0112*1.852^2, 
+                            "Lat" = georges_bank_haddock_spring[,'LATITUDE'],
+                            "Lon" = georges_bank_haddock_spring[,'LONGITUDE'])
+  Data_Geostat = na.omit(Data_Geostat)
+  Extrapolation_List = make_extrapolation_info(Region=Region, strata.limits=strata.limits)
+}
+
+```
+
+Source the function from FISH 556, lecture 7 that Jim created to simulate spatio-temporal data
+# CHECK #
+```{r}
+# source(here::here("examples", "VAST", "my_simulated_data", "Fn_simulate_sample_data_EN.R"))
+# mydata = Sim_Fn()
+```
+
+
+
+# Model structure
+Encounter probability
+$$
+p_1(i) = \beta_i(c_i, t_i) + 
+         \sum_{f=1}^{n_{\omega_1}}L_{\omega_1}(c_i,f)\omega_1(s_i,f) + 
+         \sum_{f=1}^{n_{\epsilon_1}}L_{\epsilon_1}(c_i,f)\epsilon_1(s_i,f,t_i) + \\
+         \sum_{f=1}^{n_{\eta_1}}L_1(c_i,f)\eta_i(\nu_i,f) + 
+         \sum_{p=1}^{n_p}\gamma_1(c_i,t_i,p)X(x_i,t_i,p) + 
+         \sum_{k=1}^{n_k}\lambda_1(k)Q(i,k)
+$$
+
+where
+
+$p_1(i)$ is the probability of non-zero catch for observation $i$
+
+$\beta_i(c_i, t_i)$ is the intercept (I think these are year effects)
+
+$c_i$ is the category number (??used when response is a vector of observations)
+
+$t_i$ time interval for observation $i$
+
+$\omega_1(s_i, f)$ is the spatial variation at location $s_i$ for factor $f$ (of $n_{\omega_1}$ factors representing spatial variation)
+
+$L_{\omega_1}(c_i, f)$ is the loadings matrix that generates spatial covariation among categories (?? what is f?)
+
+$\epsilon_1(s_i, f, t_i)$ is spatio-temporal variation for each factor $f$ (of $n_{\epsilon_1}$ factors representing spatio-temporal variation)
+
+$L_{\epsilon_1}(c_i, f)$ is the loadings matrix that generates spatio-temporal covariation 
+
+$\eta_1(\nu_i,f)$ is random variation in catchability among a grouping variable (e.g., tows or vessesls) for each factor $f$ (of $n_{\eta_1}$ factors representing overdispersion)
+
+NOTE that $f$ is indexing something different in each of these quantities so far...I thought it represented different groupings of the categories of response variables, but not I'm not sure. 
+
+$L_1(c_i, f)$ is the loadings matrix that generates covariation in catchability among categories
+
+$X(x_i, t_i, p)$ is an array of $n_p$ measured density covariates that explain variation in density for time $t$ and knot $x$
+
+$\gamma_1(c_i, t_i, p)$ is the impact of density (habitat) covariates by category
+
+$Q(i,k)$ is a matrix of $n_k$ measured catchability covariates
+
+$\lambda_1(k)$ is the impact of catchability covariates
+
+By default, VAST specifies that $\gamma_1(c, t_1, p) = \gamma_1(c, t_2, p)$ for all years $t_1$ and $t_2$, although users can relax this constraind by specifying a different structure for `Data_Fn(...,Map=NewMap)`.  
+
+The spatial, spatio-temporal, and overdispersion loadings matrices are designed such that $\mathbf{L}^T\mathbf{L}$ is the covariance among categories for a given process, and when there is only one category $\mathbf{L}$ is a $1\times1$ matrix (i.e., a scalar) such that its absolute value is the standard deviation for a given process.  This model therefore reduces to a single-species spatio-temporal model when *only one category* is available. 
+
+# Model settings
+See `?VAST::make_data` for current options for each value.
+
+The following settings define whether to include spatial and spatio-temporal variation, whether its autocorrelated, and whether there's overdispersion.
+
+## Select the CPP file to use
+Get version for CPP code
+```{r}
+Version = get_latest_version(package = "VAST")
+```
+
+## Number of spatial and spatio-temporal factors
+`Omega1` is $n_{\omega_1}$, the number of spatial variation factors.  `Epsilon1` is $n_{\epsilon_1}$, the number of spatio-temporal factors for encounter probability. The other two are for the positive catch rates. A value of 0 turns off each component.  A value of `AR1` specifies an AR1 process, and a number >0 is the number of elements in a factor-analysis covariance. 
+```{r}
+FieldConfig = c("Omega1" = 1, "Epsilon1" = 1, "Omega2" = 1, "Epsilon2" = 1) 
+```
+
+## Number of overdispersion factors
+These are the number of catchability factors for each linear predictor (optional). `OverdispersionConfig[1]` controls $n_{\delta_1}$ and `OverdispersionConfig[2]` controls $n_{\delta_2}$. For example, setting it to `c(1,1)` will give one random effect estimated for each unique level of `Data_Geostat$Vessel` for both linear predictors. Can also use `AR1`. 
+QUESTION: that is an AR1 process on that same level through time?
+```{r}
+OverdispersionConfig = c("Eta1" = 0, "Eta2" = 0)
+```
+
+## Observation error distributions and link functions
+`ObsModel` has two components. The first is for the observation error distribution and the second is for the link function. See `?VAST::make_data` for current options for each value. Quick reference for some useful distributions for `PosDist`:
+
+* 0: Normal
+* 1: Lognormal
+* 2: Gamma
+* 10: Tweedie
+
+And some options for `Link`:
+
+* 0: delta-model (logit-link for probability, log-link for catch rates)
+* 1: Poisson-link delta-model
+* 2: link function for Tweedie
+* 3: Poisson-link delta model, but fixing encounter probability = 1 for years where all samples encounter species or probability = 0 for years without sampling the species. 
+
+Naming convention may have been updated to `ObsModel_ez`, which is a matrix. That is probably to allow the use of different data sets. 
+```{r}
+ObsModel = c("PosDist" = 2, "Link" = 0)  
+```
+
+## Structure on parameters among years
+By default, the spatial and spatio-temporal Gaussian random effects each have a variance of 1.0, which means that the covariance among categories is defined by the loadings matrix.  However, spatio-temporal variance can be specified differently to add covariance structure among years.  
+
+
+### Temporal structure on intercepts
+`RhoConfig[1]` and `RhoConfig[2]` control $\rho_{\beta_1}$ and $\rho_{\beta_2}$ in the equation below. 
+$$
+\beta_1(t+1) \sim Normal(\rho_{\beta_1}\beta_1(t), \sigma_{\beta_1}^{2}) \\
+\beta_2(t+1) \sim Normal(\rho_{\beta_2}\beta_2(t), \sigma_{\beta_2}^{2})
+$$
+This gives the following possible parameterizations:
+
+* Fixed effect: `RhoConfig[1]` = 0: $\beta_1(t)$ are fixed effects (traditional index standardization) 
+
+* Independent among years: `RhoConfig[1]` = 1  specifies $\rho_{\beta_1}$ = 0
+
+* Random walk: `RhoConfig[1]` = 2 specifies $\rho_{\beta_1}$ = 1
+
+* Constant intercept: `RhoConfig[1]` = 3 specifies $\rho_{\beta_1}$ = 0 and $\sigma_{\beta_1}^{2} = 0$ (i.e., $\beta_1(t)$ is constant for all $t$)
+
+* Autoregressive: `RhoConfig[1]` = 4 estimates $\rho_{\beta_1}$ as a fixed effect
+
+### Temporal structure on spatio-temporal variation
+By defaul (when `RhoConfig[3]` = 0 and `RhoConfig[4]` = 0), the model specifies that each spatio-temporal random effect $\epsilon_1(s,f,t)$ and $\epsilon_2(s,f,t)$ is independent among years.  However we can modify the setting to get
+$$
+\epsilon_1(s,f,t) \sim MVN(\rho_{\epsilon_1}\epsilon_1(s, f, t), \sigma_{\epsilon_1}^2 \mathbf{R}_1) \\
+\epsilon_2(s,f,t) \sim MVN(\rho_{\epsilon_2}\epsilon_2(s, f, t), \sigma_{\epsilon_2}^2 \mathbf{R}_2)
+$$
+where `RhoConfig[3]` controls the specification of $\rho_{\epsilon_1}$ (autocorrelation for spatio-temporal covariation)
+
+* Random walk: `RhoConfig[3]` = 2 specifies $\rho_{\epsilon_1}$ = 1
+
+* Autoregressive: `RhoConfig[3]` = 4 estimates $\rho_{\epsilon_1}$ as a fixed effect. 
+
+
+```{r, tidy=TRUE}
+RhoConfig = c("Beta1" = 0, "Beta2" = 0, "Epsilon1" = 0, "Epsilon2" = 0) 
+```
+
+## Spatial settings
+The following settings define the spatial resolution for the model, and whether to use a grid or mesh approximation. Note default is to allo anisotropy. 
+
+### Number of knots
+```{r}
+Method = c("Grid", "Mesh", "Spherical_mesh")[2]
+grid_size_km = 25
+n_x = 100   # Specify number of stations (a.k.a. "knots")
+```
+
+### Extrapolation grid
+We also generate the extrapolation grid appropriate for a given region.  For new regions, we use `Region="Other"`. (?? Or maybe "User"??) (?? maybe this is l index??)
+
+From documentation, use the option `input_grid` to supply a matrix with three columns (labeled `LAT`, `LON`, and `Area_km2`) when using `Region == "USER"`). This seems useful when you calculate knot locations externally to feed the same conformations time after time. In Arnaud's example, he also had depth covariate in the `input_grid` option.  I could calculate average or get from a map? Depth might also make sense as a catchability covariate. 
+
+Also try using the `observations_LL` which will probaly generate knots during the run, but would probably give different results each time because the algorithm is stochastic.  
+```{r}
+if(Run_Example == FALSE){
+  Region = c("User")
+  strata.limits = data.frame('STRATA'="All_areas") # would need to change this for example....
+  Extrapolation_List = make_extrapolation_info(Region = Region, strata.limits = strata.limits)
+}
+```
+DATA AND DateFILE must come before this one
+```{r spatial_information, message=FALSE, warning=FALSE, tidy=TRUE, linewidth=60}
+Spatial_List = make_spatial_info(grid_size_km = grid_size_km,
+                                 n_x = n_x,
+                                 Method = Method,
+                                 Lon = Data_Geostat[,'Lon'],
+                                 Lat = Data_Geostat[,'Lat'],
+                                 Extrapolation_List = Extrapolation_List,
+                                 DirPath = here(DateFile),
+                                 Save_Results = TRUE)
+# Add knots to Data_Geostat
+Data_Geostat = cbind(Data_Geostat, "knot_i" = Spatial_List$knot_i)
+```
+
+
+# Derived quantities
+Estimated values of fixed and random effects are used to predict the density $d(x,c,t)$ as the product of the two linear predictors, dropping the catchability variables
+$$
+d(x,c,t) = r_1^*(x,c,t) \times r_2^*(x,c,t)
+$$
+ where $x$ indexes the knot, $c$ indexes the category, and $t$ indexes the time interval.  The quantity $r_1^*(x,c,t)$ is the inverse link of $p_1(x,c,t)$ and $r_2^*(x,c,t)$ is the inverse link of $p_2(x,c,t)$, except the catchability variables are excluded (that is, $\eta_1(\nu, f)$ = 0 and $\lambda_1(k)$ = 0, etc.)
+
+The estimated density is used to predict total abundance of the entire domain (?? Defined where??) for a given species (or category?? which is indexed by c, or l?)
+$$
+I(c,t,l) = \sum_{x = 1}^{n_x} (a(x,l) \times d(x,c,t))
+$$
+where $a(x,l)$ is the area associated with extrapolation-cell (knot) $x$ for index $l$; and $n_x$ is the number of extrapolation-cells. It appears that $l$ is the index for the stratum (?? maybe left over from comparisons with stratified estimators??). The user can also specify additional post-hoc calculations via the `Options` vector:
+```{r}
+Options = c("SD_site_density" = 0,
+            "SD_site_logdensity" = 0,
+            "Calculate_Range" = 0,
+            "Calculate_evenness" = 0,
+            "Calculate_effective_area" = 0,
+            "Calculate_Cov_SE" = 0,
+            "Calculate_Synchrony" = 0, 
+            "Calculate_Cojerence" = 0)
+```
+(0 = FALSE, 1 = TRUE)
+
+Some of these options appear to require specific model specifications. 
+
+1. Distribution shift -- `RhoConfig[3] = 1` turns on (spatio-temporal autocorrelation in positive catch rates [among groups/categories or knots through time??] and thereby turns on the) calculation of the centroid of the population's distribution
+$$
+Z(c,t,m) = \sum_{x=1}^{n_x} \frac{z(x,m) \times a(x,l) \times d(x,c,t)}{I(c,t,l)}
+$$
+where $z(x,m)$ is a matrix representing the location for each knot (by default $z(x,m)$ is the location in Eastings and Northings of each knot), representing movement North-South and East-West. This model-based appraoch to estimating distribution shift can account for differences in the spatial distribution of sampling, unlike conventional sample-based estimators.  (?? How exactly??)
+
+2. Range expansion -- `RhoConfig[5] = 1` turns on calculation of effective area occupied. (?? Is this done by the `Options` vector, or must it be done in `RhoConfig` itself??) This involves calculating biomass-weighted average density:
+$$
+D(c,t,l) = \sum_{x=1}^{n_x} \frac{a(x,l) \times d(x,c,t)}{I(c,t,l)}d(x,c,t)
+$$
+(area of knot x at index l times density at knot x of category c in time t divided by the overall index value for category c in year t at index l (i.e., normalized density??) times density at knot x for category c in year t). Maybe the idea of doing biomass weighting makes more sense for numbers than for biomass itself...
+
+Effective area occupied is then calculated as the area required to contain the population at this average density
+$$
+A(c,t,l) = \frac{I(c,t,l)}{D(c,t,l)}
+$$
+
+
+
+
+# Save settings
+I also like to save all settings for later reference, although this is not necessary.
+```{r, tidy=TRUE, linewidth=50}
+Record = ThorsonUtilities::bundlelist(
+  c("Data_Set",
+    "Version",
+    "Method",
+    "grid_size_km",
+    "n_x",
+    "FieldConfig",
+    "RhoConfig",
+    "OverdispersionConfig",
+    "ObsModel",
+    "Options"))
+save(Record, file = here(DateFile,"Record.RData"))
+capture.output(Record, file = here(DateFile, "Record.txt"))
+```
+
+
+
+
+
+# Parameter estimation
+Define other settings
+```{r}
+Use_REML = FALSE
+# Aniso = FALSE # default is true
+# Npool = 20 #not sure what this is....
+```
+
+
+## Build model
+To estimate parameters, we first build a list of data-inputs used for parameter estimation.  `make_data` has some simple checks for buggy inputs, but also please read the help file `?make_data`.  
+```{r build_data, message=FALSE, tidy=TRUE, linewidth=60}
+TmbData = make_data(
+  "Version" = Version, 
+  "FieldConfig" = FieldConfig,
+  "OverdispersionConfig" = OverdispersionConfig,
+  "RhoConfig" = RhoConfig,
+  "ObsModel" = ObsModel,
+  "c_i" = rep(0,nrow(Data_Geostat)),
+  "b_i" = Data_Geostat[,'Catch_KG'],
+  "a_i" = Data_Geostat[,'AreaSwept_km2'],
+  "v_i" = as.numeric(Data_Geostat[,'Vessel'])-1,
+  "s_i" = Data_Geostat[,'knot_i']-1,
+  "t_i" = Data_Geostat[,'Year'],
+  "a_xl" = Spatial_List$a_xl,
+  "MeshList" = Spatial_List$MeshList,
+  "GridList" = Spatial_List$GridList, 
+  "Method" = Spatial_List$Method,
+  "Options" = Options )
+```
+
+We then build the TMB object.
+```{r build_object, message=FALSE, results="hide", tidy=TRUE}
+TmbList = make_model("TmbData" = TmbData, 
+                     "RunDir" = here(DateFile),
+                     "Version" = Version,
+                     "RhoConfig" = RhoConfig,
+                     "loc_x" = Spatial_List$loc_x,
+                     "Method" = Spatial_List$Method)
+Obj = TmbList[["Obj"]]
+```
+Use the function `ThorsonUtilities::list_parameters(Obj)` to see a list of estimated parameters
+
+
+## Estimate fixed effects and predict random effects
+Next, we use a gradient-based nonlinear minimizer to identify maximum likelihood estimates for fixed-effects. Note: turn off `bias.correct` to save some time during initial runs. 
+```{r estimate_parameters, results="hide", tidy=TRUE}
+Opt = TMBhelper::Optimize(obj = Obj,
+                          lower = TmbList[["Lower"]],
+                          upper = TmbList[["Upper"]],
+                          getsd = TRUE, 
+                          savedir = here(DateFile),
+                          bias.correct = FALSE,
+                          newtonsteps = 1,
+                          bias.correct.control = list(
+                            sd=FALSE, split=NULL, nsplit=1, vars_to_correct="Index_cyl"))
+```
+
+Finally, we bundle and save output
+```{r save_results, linewidth=60}
+Report = Obj$report()
+Save = list(
+  "Opt" = Opt,
+  "Report" = Report,
+  "ParHat" = Obj$env$parList(Opt$par),
+  "TmbData" = TmbData)
+save(Save, file = here(DateFile,"Save.RData"))
+```
+
+
+
+
+
+# DIAGNOSTIC PLOTS
+
+We first apply a set of standard model diagnostics to confirm that the model is reasonable and deserves further attention.  If any of these do not look reasonable, the model output should not be interpreted or used.
+
+## Plot data
+
+It is always good practice to conduct exploratory analysis of data.  Here, I visualize the spatial distribution of data.  Spatio-temporal models involve the assumption that the probability of sampling a given location is statistically independent of the probability distribution for the response at that location.  So if sampling "follows" changes in density, then the model is probably not appropriate!
+```{r explore_data, results="hide", tidy=TRUE, message=FALSE, warning=FALSE}
+plot_data(
+  Extrapolation_List = Extrapolation_List,
+  Spatial_List = Spatial_List,
+  Data_Geostat = Data_Geostat,
+  PlotDir = here(DateFile, "/"))
+```
+![Spatial extent and location of knots]("D:/Dropbox/Predator_Diets/output/VAST/VAST_output_2/Data_and_knots.png")
+![Spatial distribution of catch-rate data](DateFile, "Data_by_year.png")
+
+## Convergence
+Here I print the diagnostics generated during parameter estimation, and I confirm that (1) no parameter is hitting an upper or lower bound and (2) the final gradient for each fixed-effect is close to zero. For explanation of parameters, please see `?make_data`.
+```{r print_results, results="asis"}
+pander::pandoc.table( Opt$diagnostics[,c('Param','Lower','MLE','Upper','final_gradient')] ) 
+```
+
+## Diagnostics for encounter-probability component
+Next, we check whether observed encounter frequencies for either low or high probability samples are within the 95% predictive interval for predicted encounter probability
+```{r diagnostics_encounter_prob, results="hide", eval=TRUE, tidy=TRUE, linewidth=50}
+Enc_prob = plot_encounter_diagnostic(
+  Report = Report,
+  Data_Geostat = Data_Geostat,
+  DirName = here(DateFile))
+```
+![Expectated probability and observed frequency of encounter for "encounter probability" component](here(DateFile, "Diag--Encounter_prob.png"))
+
+## Diagnostics for positive-catch-rate component
+We can visualize fit to residuals of catch-rates given encounters using a Q-Q plot.  A good Q-Q plot will have residuals along the one-to-one line.  
+```{r plot_QQ, eval=TRUE, tidy=TRUE, linewidth=50, message=FALSE, warning=FALSE}
+Q = plot_quantile_diagnostic(
+  TmbData = TmbData,
+  Report = Report,
+  FileName_PP = "Posterior_Predictive",
+  FileName_Phist = "Posterior_Predictive-Histogram", 
+  FileName_QQ = "Q-Q_plot", 
+  FileName_Qhist = "Q-Q_hist", 
+  DateFile = here(DateFile))
+```
+Caption: Quantile-quantile plot indicating residuals for "positive catch rate" component (QQ_Fn/Q-Q_plot-1.jpg)
+
+## Diagnostics for plotting residuals on a map
+Finally, we visualize residuals on a map.  To do so, we first define years to plot and generate plotting inputs.
+useful plots by first determining which years to plot (`Years2Include`), and labels for each plotted year (`Year_Set`)
+```{r plot_years}
+# Get region-specific settings for plots
+MapDetails_List = make_map_info(
+  "Region" = Region,
+  "NN_Extrap" = Spatial_List$PolygonList$NN_Extrap,
+  "Extrapolation_List" = Extrapolation_List)
+
+# Decide which years to plot                                                   
+Year_Set = seq(min(Data_Geostat[,'Year']),max(Data_Geostat[,'Year']))
+Years2Include = which(Year_Set %in% sort(unique(Data_Geostat[,'Year'])))
+```
+
+We then plot Pearson residuals. If there are visible patterns (areas with consistently positive or negative residuals accross or within years) then this is an indication of the model "overshrinking" results towards the intercept, and model results should then be treated with caution.  
+```{r plot_pearson_resid, message=FALSE, warning=FALSE, tidy=TRUE, linewidth=50}
+plot_residuals(
+    Lat_i = Data_Geostat[,'Lat'],
+    Lon_i = Data_Geostat[,'Lon'],
+    TmbData = TmbData,
+    Report = Report,
+    Q = Q,
+    savedir = here(DateFile),
+    MappingDetails = MapDetails_List[["MappingDetails"]],
+    PlotDF = MapDetails_List[["PlotDF"]],
+    MapSizeRatio = MapDetails_List[["MapSizeRatio"]],
+    Xlim = MapDetails_List[["Xlim"]],
+    Ylim = MapDetails_List[["Ylim"]],
+    FileName = here(DateFile),
+    Year_Set = Year_Set,
+    Years2Include = Years2Include,
+    Rotate = MapDetails_List[["Rotate"]],
+    Cex = MapDetails_List[["Cex"]],
+    Legend = MapDetails_List[["Legend"]],
+    zone = MapDetails_List[["Zone"]],
+    mar = c(0,0,2,0),
+    oma = c(3.5,3.5,0,0),
+    cex = 1.8)
+```
+
+## Model selection
+To select among models, we recommend using the Akaike Information Criterion, AIC, via `Opt$AIC=` ``r Opt$AIC``. 
+
+
+# MODEL OUTPUT
+Last but not least, we generate pre-defined plots for visualizing results
+
+## Direction of "geometric anisotropy"
+We can visualize which direction has faster or slower decorrelation (termed "geometric anisotropy")
+```{r plot_aniso, message=FALSE, results="hide", tidy=TRUE}
+plot_anisotropy(
+  FileName = here(DateFile,"Aniso.png"),
+  Report = Report,
+  TmbData = TmbData)
+```
+
+
+## Density surface for each year
+We can visualize many types of output from the model.  Here I only show predicted density, but other options are obtained via other integers passed to `plot_set` as described in `?plot_maps`
+```{r plot_density, message=FALSE, warning=FALSE, tidy=TRUE, linewidth=50}
+Dens_xt = plot_maps(
+  plot_set = c(3), 
+  MappingDetails = MapDetails_List[["MappingDetails"]],
+  Report = Report,
+  Sdreport = Opt$SD,
+  PlotDF = MapDetails_List[["PlotDF"]], 
+  MapSizeRatio = MapDetails_List[["MapSizeRatio"]],
+  Xlim = MapDetails_List[["Xlim"]],
+  Ylim = MapDetails_List[["Ylim"]],
+  FileName = here(DateFile, "/"),
+  Year_Set = Year_Set,
+  Years2Include = Years2Include,
+  Rotate = MapDetails_List[["Rotate"]],
+  Cex = MapDetails_List[["Cex"]],
+  Legend = MapDetails_List[["Legend"]],
+  zone = MapDetails_List[["Zone"]],
+  mar = c(0,0,2,0),
+  oma = c(3.5,3.5,0,0),
+  cex = 1.8,
+  plot_legend_fig = FALSE)
+```
+
+We can also extract density predictions at different locations, for use or plotting in other software. This is output in UTM using zone `r Extrapolation_List$zone-ifelse(Extrapolation_List$flip_around_dateline,30,0)`
+```{r calc_density_dataframe, message=FALSE, warning=FALSE, tidy=TRUE, linewidth=50}
+Dens_DF = cbind(
+  "Density" = as.vector(Dens_xt),
+  "Year" = Year_Set[col(Dens_xt)],
+  "E_km" = Spatial_List$MeshList$loc_x[row(Dens_xt),'E_km'],
+  "N_km" = Spatial_List$MeshList$loc_x[row(Dens_xt),'N_km'])
+```
+
+```{r show_density_head, results="asis", echo=FALSE}
+pander::pandoc.table(Dens_DF[1:6,], digits = 3)
+```
+
+[[ PUT BACK FIGURE CAPTIONS ABOVE THIS]]
+## Index of abundance
+The index of abundance is generally most useful for stock assessment models.
+```{r plot_index, message=FALSE, tidy=TRUE, linewidth=50, results="asis"}
+Index = plot_biomass_index(
+  DirName = here(DateFile),
+  TmbData = TmbData,
+  Sdreport = Opt[["SD"]],
+  Year_Set = Year_Set,
+  Years2Include = Years2Include,
+  use_biascorr = TRUE)
+
+pander::pandoc.table(Index$Table[,c("Year","Fleet","Estimate_metric_tons","SD_log","SD_mt")]) 
+```
+Caption: Index of abundance plus/minus 1 standard error
+
+## Center of gravity and range expansion/contraction
+We can detect shifts in distribution or range expansion/contraction.  
+```{r plot_range, message=FALSE, tidy=TRUE, linewidth=50}
+plot_range_index(
+  Report = Report,
+  TmbData = TmbData,
+  Sdreport = Opt[["SD"]],
+  Znames = colnames(TmbData$Z_xm),
+  PlotDir = here(DateFile), 
+  Year_Set = Year_Set)
+```
+Caption: Center of gravity (COG) indicating shifts in distribution plus/minus 1 standard error
+Caption: Effective area occupied indicating range expansion/contraction plus/minus 1 standard error
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
