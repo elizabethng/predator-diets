@@ -49,7 +49,7 @@ nw_points$UTM_N = tmp_utm[,2]
 
 # 5. Calculate polygon areas
 #    May want to do this for UTM stuff instead?
-nw_points$area_km2 = nw_grid %>% 
+nw_points$Area_km2 = nw_grid %>% 
   st_transform(crs = 32610) %>%
   st_area() %>%
   units::set_units(., "km^2")
