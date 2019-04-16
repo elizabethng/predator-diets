@@ -7,11 +7,14 @@ library(TMB)
 
 ?VAST::make_data
 
+Use_my_grid = TRUE
+
 Species = c("SILVER HAKE", "RED HAKE", "FOURSPOT FLOUNDER", "ATLANTIC COD", 
             "POLLOCK", "WHITE HAKE", "WINTER SKATE", "SPINY DOGFISH", "SUMMER FLOUNDER", 
-            "GOOSEFISH", "THORNY SKATE", "SEA RAVEN", "BLUEFISH", "WEAKFISH")[8]
+            "GOOSEFISH", "THORNY SKATE", "SEA RAVEN", "BLUEFISH", "WEAKFISH")[4]
 
 Species_name = gsub(" ", "_", Species)
+
 
 # 0. Create output directory ----------------------------------------------
 DateFile = paste("output", "VAST", paste0("TEST_", Species_name), sep = "/")
@@ -37,10 +40,31 @@ Data_Geostat = data.frame(
 
 
 # 2. Set up extrapolation -------------------------------------------------
-Data_Set = paste(Species, "all seasons")
-Region = "Northwest_Atlantic"
-strata.limits = list('Georges_Bank'= c(1130, 1140, 1150, 1160, 1170, 1180, 1190, 1200, 1210, 1220, 1230, 1240, 1250, 1290, 1300))
-Extrapolation_List = make_extrapolation_info(Region = Region, strata.limits = strata.limits)
+if(Use_my_grid == TRUE){
+  my_grid = read_rds(here("output", "data_formatted", "nw_atlantic_grid.rds")) %>%
+    pluck("nw_points") %>%
+    select(Lat, Lon, Area_km2)
+  
+  Data_Set = paste(Species, "all seasons")
+  Region = "User"
+  strata.limits = "All_areas"
+  
+  Extrapolation_List = make_extrapolation_info(
+    Region = Region,
+    strata.limits = strata.limits,
+    input_grid = my_grid) 
+  
+}else{
+  Data_Set = paste(Species, "all seasons")
+  Region = "Northwest_Atlantic"
+  strata.limits = "All_areas"
+  # strata.limits = list('Georges_Bank'= c(1130, 1140, 1150, 1160, 1170, 1180, 1190, 1200, 1210, 1220, 1230, 1240, 1250, 1290, 1300))
+  Extrapolation_List = make_extrapolation_info(Region = Region, strata.limits = strata.limits)
+}
+
+
+
+
 
 Method = c("Grid", "Mesh", "Spherical_mesh")[2]
 grid_size_km = 25
