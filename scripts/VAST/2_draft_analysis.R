@@ -17,7 +17,7 @@ Species_name = gsub(" ", "_", Species)
 
 
 # 0. Create output directory ----------------------------------------------
-DateFile = paste("output", "VAST", paste0("TEST_", Species_name), sep = "/")
+DateFile = paste("output", "VAST", paste0("draft_PL_", Species_name), sep = "/")
 dir.create(here(DateFile))
 
 
@@ -43,11 +43,13 @@ Data_Geostat = data.frame(
 if(Use_my_grid == TRUE){
   my_grid = read_rds(here("output", "data_formatted", "nw_atlantic_grid.rds")) %>%
     pluck("nw_points") %>%
-    select(Lat, Lon, Area_km2)
+    select(Lat, Lon, Area_km2) %>%
+    as.data.frame() %>%
+    mutate(Area_km2 = as.numeric(Area_km2))
   
   Data_Set = paste(Species, "all seasons")
   Region = "User"
-  strata.limits = "All_areas"
+  strata.limits = data.frame('STRATA' = "All_areas")
   
   Extrapolation_List = make_extrapolation_info(
     Region = Region,
@@ -57,8 +59,8 @@ if(Use_my_grid == TRUE){
 }else{
   Data_Set = paste(Species, "all seasons")
   Region = "Northwest_Atlantic"
-  strata.limits = "All_areas"
-  # strata.limits = list('Georges_Bank'= c(1130, 1140, 1150, 1160, 1170, 1180, 1190, 1200, 1210, 1220, 1230, 1240, 1250, 1290, 1300))
+  # strata.limits = data.frame('STRATA' = "All_areas")
+  strata.limits = list('Georges_Bank'= c(1130, 1140, 1150, 1160, 1170, 1180, 1190, 1200, 1210, 1220, 1230, 1240, 1250, 1290, 1300))
   Extrapolation_List = make_extrapolation_info(Region = Region, strata.limits = strata.limits)
 }
 
@@ -76,6 +78,8 @@ Spatial_List = make_spatial_info(
   Method = Method,
   Lon = Data_Geostat$Lon,
   Lat = Data_Geostat$Lat,
+  # LON_intensity = Extrapolation_List$Data_Extrap[which(Extrapolation_List$Data_Extrap[,'Include']==TRUE),'Lon'], # I'm not using excluding any areas
+  # LAT_intensity = Extrapolation_List$Data_Extrap[which(Extrapolation_List$Data_Extrap[,'Include']==TRUE),'Lat'],  
   Extrapolation_List = Extrapolation_List,
   DirPath = here(DateFile),
   Save_Results = TRUE)
@@ -83,7 +87,9 @@ Spatial_List = make_spatial_info(
 # Add knots to Data_Geostat
 Data_Geostat$knot_i = Spatial_List$knot_i
 
-
+# Check the knot locations
+# plot(Spatial_List$loc_x[,1], Spatial_List$loc_x[,2])
+# plot(Extrapolation_List$Data_Extrap$Lon, Extrapolation_List$Data_Extrap$Lat)
 
 
 # 3. Model Settings -------------------------------------------------------
@@ -91,7 +97,9 @@ Version = get_latest_version(package = "VAST")
 
 ObsModel = c(
   "PosDist" = 2,    # Gamma
-  "Link"    = 0)    # Delta model
+  "Link"    = 1)    # Delta model
+# c(2,0) gamma delta
+# c(2,1) compound poisson gamma
 
 OverdispersionConfig = c(
   "Eta1" = 0,       # used for vessel effects
@@ -130,7 +138,8 @@ Record = ThorsonUtilities::bundlelist(c(
   "RhoConfig",
   "OverdispersionConfig",
   "ObsModel",
-  "Options"))
+  "Options",
+  "Spatial_List"))
 save(Record, file = here(DateFile,"Record.RData"))
 capture.output(Record, file = here(DateFile, "Record.txt"))
 
@@ -220,9 +229,7 @@ Q = plot_quantile_diagnostic(
   FileName_Qhist = "Q-Q_hist", 
   DateFile = here(DateFile))
 
-# Map of residuals
 # Get region-specific settings for plots
-# [ ] change region here to plot more places?
 MapDetails_List = make_map_info(
   "Region" = Region,
   "NN_Extrap" = Spatial_List$PolygonList$NN_Extrap,
@@ -232,6 +239,7 @@ MapDetails_List = make_map_info(
 Year_Set = seq(min(Data_Geostat[,'Year']),max(Data_Geostat[,'Year']))
 Years2Include = which(Year_Set %in% sort(unique(Data_Geostat[,'Year'])))
 
+# Map of residuals
 plot_residuals(
   Lat_i = Data_Geostat[,'Lat'],
   Lon_i = Data_Geostat[,'Lon'],
@@ -287,13 +295,13 @@ Dens_xt = plot_maps(
 CV_xt = plot_maps(
   plot_set = c(10),
   MappingDetails = MapDetails_List[["MappingDetails"]], 
-  Report = Report_orig, 
-  Sdreport = Opt_orig$SD, 
+  Report = Report, 
+  Sdreport = Opt$SD, 
   PlotDF = MapDetails_List[["PlotDF"]], 
   MapSizeRatio = MapDetails_List[["MapSizeRatio"]], 
   Xlim = MapDetails_List[["Xlim"]], 
   Ylim = MapDetails_List[["Ylim"]], 
-  FileName = DateFile, 
+  FileName = here(DateFile, "/"), 
   Year_Set = Year_Set, 
   Years2Include = Years2Include, 
   Rotate = MapDetails_List[["Rotate"]], 
@@ -302,8 +310,54 @@ CV_xt = plot_maps(
   zone = MapDetails_List[["Zone"]], 
   mar = c(0,0,2,0), 
   oma = c(3.5,3.5,0,0), 
-  cex = 1.8, 
-  category_names = levels(Data_Geostat[,'spp']) )
+  cex = 1.8)
+
+
+# Predicted density
+Pres_xt = plot_maps(
+  plot_set = c(1), 
+  MappingDetails = MapDetails_List[["MappingDetails"]],
+  Report = Report,
+  Sdreport = Opt$SD,
+  PlotDF = MapDetails_List[["PlotDF"]], 
+  MapSizeRatio = MapDetails_List[["MapSizeRatio"]],
+  Xlim = MapDetails_List[["Xlim"]],
+  Ylim = MapDetails_List[["Ylim"]],
+  FileName = here(DateFile, "/"),
+  Year_Set = Year_Set,
+  Years2Include = Years2Include,
+  Rotate = MapDetails_List[["Rotate"]],
+  Cex = MapDetails_List[["Cex"]],
+  Legend = MapDetails_List[["Legend"]],
+  zone = MapDetails_List[["Zone"]],
+  mar = c(0,0,2,0),
+  oma = c(3.5,3.5,0,0),
+  cex = 1.8,
+  plot_legend_fig = FALSE)
+
+
+# Predicted density
+Pos_xt = plot_maps(
+  plot_set = c(2), 
+  MappingDetails = MapDetails_List[["MappingDetails"]],
+  Report = Report,
+  Sdreport = Opt$SD,
+  PlotDF = MapDetails_List[["PlotDF"]], 
+  MapSizeRatio = MapDetails_List[["MapSizeRatio"]],
+  Xlim = MapDetails_List[["Xlim"]],
+  Ylim = MapDetails_List[["Ylim"]],
+  FileName = here(DateFile, "/"),
+  Year_Set = Year_Set,
+  Years2Include = Years2Include,
+  Rotate = MapDetails_List[["Rotate"]],
+  Cex = MapDetails_List[["Cex"]],
+  Legend = MapDetails_List[["Legend"]],
+  zone = MapDetails_List[["Zone"]],
+  mar = c(0,0,2,0),
+  oma = c(3.5,3.5,0,0),
+  cex = 1.8,
+  plot_legend_fig = FALSE)
+
 
 # UTM output for plotting
 Dens_DF = data.frame(
@@ -311,12 +365,7 @@ Dens_DF = data.frame(
   Year = Year_Set[col(Dens_xt)],
   E_km = Spatial_List$MeshList$loc_x[row(Dens_xt),'E_km'],
   N_km = Spatial_List$MeshList$loc_x[row(Dens_xt),'N_km'])
-
-pander::pandoc.table(Dens_DF[1:6,], digits = 3)
-
-# Would need to do into kmeans folder and associate each 
-# point with area of the map to fill in
-ggplot(Dens_DF, aes(E_km, N_km, color = Density)) + geom_point()
+write_csv(Dens_DF, here(DateFile, "Dens_DF.txt"))
 
 # Abundance index
 Index = plot_biomass_index(
@@ -327,16 +376,10 @@ Index = plot_biomass_index(
   Years2Include = Years2Include,
   use_biascorr = TRUE)
 
-pander::pandoc.table(Index$Table[,c("Year","Fleet","Estimate_metric_tons","SD_log","SD_mt")])
+# pander::pandoc.table(Dens_DF[1:6,], digits = 3)
+# pander::pandoc.table(Index$Table[,c("Year","Fleet","Estimate_metric_tons","SD_log","SD_mt")])
 
-# Range shifts (not run)
-# plot_range_index(
-#   Report = Report,
-#   TmbData = TmbData,
-#   Sdreport = Opt[["SD"]],
-#   Znames = colnames(TmbData$Z_xm),
-#   PlotDir = here(DateFile), 
-#   Year_Set = Year_Set)
+
 
 
 
