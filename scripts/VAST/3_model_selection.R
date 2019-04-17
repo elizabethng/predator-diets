@@ -34,3 +34,14 @@ ss_wrapper_vast(species_num = 13,
                 file_prefix = "mod_sel_PLD_", 
                 Save_output = FALSE, 
                 ObsModel = c(2,1))
+
+# Run to get results
+ss_wrapper_vast(species_num = 4, 
+                file_prefix = "results_sel_PLD_", 
+                Save_output = TRUE, 
+                ObsModel = c(2,1))
+ss_wrapper_vast(species_num = 8, 
+                file_prefix = "results_PLD_", 
+                Save_output = TRUE, 
+                ObsModel = c(2,1))
+
