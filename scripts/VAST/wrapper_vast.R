@@ -173,9 +173,9 @@ ss_wrapper_vast = function(species_num, file_prefix, Save_output = FALSE, ObsMod
     obj = Obj,
     lower = TmbList[["Lower"]],
     upper = TmbList[["Upper"]],
-    getsd = FALSE, 
+    getsd = Save_output, 
     savedir = here(DateFile),
-    bias.correct = FALSE,
+    bias.correct = Save_output,
     newtonsteps = 1,
     bias.correct.control = list(
       sd=FALSE, split=NULL, nsplit=1, vars_to_correct = "Index_cyl"))
