@@ -188,7 +188,7 @@ ss_wrapper_vast = function(species_num, file_prefix, Save_output = FALSE, ObsMod
     "TmbData" = TmbData)
   save(Save, file = here(DateFile,"Save.RData"))
   
-  write.csv(Opt$AIC, here(DateFile, "AIC"))
+  write.csv(Opt$AIC, here(DateFile, "AIC.txt"))
   
   
   # 5. Diagnostics and plots ------------------------------------------------
