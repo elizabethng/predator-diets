@@ -7,7 +7,7 @@ library(TMB)
 
 ?VAST::make_data
 
-Use_my_grid = TRUE
+Use_my_grid = FALSE
 
 Species = c("SILVER HAKE", "RED HAKE", "FOURSPOT FLOUNDER", "ATLANTIC COD", 
             "POLLOCK", "WHITE HAKE", "WINTER SKATE", "SPINY DOGFISH", "SUMMER FLOUNDER", 
@@ -17,7 +17,7 @@ Species_name = gsub(" ", "_", Species)
 
 
 # 0. Create output directory ----------------------------------------------
-DateFile = paste("output", "VAST", paste0("draft_PL_", Species_name), sep = "/")
+DateFile = paste("output", "VAST", "_runs_for_popdy_meeting", "cod_dg_ar1", sep = "/")
 dir.create(here(DateFile))
 
 
@@ -96,8 +96,8 @@ Data_Geostat$knot_i = Spatial_List$knot_i
 Version = get_latest_version(package = "VAST")
 
 ObsModel = c(
-  "PosDist" = 2,    # Gamma
-  "Link"    = 1)    # Delta model
+  "PosDist" = 2,   
+  "Link"    = 0)   
 # c(2,0) gamma delta
 # c(2,1) compound poisson gamma
 
@@ -112,10 +112,13 @@ FieldConfig = c(
   "Epsilon2" = 1) 
 
 RhoConfig = c(
-  "Beta1" = 2,      # temporal structure on years (intercepts) 
-  "Beta2" = 2, 
+  "Beta1" = 4,      # temporal structure on years (intercepts) 
+  "Beta2" = 4, 
   "Epsilon1" = 0,   # temporal structure on spatio-temporal variation
   "Epsilon2" = 0) 
+# 2 random walk
+# 3 constant among years (fixed effect)
+# 4 AR1
 
 Options = c(        # calculate derived quantities?
   "SD_site_density" = 1,
@@ -198,7 +201,7 @@ save(Save, file = here(DateFile,"Save.RData"))
 
 Opt$AIC
 
-
+write.csv(Opt$AIC, here(DateFile, "AIC.txt"))
 
 
 # 5. Diagnostics and plots ------------------------------------------------
@@ -211,7 +214,7 @@ plot_data(
   PlotDir = here(DateFile, "/"))
 
 # Convergence
-pander::pandoc.table( Opt$diagnostics[,c('Param','Lower','MLE','Upper','final_gradient')] ) 
+# pander::pandoc.table( Opt$diagnostics[,c('Param','Lower','MLE','Upper','final_gradient')] ) 
 
 # Presence model
 Enc_prob = plot_encounter_diagnostic(
