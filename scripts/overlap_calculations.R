@@ -122,7 +122,8 @@ knots_dogfish_l = gather(knots_dogfish, year, index, -c(E_km, N_km)) %>%
   mutate(index_log = log(index))
 
 tmp = knots_dogfish_l %>%
-  sf::st_as_sf(coords = c("E_km", "N_km"), crs = 32610) %>%
+  # mutate(E_km = -E_km) %>%
+  sf::st_as_sf(coords = c("E_km", "N_km"), crs = 32619) %>%
   sf::st_transform(crs = 4326) %>%
   sf::st_coordinates()
   
@@ -130,12 +131,14 @@ knots_dogfish_l$lon = tmp[,1]
 knots_dogfish_l$lat = tmp[,2]
 
 
-ggplot(knots_dogfish_l, aes(lon, lat, color = index)) +
+ggplot(
+  filter(knots_dogfish_l, year == 1973)
+       , aes(lon, lat, color = index)) +
+  borders("world", fill = "grey", colour = "white") +
+  # coord_quickmap(xlim = c(-81, -63), ylim = c(32, 47.46)) +
   geom_point() +
   scale_color_viridis_c() +
   facet_wrap(~year) +
-  borders("world", fill = "grey", colour = "white") +
-  coord_quickmap(xlim = c(-81, -63), ylim = c(32, 47.46)) +
   theme(panel.grid.major = element_line(color = "white"),
         panel.background = element_blank(),
         axis.title.x = element_blank(),
@@ -144,6 +147,18 @@ ggplot(knots_dogfish_l, aes(lon, lat, color = index)) +
         axis.title.y = element_blank(),
         axis.text.y = element_blank(),
         axis.ticks.y = element_blank()) + 
-  theme(legend.position = "bottom") +
-  guides(fill = guide_legend(override.aes = list(shape = 21)))
+  theme(legend.position = "bottom") 
 
+# + guides(fill = guide_legend(override.aes = list(shape = 21)))
+
+
+# Simple maps
+ggplot(knots_cod_l, aes(E_km, N_km, color = index_log)) +
+  geom_point() +
+  scale_color_viridis_c() +
+  facet_wrap(~year)
+
+ggplot(knots_dogfish_l, aes(E_km, N_km, color = index_log)) +
+  geom_point() +
+  scale_color_viridis_c() +
+  facet_wrap(~year)
