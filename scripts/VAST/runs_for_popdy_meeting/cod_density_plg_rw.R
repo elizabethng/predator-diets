@@ -13,11 +13,11 @@ Species = c("ATLANTIC_HERRING_wt",
             "ATLANTIC_COD_wt",
             "SILVER_HAKE_wt",
             "SPINY_DOGFISH_wt",
-            "GOOSEFISH_wt")[1]
+            "GOOSEFISH_wt")[2]
 
 
 # 0. Create output directory ----------------------------------------------
-DateFile = paste("output", "VAST", "_runs_for_popdy_meeting", "herring_plg_rw", sep = "/")
+DateFile = paste("output", "VAST", "_runs_for_popdy_meeting", "cod_density_plg_rw", sep = "/")
 dir.create(here(DateFile))
 
 
@@ -31,8 +31,8 @@ Data_Geostat = data.frame(
   Year = dat$YEAR,
   Vessel = dat$SV_VESSEL,
   AreaSwept_km2 = 1,      # Q: Check what makes sense here
-  Lat = dat$declat,
-  Lon = dat$declon) %>%
+  Lat = dat$LAT,
+  Lon = dat$LON) %>%
   na.omit()
 
 
