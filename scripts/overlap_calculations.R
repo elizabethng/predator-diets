@@ -162,3 +162,37 @@ ggplot(knots_dogfish_l, aes(E_km, N_km, color = index_log)) +
   geom_point() +
   scale_color_viridis_c() +
   facet_wrap(~year)
+
+
+
+
+# Random other plots ------------------------------------------------------
+
+ss_info = readxl::read_excel(here("data", "TimeSeries.xlsx"))
+
+# ss_info$biomass_norm = ss_info$`Jan.1 Biomass (mt)`/sum(ss_info$`Jan.1 Biomass (mt)`)
+# ss_info$recruit_norm = ss_info$`Age-1 Recruitment (000s)`/sum(ss_info$`Age-1 Recruitment (000s)`)
+
+# 
+# other_plots = tibble(
+#   year = 1973:2015,
+#   tot_herring = total_density$herring$Estimate_metric_tons/(sum(total_density$herring$Estimate_metric_tons)) ,
+#   tot_cod = total_density$cod$Estimate_metric_tons/(total_density$cod$Estimate_metric_tons),
+#   tot_dogfish = total_density$dogfish$Estimate_metric_tons/(total_density$dogfish$Estimate_metric_tons),
+#   overlap_cod = colSums(cod_index, na.rm = TRUE),
+#   overlap_dogfish = colSums(dogfish_index, na.rm = TRUE),
+#   biomass_norm = ss_info$biomass_norm,
+#   recruit_norm = ss_info$recruit_norm
+# )
+# 
+# 
+# all_results_l = gather(all_results, index, value, -year)
+# 
+
+
+ss_info_l = ss_info %>%
+  gather(index, value, -Year)
+
+ggplot(ss_info_l, aes(Year, value, group = index, color = index)) + 
+  geom_line() + 
+  facet_wrap(~index, scales = "free")
