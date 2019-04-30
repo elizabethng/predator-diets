@@ -7,7 +7,9 @@ library(gganimate)
 
 results_files = c("herring_density_plg_rw", 
                   "cod_density_plg_rw", 
-                  "dogfish_density_plg_rw")[2]
+                  "dogfish_density_plg_rw",
+                  "cod_plg_rw",
+                  "dogfish_plg_rw")[5]
 
 path_name = paste("output", "VAST", "_runs_for_popdy_meeting", sep = "/")
 
@@ -23,14 +25,17 @@ load(here(path_name, results_files, "Save.RData"))
 est_dens = Save$Report$D_xcy 
 
 # make estimated densities easier to manipulate
+# Might want to change this to load from results rather than assuming...
+n_years = dim(est_dens)[3]
+
 tmp = numeric()
-for(i in 1:43){
+for(i in 1:n_years){
   tmp = c(tmp, est_dens[,,i])
 }
 
 all_dens = tibble(
-  year = sort(rep(1973:2015, 100)),
-  x2i = rep(1:100, 43),
+  year = sort(rep((2016-n_years):2015, 100)),
+  x2i = rep(1:100, n_years),
   density = tmp)
 
 
@@ -66,7 +71,7 @@ p = ggplot(filter(map_dat, Include == TRUE),
                     state_length = 5)
   # facet_wrap(~year)
 
-anim_save(animation = p, filename = here("test_anim_cod_cons.gif"))
+anim_save(animation = p, filename = here("animated_dogfish_consumption.gif"))
 
 
 
