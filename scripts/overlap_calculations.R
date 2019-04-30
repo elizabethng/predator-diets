@@ -90,6 +90,51 @@ ggplot(all_results_l, aes(year, value, group = index, color = index)) +
   geom_line() + 
   facet_wrap(~index, scales = "free")
 
+saveRDS(all_results_l, here("output", "data_formatted", "overlap_indices.rds"))
+
+# Plot overlap in each year
+
+p_cod = ggplot(
+  filter(all_results_l, index == "overlap_cod"),
+  aes(year, value/10000)) + 
+  geom_line(size = 1, color = "#000060") +
+  theme_bw() + 
+  theme(
+    panel.border = element_blank(), 
+    panel.grid.major = element_blank(),
+    panel.grid.minor = element_blank(), 
+    axis.line = element_line(colour = "black")) +
+  xlab("Year") +
+  ylab("Overlap index (cod and herring)") + 
+  theme(text = element_text(size = 16)) +
+  theme(legend.position = "none")
+ggsave(here("output", "plots", "cod_herring_overlap.pdf"), 
+       p_cod,
+       width = 7,
+       height = 4)
+
+
+p_dog = ggplot(
+  filter(all_results_l, index == "overlap_dogfish" & year > 1972),
+  aes(year, value/10000)) + 
+  geom_line(size = 1, color = "#FA813B") +
+  theme_bw() + 
+  theme(
+    panel.border = element_blank(), 
+    panel.grid.major = element_blank(),
+    panel.grid.minor = element_blank(), 
+    axis.line = element_line(colour = "black")) +
+  xlab("Year") +
+  ylab("Overlap index (dogfish and herring)") + 
+  theme(text = element_text(size = 16)) +
+  theme(legend.position = "none")
+ggsave(here("output", "plots", "dogfish_herring_overlap.pdf"), 
+       p_dog,
+       width = 7,
+       height = 4)
+
+
+
 
 # Make a map --------------------------------------------------------------
 
