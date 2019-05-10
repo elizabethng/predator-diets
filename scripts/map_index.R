@@ -9,7 +9,7 @@ results_files = c("herring_density_plg_rw",
                   "cod_density_plg_rw", 
                   "dogfish_density_plg_rw",
                   "cod_plg_rw",
-                  "dogfish_plg_rw")[5]
+                  "dogfish_plg_rw")[4]
 
 path_name = paste("output", "VAST", "_runs_for_popdy_meeting", sep = "/")
 
@@ -47,7 +47,7 @@ map_dat = left_join(all_dens, all_locations) %>%
 map_dat[!complete.cases(map_dat),]
 map_dat = map_dat[complete.cases(map_dat),]
 
-# Try mapping
+# Try mapping animation
 p = ggplot(filter(map_dat, Include == TRUE), 
        aes(x = Lon, y = Lat, color = density_log)) +
   geom_point() +
@@ -73,6 +73,33 @@ p = ggplot(filter(map_dat, Include == TRUE),
 
 anim_save(animation = p, filename = here("animated_dogfish_consumption.gif"))
 
+
+# Map comparison of year, all areas
+my_year = c(1975, 2015)
+p = ggplot(filter(map_dat, year %in% my_year), 
+           aes(x = Lon, y = Lat, color = density_log)) +
+  geom_point() +
+  scale_color_viridis_c(
+    option = "inferno", 
+    name = "log(Consumption)") +
+  borders("world", fill = "grey", colour = "white") +
+  coord_quickmap(xlim = c(-79, -63), ylim = c(32, 47)) +
+  facet_wrap(~year) +
+  theme(panel.grid.major = element_line(color = "white"),
+        panel.background = element_blank(),
+        axis.title.x = element_blank(),
+        axis.text.x = element_blank(),
+        axis.ticks.x = element_blank(),
+        axis.title.y = element_blank(),
+        axis.text.y = element_blank(),
+        axis.ticks.y = element_blank()) + 
+  theme(legend.position = c(0.3, 0.12),
+        legend.direction = "horizontal") + 
+  theme(strip.background = element_blank()) + 
+  theme(text = element_text(size = 13))
+plot(p)
+ggsave(here("output", "plots", paste0(results_files, "_comparison", ".pdf")),
+       plot = p, width = 12, height = 8)
 
 
 
