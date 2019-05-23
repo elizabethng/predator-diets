@@ -9,7 +9,7 @@ results_files = c("herring_density_plg_rw",
                   "cod_density_plg_rw", 
                   "dogfish_density_plg_rw",
                   "cod_plg_rw",
-                  "dogfish_plg_rw")[4]
+                  "dogfish_plg_rw")[5]
 
 path_name = paste("output", "VAST", "_runs_for_popdy_meeting", sep = "/")
 
@@ -75,7 +75,7 @@ anim_save(animation = p, filename = here("animated_dogfish_consumption.gif"))
 
 
 # Map comparison of year, all areas
-my_year = c(1975, 2015)
+my_year = c(1977, 2015)
 p = ggplot(filter(map_dat, year %in% my_year), 
            aes(x = Lon, y = Lat, color = density_log)) +
   geom_point() +
