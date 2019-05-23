@@ -25,3 +25,21 @@ tmp = my_dat %>%
 
 dat = my_dat %>%
   mutate(utm_E = tmp[,1], utm_N = tmp[,2])
+
+
+### Define domain --------------------------------------------------------------
+## Use a window that is 100×100. Create an owin object for the `rLGCP` function,
+## and an `sp::SpatialPolygons` object for masking later.
+xrange <- yrange <- c(0, 100)
+ppwin <- owin(xrange = xrange, yrange = yrange)
+pp_domain <- matrix(c(xrange[1], yrange[1],
+                      xrange[2], yrange[1],
+                      xrange[2], yrange[2],
+                      xrange[1], yrange[2],
+                      xrange[1], yrange[1]),
+                    ncol = 2L, byrow = TRUE)
+pp_dom_poly <- SpatialPolygons(list(Polygons(list(Polygon(pp_domain)), "0")))
+
+
+
+
