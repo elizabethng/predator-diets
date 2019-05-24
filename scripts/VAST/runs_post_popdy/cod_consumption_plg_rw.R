@@ -7,11 +7,11 @@ library(VAST)
 library(TMB)
 
 
-Species = c("ATLANTIC_HERRING_wt",
-            "ATLANTIC_COD_wt",
-            "SILVER_HAKE_wt",
-            "SPINY_DOGFISH_wt",
-            "GOOSEFISH_wt")[2]
+# Species = c("ATLANTIC_HERRING_wt",
+#             "ATLANTIC_COD_wt",
+#             "SILVER_HAKE_wt",
+#             "SPINY_DOGFISH_wt",
+#             "GOOSEFISH_wt")[2]
 
 Species = c("SILVER HAKE", "RED HAKE", "FOURSPOT FLOUNDER", "ATLANTIC COD", 
             "POLLOCK", "WHITE HAKE", "WINTER SKATE", "SPINY DOGFISH", "SUMMER FLOUNDER", 
