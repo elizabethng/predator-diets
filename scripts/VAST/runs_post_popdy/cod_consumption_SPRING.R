@@ -21,8 +21,7 @@ dir.create(here(DateFile))
 # 1. Get data -------------------------------------------------------------
 dat = read_rds(here("output", "data_formatted", "dat_preds.rds")) %>%
   pluck(Species) %>%
-  filter(season == "SPRING" | season == "WINTER") %>%
-  filter(year > 1979)
+  filter(season == "SPRING" | season == "WINTER")
   
 
 Data_Geostat = data.frame(
@@ -109,8 +108,8 @@ FieldConfig = c(
 RhoConfig = c(
   "Beta1" = 2,      # temporal structure on years (intercepts) 
   "Beta2" = 2, 
-  "Epsilon1" = 0,   # temporal structure on spatio-temporal variation
-  "Epsilon2" = 0) 
+  "Epsilon1" = 2,   # temporal structure on spatio-temporal variation
+  "Epsilon2" = 2) 
 # 2 random walk
 # 3 constant among years (fixed effect)
 # 4 AR1
@@ -244,12 +243,19 @@ MapDetails_List = make_map_info(
   "NN_Extrap" = Spatial_List$PolygonList$NN_Extrap,
   "Extrapolation_List" = Extrapolation_List)
 
-# All extrapolation locations are turned off for some reason...
-# MapDetails_List$PlotDF$Include = 1
 
 # Decide which years to plot                                                   
 Year_Set = seq(min(Data_Geostat[,'Year']),max(Data_Geostat[,'Year']))
 Years2Include = which(Year_Set %in% sort(unique(Data_Geostat[,'Year'])))
+
+# Abundance index
+Index = plot_biomass_index(
+  DirName = here(DateFile),
+  TmbData = TmbData,
+  Sdreport = Opt[["SD"]],
+  Year_Set = Year_Set,
+  Years2Include = Years2Include,
+  use_biascorr = TRUE)
 
 # Map of residuals
 plot_residuals(
@@ -379,17 +385,9 @@ Dens_DF = data.frame(
   N_km = Spatial_List$MeshList$loc_x[row(Dens_xt),'N_km'])
 write_csv(Dens_DF, here(DateFile, "Dens_DF.txt"))
 
-# All zero for some reason, because of area being 0? (a_xl)
-MapDetails_List$PlotDF$Include = 1
+# # All zero for some reason, because of area being 0? (a_xl)
+# MapDetails_List$PlotDF$Include = 1
 
-# Abundance index
-Index = plot_biomass_index(
-  DirName = here(DateFile),
-  TmbData = TmbData,
-  Sdreport = Opt[["SD"]],
-  Year_Set = Year_Set,
-  Years2Include = Years2Include,
-  use_biascorr = TRUE)
 
 
 
