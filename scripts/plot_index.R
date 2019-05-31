@@ -4,6 +4,7 @@ library(tidyverse)
 library(here)
 library(gganimate)
 
+save_output = FALSE
 
 results_files = c("cod_plg_rw",
                   "dogfish_plg_rw")
@@ -12,6 +13,9 @@ path_name = paste("output", "VAST", "_runs_for_popdy_meeting", sep = "/")
 
 # Compare to Overlap Metric -----------------------------------------------
 overlap = read_rds(here("output", "data_formatted", "overlap_indices.rds"))
+
+# Dogfish data don't start until 1977
+overlap = filter(overlap, !(index == "overlap_dogfish" & year < 1977))
 
 overlap_std = overlap %>%
   group_by(index) %>%
@@ -35,7 +39,7 @@ p_cod = ggplot(index_res, aes(Year, g_herring)) +
   ylab("Herring in stomachs (kg)") + 
   theme(text = element_text(size = 16))
 
-ggsave(here("output", "plots", "cod_herring_index.pdf"), 
+if(save_output) ggsave(here("output", "plots", "cod_herring_index.pdf"), 
        p_cod,
        width = 7,
        height = 4)
@@ -58,7 +62,7 @@ o_cod = ggplot(index_res, aes(Year, scale(g_herring))) +
   ylab("Index") + 
   theme(text = element_text(size = 16))
 
-ggsave(here("output", "plots", "cod_herring_overlap_w_index.pdf"), 
+if(save_output) ggsave(here("output", "plots", "cod_herring_overlap_w_index.pdf"), 
        o_cod,
        width = 7,
        height = 4)
@@ -83,7 +87,7 @@ p_dog = ggplot(index_res, aes(Year, g_herring)) +
   ylab("Herring in stomachs (kg)") + 
   theme(text = element_text(size = 16))
 
-ggsave(here("output", "plots", "dogfish_herring_index.pdf"), 
+if(save_output) ggsave(here("output", "plots", "dogfish_herring_index.pdf"), 
          p_dog,
          width = 7,
          height = 4)
@@ -92,7 +96,7 @@ o_dog = ggplot(index_res, aes(Year, scale(g_herring))) +
   geom_line(color = "#FA813B",
             size = 2.5,
             alpha = 0.4) + 
-  geom_line(data = filter(overlap_std, index == "overlap_cod"),
+  geom_line(data = filter(overlap_std, index == "overlap_dogfish"),
             aes(year, val_z),
             size = 1,
             color = "#FA813B") +
@@ -105,7 +109,7 @@ o_dog = ggplot(index_res, aes(Year, scale(g_herring))) +
   ylab("Index") + 
   theme(text = element_text(size = 16))
 
-ggsave(here("output", "plots", "dog_herring_overlap_w_index.pdf"), 
+if(save_output) ggsave(here("output", "plots", "dog_herring_overlap_w_index.pdf"), 
        o_dog,
        width = 7,
        height = 4)
