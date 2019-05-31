@@ -14,7 +14,7 @@ Species_name = gsub(" ", "_", Species)
 
 
 # 0. Create output directory ----------------------------------------------
-DateFile = paste("output", "VAST", "_runs_post_popdy", "cod_consumption_plg_rw_trunc_SPRING", sep = "/")
+DateFile = paste("output", "VAST", "_runs_post_popdy", "cod_consumption_SPRING", sep = "/")
 dir.create(here(DateFile))
 
 
@@ -195,6 +195,8 @@ Opt = TMBhelper::Optimize(
   newtonsteps = 0,
   bias.correct.control = list(
     sd=FALSE, split=NULL, nsplit=1, vars_to_correct = "Index_cyl"))
+
+TMBhelper::Check_Identifiable(Obj)
 
 Report = Obj$report()
 Save = list(
