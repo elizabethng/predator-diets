@@ -11,6 +11,8 @@
 library(tidyverse)
 library(here)
 
+save_output = FALSE
+
 results_files = c("herring_density_plg_rw", 
                   "cod_density_plg_rw", 
                   "dogfish_density_plg_rw")
@@ -90,7 +92,7 @@ ggplot(all_results_l, aes(year, value, group = index, color = index)) +
   geom_line() + 
   facet_wrap(~index, scales = "free")
 
-saveRDS(all_results_l, here("output", "data_formatted", "overlap_indices.rds"))
+if(save_output) saveRDS(all_results_l, here("output", "data_formatted", "overlap_indices.rds"))
 
 # Plot overlap in each year
 
@@ -108,7 +110,7 @@ p_cod = ggplot(
   ylab("Overlap index (cod and herring)") + 
   theme(text = element_text(size = 16)) +
   theme(legend.position = "none")
-ggsave(here("output", "plots", "cod_herring_overlap.pdf"), 
+if(save_output) ggsave(here("output", "plots", "cod_herring_overlap.pdf"), 
        p_cod,
        width = 7,
        height = 4)
@@ -128,7 +130,7 @@ p_dog = ggplot(
   ylab("Overlap index (dogfish and herring)") + 
   theme(text = element_text(size = 16)) +
   theme(legend.position = "none")
-ggsave(here("output", "plots", "dogfish_herring_overlap.pdf"), 
+if(save_output) ggsave(here("output", "plots", "dogfish_herring_overlap.pdf"), 
        p_dog,
        width = 7,
        height = 4)
