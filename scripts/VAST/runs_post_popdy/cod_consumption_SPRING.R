@@ -72,8 +72,6 @@ Spatial_List = make_spatial_info(
   Method = Method,
   Lon = Data_Geostat$Lon,
   Lat = Data_Geostat$Lat,
-  # LON_intensity = Extrapolation_List$Data_Extrap[which(Extrapolation_List$Data_Extrap[,'Include']==TRUE),'Lon'], # I'm not using excluding any areas
-  # LAT_intensity = Extrapolation_List$Data_Extrap[which(Extrapolation_List$Data_Extrap[,'Include']==TRUE),'Lat'],  
   Extrapolation_List = Extrapolation_List,
   DirPath = here(DateFile),
   Save_Results = TRUE)
@@ -106,10 +104,12 @@ FieldConfig = c(
   "Epsilon2" = 1) 
 
 RhoConfig = c(
-  "Beta1" = 2,      # temporal structure on years (intercepts) 
-  "Beta2" = 2, 
-  "Epsilon1" = 2,   # temporal structure on spatio-temporal variation
-  "Epsilon2" = 2) 
+  "Beta1" = 1,      # temporal structure on years (intercepts) 
+  "Beta2" = 1, 
+  "Epsilon1" = 0,   # temporal structure on spatio-temporal variation
+  "Epsilon2" = 0) 
+# 0 default (fixed effect)
+# 1 independent among years
 # 2 random walk
 # 3 constant among years (fixed effect)
 # 4 AR1
@@ -174,22 +174,24 @@ TmbList = make_model(
 
 Obj = TmbList[["Obj"]]
 
-# Opt = TMBhelper::Optimize(
-#   obj = Obj,
-#   lower = TmbList[["Lower"]],
-#   upper = TmbList[["Upper"]],
-#   getsd = TRUE, 
-#   savedir = here(DateFile),
-#   bias.correct = FALSE,
-#   newtonsteps = 1,
-#   bias.correct.control = list(
-#     sd=FALSE, split=NULL, nsplit=1, vars_to_correct = "Index_cyl"))
+if(FALSE){
+  Opt = TMBhelper::Optimize(
+    obj = Obj,
+    lower = TmbList[["Lower"]],
+    upper = TmbList[["Upper"]],
+    getsd = TRUE,
+    savedir = here(DateFile),
+    bias.correct = FALSE,
+    newtonsteps = 1,
+    bias.correct.control = list(
+      sd=FALSE, split=NULL, nsplit=1, vars_to_correct = "Index_cyl"))
+}
 
 Opt = TMBhelper::Optimize(
   obj = Obj,
   lower = TmbList[["Lower"]],
   upper = TmbList[["Upper"]],
-  getsd = FALSE, 
+  getsd = TRUE, 
   savedir = here(DateFile),
   bias.correct = FALSE,
   newtonsteps = 0,
