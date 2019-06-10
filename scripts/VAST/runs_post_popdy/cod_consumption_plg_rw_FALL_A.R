@@ -187,9 +187,10 @@ Opt = TMBhelper::Optimize(
   getsd = TRUE, 
   savedir = here(DateFile),
   bias.correct = FALSE,
-  newtonsteps = 1,
+  newtonsteps = 20, # maybe 25-30
   bias.correct.control = list(
     sd=FALSE, split=NULL, nsplit=1, vars_to_correct = "Index_cyl"))
+
 
 Report = Obj$report()
 Save = list(
