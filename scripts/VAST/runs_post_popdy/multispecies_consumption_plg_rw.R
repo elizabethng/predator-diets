@@ -6,6 +6,7 @@ library(here)
 library(VAST)
 library(TMB)
 
+Save_memory = TRUE
 
 
 # 0. Create output directory ----------------------------------------------
@@ -22,12 +23,14 @@ dat = read_rds(here("output", "data_formatted", "dat_preds_all.rds")) %>%
 Data_Geostat = data.frame(
   Catch_KG = dat$pyamtw,
   Year = dat$year,
+  cod_indicator = dat$cod_indicator,
   Vessel = "missing",
   AreaSwept_km2 = 1,
   Lat = dat$declat,
   Lon = dat$declon) %>%
   na.omit()
 
+rm(dat)
 
 # 2. Set up extrapolation -------------------------------------------------
 Data_Set = paste("m2 species all seasons")
@@ -113,20 +116,23 @@ Options = c(        # calculate derived quantities?
   "Calculate_Coherence" = 0)
 
 # Save settings
-Record = ThorsonUtilities::bundlelist(c(
-  "Data_Set",
-  "Version",
-  "Method",
-  "grid_size_km",
-  "n_x",
-  "FieldConfig",
-  "RhoConfig",
-  "OverdispersionConfig",
-  "ObsModel",
-  "Options",
-  "Spatial_List"))
-save(Record, file = here(DateFile,"Record.RData"))
-capture.output(Record, file = here(DateFile, "Record.txt"))
+
+if(Save_memory == FALSE){
+  Record = ThorsonUtilities::bundlelist(c(
+    "Data_Set",
+    "Version",
+    "Method",
+    "grid_size_km",
+    "n_x",
+    "FieldConfig",
+    "RhoConfig",
+    "OverdispersionConfig",
+    "ObsModel",
+    "Options",
+    "Spatial_List"))
+  save(Record, file = here(DateFile,"Record.RData"))
+  capture.output(Record, file = here(DateFile, "Record.txt"))
+}
 
 
 
@@ -140,7 +146,7 @@ TmbData = make_data(
   "OverdispersionConfig" = OverdispersionConfig,
   "RhoConfig" = RhoConfig,
   "ObsModel" = ObsModel,
-  "c_i" = dat$cod_indicator, # rep(0, nrow(Data_Geostat)),
+  "c_i" = Data_Geostat$cod_indicator, # rep(0, nrow(Data_Geostat)),
   "b_i" = Data_Geostat$Catch_KG,
   "a_i" = Data_Geostat$AreaSwept_km2,
   "v_i" = as.numeric(Data_Geostat$Vessel) - 1,
@@ -162,6 +168,14 @@ TmbList = make_model(
 
 Obj = TmbList[["Obj"]]
 
+
+if(Save_memory == TRUE){
+  rm(Data_Geostat)
+  rm(Extrapolation_List)
+  rm(northwest_atlantic_grid)
+  rm(Spatial_List)
+}
+
 Opt = TMBhelper::Optimize(
   obj = Obj,
   lower = TmbList[["Lower"]],
@@ -169,7 +183,7 @@ Opt = TMBhelper::Optimize(
   getsd = TRUE, 
   savedir = here(DateFile),
   bias.correct = FALSE,
-  newtonsteps = 3, # Might want to bump up more to get smaller gradient
+  newtonsteps = 1, # Might want to bump up more to get smaller gradient
   bias.correct.control = list(
     sd=FALSE, split=NULL, nsplit=1, vars_to_correct = "Index_cyl"))
 
