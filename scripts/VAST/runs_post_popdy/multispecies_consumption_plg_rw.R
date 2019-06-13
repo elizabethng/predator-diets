@@ -6,7 +6,7 @@ library(here)
 library(VAST)
 library(TMB)
 
-Save_memory = TRUE
+Save_memory = FALSE
 
 
 # 0. Create output directory ----------------------------------------------
@@ -19,6 +19,9 @@ dat = read_rds(here("output", "data_formatted", "dat_preds_all.rds")) %>%
   filter(pdcomnam == "ATLANTIC COD" | pdcomnam == "SPINY DOGFISH") %>%
   mutate(cod_indicator = ifelse(pdcomnam == "ATLANTIC COD", 1, 0)) # 1 for atlantic cod
   
+# Reduce size of data set
+dat = dat %>%
+  filter(year > 1994)
 
 Data_Geostat = data.frame(
   Catch_KG = dat$pyamtw,
@@ -174,7 +177,12 @@ if(Save_memory == TRUE){
   rm(Extrapolation_List)
   rm(northwest_atlantic_grid)
   rm(Spatial_List)
+
+  rm(TmbData)
+  
+  gc()  
 }
+
 
 Opt = TMBhelper::Optimize(
   obj = Obj,
@@ -210,9 +218,6 @@ plot_data(
   Data_Geostat = Data_Geostat,
   PlotDir = here(DateFile, "/"))
 
-# Convergence
-# pander::pandoc.table( Opt$diagnostics[,c('Param','Lower','MLE','Upper','final_gradient')] ) 
-
 # Presence model
 Enc_prob = plot_encounter_diagnostic(
   Report = Report,
@@ -234,9 +239,6 @@ MapDetails_List = make_map_info(
   "Region" = Region,
   "NN_Extrap" = Spatial_List$PolygonList$NN_Extrap,
   "Extrapolation_List" = Extrapolation_List)
-
-# All extrapolation locations are turned off for some reason...
-# MapDetails_List$PlotDF$Include = 1
 
 # Decide which years to plot                                                   
 Year_Set = seq(min(Data_Geostat[,'Year']),max(Data_Geostat[,'Year']))
@@ -383,7 +385,20 @@ Index = plot_biomass_index(
   use_biascorr = TRUE)
 
 
-
+## Plot spatial and spatio-temporal covariance
+# We can visualize the spatial and spatio-temporal covariance among species 
+# in encounter probability and positive catch rates 
+# (depending upon what is turned on via `FieldConfig`):
+Cov_List = Summarize_Covariance(
+  Report = Report,
+  ParHat = Obj$env$parList(), 
+  Data = TmbData, 
+  SD = Opt$SD, 
+  plot_cor = FALSE, 
+  category_names = levels(Data_Geostat[,'spp']),
+  plotdir = here(DateFile),
+  plotTF = FieldConfig, 
+  mgp = c(2,0.5,0), tck = -0.02, oma = c(0,5,2,2) )
 
 
 
