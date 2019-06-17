@@ -44,7 +44,6 @@ rm(Record)
 knot_denom = knot_areas/sum(knot_areas)
 
 
-
 # Normalize densities -----------------------------------------------------
 # Want to divide density in each year by total abundance??
 # Try with raw densities, since that seems to match the Hurlbert 1978 paper best
@@ -59,16 +58,37 @@ dogfish_index = matrix(0, nrow = 100, ncol = 43)
 
 # what to do about 0 areas?? what does that even mean??
 # just get rid of them afterwards...
+# Does this mean I actually have fewer than 100 knots?? (because of data scarcity?)
 
 for(year in 1:43){
   cod_index[,year] = (density$herring[,,year]*density$cod[,,year])/knot_denom
   dogfish_index[,year] = (density$herring[,,year]*density$dogfish[,,year])/knot_denom
 }
 
+# Fix problem cell
+prob_cell = which(cod_index == max(cod_index, na.rm = TRUE), arr.ind = TRUE)
+# Method 1: set to NA for that year
+# cod_index[prob_cell] = dogfish_index[prob_cell] = NA
+
+# Method 2: replace with average density for that year
+new_herring_density = mean(density$herring[-66, , 21])
+cod_index[prob_cell] = (new_herring_density*density$cod[66, , 21])/knot_denom[66]
+dogfish_index[prob_cell] = (new_herring_density*density$dogfish[66, , 21])/knot_denom[66]
+
+
 cod_index = na_if(cod_index, Inf)
 dogfish_index = na_if(dogfish_index, Inf)
 
-
+# Save knot-level results
+# rows are knot locations, columns are years
+if(save_output){
+  saveRDS(cod_index, 
+          here("output", "data_formatted", 
+               "cod_overlap_knots.rds"))
+  saveRDS(dogfish_index, 
+          here("output", "data_formatted", 
+               "dogfish_overlap_knots.rds"))
+}
 
 # Calculate and plot annual index -----------------------------------------
 
@@ -90,7 +110,7 @@ all_results_l = gather(all_results, index, value, -year)
 
 ggplot(all_results_l, aes(year, value, group = index, color = index)) + 
   geom_line() + 
-  facet_wrap(~index, scales = "free")
+  facet_wrap(~index, nrow = 3, scales = "free")
 
 if(save_output) saveRDS(all_results_l, here("output", "data_formatted", "overlap_indices.rds"))
 
