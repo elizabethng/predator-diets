@@ -1,5 +1,6 @@
 # Use both seasons for dogfish and cod to try and fit multispecies model. 
-# NOTE: May be able to simplify model now that using more data.
+# Using independent year effects
+# Run with half of the data
 
 library(tidyverse)
 library(here)
@@ -10,7 +11,7 @@ Save_memory = FALSE
 
 
 # 0. Create output directory ----------------------------------------------
-DateFile = paste("output", "VAST", "_runs_post_popdy", "multispecies_consumption_plg_rw", sep = "/")
+DateFile = paste("output", "VAST", "_runs_post_popdy", "multispecies_consumption_plg", sep = "/")
 dir.create(here(DateFile))
 
 
@@ -20,13 +21,15 @@ dat = read_rds(here("output", "data_formatted", "dat_preds_all.rds")) %>%
   mutate(cod_indicator = ifelse(pdcomnam == "ATLANTIC COD", 1, 0)) # 1 for atlantic cod
   
 # Reduce size of data set
+# Or was it an issue because the samples didn't overlap during that time?
 dat = dat %>%
-  filter(year > 1994)
+  filter(year > 1976)
 
 Data_Geostat = data.frame(
   Catch_KG = dat$pyamtw,
   Year = dat$year,
   cod_indicator = dat$cod_indicator,
+  spp = dat$pdcomnam,
   Vessel = "missing",
   AreaSwept_km2 = 1,
   Lat = dat$declat,
@@ -100,10 +103,12 @@ FieldConfig = c(
   "Epsilon2" = 2) 
 
 RhoConfig = c(
-  "Beta1" = 2,      # temporal structure on years (intercepts) 
-  "Beta2" = 2, 
+  "Beta1" = 1,      # temporal structure on years (intercepts) 
+  "Beta2" = 1, 
   "Epsilon1" = 0,   # temporal structure on spatio-temporal variation
   "Epsilon2" = 0) 
+# 0 fixef
+# 1 ranef
 # 2 random walk
 # 3 constant among years (fixed effect)
 # 4 AR1
@@ -115,7 +120,7 @@ Options = c(        # calculate derived quantities?
   "Calculate_evenness" = 0,
   "Calculate_effective_area" = 0,
   "Calculate_Cov_SE" = 0,
-  "Calculate_Synchrony" = 0, 
+  "Calculate_Synchrony" = 1, 
   "Calculate_Coherence" = 0)
 
 # Save settings
@@ -149,7 +154,8 @@ TmbData = make_data(
   "OverdispersionConfig" = OverdispersionConfig,
   "RhoConfig" = RhoConfig,
   "ObsModel" = ObsModel,
-  "c_i" = Data_Geostat$cod_indicator, # rep(0, nrow(Data_Geostat)),
+  "c_i" = Data_Geostat$cod_indicator, 
+  # as.numeric(Data_Geostat[,'spp'])-1, # rep(0, nrow(Data_Geostat)),
   "b_i" = Data_Geostat$Catch_KG,
   "a_i" = Data_Geostat$AreaSwept_km2,
   "v_i" = as.numeric(Data_Geostat$Vessel) - 1,
@@ -194,6 +200,22 @@ Opt = TMBhelper::Optimize(
   newtonsteps = 1, # Might want to bump up more to get smaller gradient
   bias.correct.control = list(
     sd=FALSE, split=NULL, nsplit=1, vars_to_correct = "Index_cyl"))
+
+while(Opt$max_gradient > 1e-4){
+  Opt = TMBhelper::Optimize(
+    obj = Obj,
+    startpar = Opt$par,
+    lower = TmbList[["Lower"]],
+    upper = TmbList[["Upper"]],
+    getsd = TRUE, 
+    savedir = here(DateFile),
+    bias.correct = FALSE,
+    newtonsteps = 5,
+    bias.correct.control = list(
+      sd=FALSE, split=NULL, nsplit=1, vars_to_correct = "Index_cyl"))
+  
+}
+
 
 
 Report = Obj$report()
@@ -373,7 +395,7 @@ Dens_DF = data.frame(
 write_csv(Dens_DF, here(DateFile, "Dens_DF.txt"))
 
 # All zero for some reason, because of area being 0? (a_xl)
-MapDetails_List$PlotDF$Include = 1
+# MapDetails_List$PlotDF$Include = 1
 
 # Abundance index
 Index = plot_biomass_index(
@@ -382,20 +404,24 @@ Index = plot_biomass_index(
   Sdreport = Opt[["SD"]],
   Year_Set = Year_Set,
   Years2Include = Years2Include,
-  use_biascorr = TRUE)
+  use_biascorr = TRUE,
+  category_names = c("Atlantic cod", "Spiny dogfish"))
 
 
 ## Plot spatial and spatio-temporal covariance
 # We can visualize the spatial and spatio-temporal covariance among species 
 # in encounter probability and positive catch rates 
 # (depending upon what is turned on via `FieldConfig`):
+
+# I think this can only be used when FieldConfig == 1,
+# that is, with random year effects
 Cov_List = Summarize_Covariance(
   Report = Report,
   ParHat = Obj$env$parList(), 
   Data = TmbData, 
   SD = Opt$SD, 
   plot_cor = FALSE, 
-  category_names = levels(Data_Geostat[,'spp']),
+  category_names = c("Atlantic cod", "Spiny dogfish"),
   plotdir = here(DateFile),
   plotTF = FieldConfig, 
   mgp = c(2,0.5,0), tck = -0.02, oma = c(0,5,2,2) )
