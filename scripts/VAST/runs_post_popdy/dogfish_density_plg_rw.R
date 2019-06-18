@@ -1,4 +1,5 @@
-# Test fit to single species data
+# Extend fit from _runs_for_popdy_meeting to do index calculation for the whole area,
+# not just GB.
 
 library(tidyverse)
 library(here)
@@ -7,7 +8,6 @@ library(TMB)
 
 ?VAST::make_data
 
-Use_my_grid = FALSE
 
 Species = c("ATLANTIC_HERRING_wt",
             "ATLANTIC_COD_wt",
@@ -39,32 +39,31 @@ Data_Geostat = data.frame(
 
 
 # 2. Set up extrapolation -------------------------------------------------
-if(Use_my_grid == TRUE){
-  my_grid = read_rds(here("output", "data_formatted", "nw_atlantic_grid.rds")) %>%
-    pluck("nw_points") %>%
-    select(Lat, Lon, Area_km2) %>%
-    as.data.frame() %>%
-    mutate(Area_km2 = as.numeric(Area_km2))
-  
-  Data_Set = paste(Species, "all seasons")
-  Region = "User"
-  strata.limits = data.frame('STRATA' = "All_areas")
-  
-  Extrapolation_List = make_extrapolation_info(
-    Region = Region,
-    strata.limits = strata.limits,
-    input_grid = my_grid) 
-  
-}else{
-  Data_Set = paste(Species, "all seasons")
-  Region = "Northwest_Atlantic"
-  # strata.limits = data.frame('STRATA' = "All_areas")
-  strata.limits = list('Georges_Bank'= c(1130, 1140, 1150, 1160, 1170, 1180, 1190, 1200, 1210, 1220, 1230, 1240, 1250, 1290, 1300))
-  Extrapolation_List = make_extrapolation_info(Region = Region, strata.limits = strata.limits)
-}
-
-
-
+Data_Set = paste(Species, "all seasons")
+Region = "Northwest_Atlantic"
+strata.limits = data.frame('STRATA' = 
+                             c(8770L, 8600L, 8590L, 8580L, 7670L, 7660L, 8570L, 7640L, 7650L, 
+                               8560L, 8550L, 8540L, 7630L, 7620L, 7610L, 7600L, 7590L, 7550L, 
+                               7580L, 8530L, 7570L, 7540L, 8520L, 8510L, 7530L, 8500L, 7560L, 
+                               7520L, 7510L, 7500L, 3440L, 3430L, 3420L, 1610L, 1620L, 1630L, 
+                               1640L, 3390L, 3400L, 3410L, 1650L, 1660L, 1670L, 1680L, 3360L, 
+                               3370L, 3380L, 3330L, 3340L, 3350L, 1720L, 3310L, 3320L, 1700L, 
+                               1710L, 3300L, 1690L, 3270L, 3280L, 3290L, 1750L, 1760L, 1740L, 
+                               3240L, 3250L, 3260L, 1730L, 3230L, 3220L, 1040L, 1030L, 3180L, 
+                               3190L, 3200L, 1020L, 1010L, 3150L, 3160L, 3170L, 1080L, 1070L, 
+                               1060L, 1120L, 1110L, 1100L, 1150L, 3120L, 3130L, 3140L, 1140L, 
+                               3110L, 1130L, 3100L, 3080L, 1050L, 3090L, 1090L, 3070L, 3060L, 
+                               1190L, 3050L, 3460L, 3520L, 3550L, 3030L, 3040L, 1180L, 1170L, 
+                               3020L, 1160L, 3010L, 1250L, 1230L, 3450L, 1200L, 3540L, 3480L, 
+                               1240L, 3470L, 3510L, 3530L, 3920L, 3500L, 3560L, 3570L, 1220L, 
+                               1210L, 3580L, 3590L, 1280L, 1290L, 3600L, 3610L, 1260L, 1270L, 
+                               3630L, 3620L, 3640L, 3650L, 3660L, 1310L, 1300L, 1320L, 1370L, 
+                               1400L, 1360L, 3680L, 3670L, 3690L, 1340L, 3700L, 3710L, 3720L, 
+                               3908L, 1380L, 1330L, 3730L, 3740L, 3750L, 3780L, 3770L, 1390L, 
+                               3760L, 3810L, 3800L, 3790L, 3830L, 3820L, 3850L, 3840L, 1351L, 
+                               3870L, 3860L, 1352L, 3900L, 3890L, 3880L))
+# strata.limits = list('Georges_Bank'= c(1130, 1140, 1150, 1160, 1170, 1180, 1190, 1200, 1210, 1220, 1230, 1240, 1250, 1290, 1300))
+Extrapolation_List = make_extrapolation_info(Region = Region, strata.limits = strata.limits)
 
 
 Method = c("Grid", "Mesh", "Spherical_mesh")[2]
@@ -237,6 +236,9 @@ MapDetails_List = make_map_info(
   "NN_Extrap" = Spatial_List$PolygonList$NN_Extrap,
   "Extrapolation_List" = Extrapolation_List)
 
+# All extrapolation locations are turned off for some reason...
+# MapDetails_List$PlotDF$Include = 1
+
 # Decide which years to plot                                                   
 Year_Set = seq(min(Data_Geostat[,'Year']),max(Data_Geostat[,'Year']))
 Years2Include = which(Year_Set %in% sort(unique(Data_Geostat[,'Year'])))
@@ -369,6 +371,9 @@ Dens_DF = data.frame(
   N_km = Spatial_List$MeshList$loc_x[row(Dens_xt),'N_km'])
 write_csv(Dens_DF, here(DateFile, "Dens_DF.txt"))
 
+# All zero for some reason, because of area being 0? (a_xl)
+MapDetails_List$PlotDF$Include = 1
+
 # Abundance index
 Index = plot_biomass_index(
   DirName = here(DateFile),
@@ -377,22 +382,4 @@ Index = plot_biomass_index(
   Year_Set = Year_Set,
   Years2Include = Years2Include,
   use_biascorr = TRUE)
-
-# pander::pandoc.table(Dens_DF[1:6,], digits = 3)
-# pander::pandoc.table(Index$Table[,c("Year","Fleet","Estimate_metric_tons","SD_log","SD_mt")])
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
 
