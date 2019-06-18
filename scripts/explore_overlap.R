@@ -16,7 +16,7 @@ ggplot(data.frame(x = c(dogfish_index)), aes(x)) +
 # So We have the big value. It could be due to 3 things
 #  1. large herring density
 #  2. large cod/dogfish density
-#  3. knot size
+#  3. small knot size
 
 # We can cross out knot size, since it is constant thought time.
 # I hypothesize that it's due to large herring density,
