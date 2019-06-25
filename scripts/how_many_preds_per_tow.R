@@ -26,10 +26,12 @@ ggplot(specsum, aes(n, group = pdcomnam, color = pdcomnam)) + geom_freqpoly() #+
 
 
 # What percent of tows have more than one stomach per species per tow?
-specsum %>% 
+specsum_sum = specsum %>% 
   mutate(mult_pred = n > 1) %>%
   group_by(pdcomnam) %>%
   summarize(perc_mult_pred = 100*sum(mult_pred)/length(unique(specsum$towid)))
+specsum_sum
+mean(specsum_sum$perc_mult_pred)
 
 # What percent of tows have more than one stomach across all predator stomachs?
 dat %>% 
@@ -47,3 +49,4 @@ specsum %>%
   summarize(perc_mult_pred = 100*sum(mult_pred)/length(unique(specsum$towid)))
 
 # By species is probably the most relevant, I won't average across species within tows
+# On average by species, 15% of tows have more than one stomach per predator species
