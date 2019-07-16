@@ -1,4 +1,5 @@
 # Make my own plots of density that are easier to visualize
+# Should now (7/11/19) be able to skip data processing part and just read_csv(my_map_dat.csv) from the appropriate results folder
 
 library(tidyverse)
 library(here)
