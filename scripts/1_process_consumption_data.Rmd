@@ -21,8 +21,8 @@ Later: I can incorporate other tow covariates, like amount of prey or predator i
 library(tidyverse)
 library(here)
 
-save_data = FALSE
-use_harengus = FALSE # use only C. harengus? otherwise all clupea spp.
+save_data = TRUE
+use_harengus_only = FALSE # use only C. harengus? otherwise all clupea spp.
 ```
 
 ```{r load diet data}
@@ -69,7 +69,7 @@ slice(frdata, frdata$pynam %>% str_which("CLUP")) %>%
 ```
 
 ```{r filter out prey}
-if(use_harengus == FALSE){
+if(use_harengus_only == FALSE){
   preydat = frdata %>% 
     filter(pynam == "CLUPEA HARENGUS" | pynam == "CLUPEIDAE") %>%
     dplyr::select(predid, pyamtw)
@@ -89,7 +89,7 @@ sum(preydat$pyamtw == 0)
 ```
 
 ## Predator Data
-Create a data frame with one row per predator and all the relevant predator/tow info.
+Create a data frame with one row per predator and all the relevant predator/tow info. Exclude predators whose stomachs were empty, because we don't know why they were empty (e.g., regurgitated in trawl due to barotrauma).
 ```{r simplify predator data}
 preddat = frdata %>%
   filter(pynam != "EMPTY") %>% # remove empty stomachs, from 289,470 to 162,203
@@ -106,79 +106,52 @@ Now merge with a dataframe with the rest of the predator data. It should have th
 dat_preds_all = left_join(preddat, preydat, by = "predid") %>%
   mutate(pyamtw = ifelse(is.na(pyamtw), 0, pyamtw),
          pypres = ifelse(pyamtw == 0, 0, 1))
-#dat_preds_all$pyamtw = ifelse(is.na(dat_preds_all$pyamtw), 0, dat_preds_all$pyamtw)
-
-if(save_data == TRUE) saveRDS(dat_preds_all, here("output", "data_formatted", "dat_preds_all.rds"))
-```
-
-Split data by species.[Actually probably don't need to do this.]
-```{r}
-pred_species = unique(dat_preds_all$pdcomnam)
-
-dat_preds = vector("list", length(pred_species))
-names(dat_preds) = pred_species
-
-for(i in seq(pred_species)){
-  dat_preds[[i]] = filter(dat_preds_all, pdcomnam == pred_species[i])
-}
 ```
 
 
 # 2. Create a data frame where each row is a unique tow. 
-Need to take the data frame I have now and condense by tow/species combo
+Need to take the data frame I have now and condense by tow/species combo (averaging within tows).
 ```{r pool predators in tows}
-pooled_tows = dat_preds %>% lapply(. %>% 
-  group_by(towid) %>%
+pooled_tows = dat_preds_all %>% 
+  group_by(towid, pdcomnam) %>%
   summarize(mean_pyamtw = mean(pyamtw), 
             mean_pdlen = mean(pdlen),
-            pypres = max(pypres),
+            tot_pypres = sum(pypres),
             n_preds = n())
-  )
 ```
 
-```{r check data pool}
-for(i in seq(pred_species)){
-  print(nrow(dat_preds[[i]]) == sum(pooled_tows[[i]]$n_preds)) # accounting for same number of samples?
-}
-```
-
+Add back in the tow-level information to the pooled predator data by merging with tibble of tow info.  
 ```{r get one tow per row}
 towdat = frdata %>% 
   dplyr::select(towid, station, geoarea, declat, declon, month, day, year, season, setdepth) %>%
   distinct()
 
 sum(duplicated(preddat$predid)) > 0 # any duplicates?
+
+dat_tows_all = right_join(towdat, pooled_tows, by = "towid")
 ```
-
-Like before, need to set weight for tows without prey consumption to 0. Going to leave mean_pdlen as NA for now, I can always change it later if I run into problems. 
-```{r combine tows and pooled data}
-dat_tows = pooled_tows %>% lapply(. %>%
-  left_join(towdat, ., by = "towid") %>%
-    mutate(mean_pyamtw = ifelse(is.na(mean_pyamtw), 0, mean_pyamtw),
-           pypres = ifelse(mean_pyamtw == 0, 0, 1),
-           n_preds = ifelse(is.na(n_preds), 0, n_preds))
-  )
-```
+I had previously then joined with all tow data, but here, I'm just looking at tows with predators that had non-empty stomachs. We don't want to look at tows that had no predators, or tows that had predators with no consumption whatsoever. 
 
 
-```{r compare sizes}
-sapply(dat_preds, nrow)
-sapply(dat_tows, nrow)
-sapply(dat_preds, nrow) == sapply(dat_tows, function(x) sum(x$n_preds)) # underlying predator numbers
+# 3. Condense season names
+Condense the four season designation by NEFSC into 2 seasons. The groupings are Fall and Summer (FALL) and Winter and Spring (spring), based on which seasons were closest together.
+```{r fix seasons}
+dat_preds_all = mutate(dat_preds_all, myseason = ifelse(season == "FALL"|season == "SUMMER", "FALL", "SPRING"))
+dat_tows_all = mutate(dat_tows_all, myseason = ifelse(season == "FALL"|season == "SUMMER", "FALL", "SPRING"))
 ```
 
 
-# 3. Save output
+# 4. Save output
 ```{r save output}
 if(save_data == TRUE){
-  saveRDS(dat_preds, file = "../output/data_formatted/dat_preds.rds")
-  saveRDS(dat_tows, file = "../output/data_formatted/dat_tows.rds")
+  saveRDS(dat_preds_all, here("output", "data_formatted", "dat_preds_all.rds"))
+  saveRDS(dat_tows_all, here("output", "data_formatted", "dat_tows_all.rds"))
 }
 ```
 
 
-dat_preds has one row for each predator (it does not include tows where predators did not occur)
-dat_tows has one row for each tow. predator info is averaged accross predators of the same species within the same tow and it contains information about tows that did not have any predators in it (i.e., rows where n_preds == 0)
+*dat_preds_all has one row for each predator with non-empty stomach (it does not include tows where predators did not occur or had empty stomachs)
+*dat_tows_all has one row for each species per tow. predator info is averaged accross predators of the same species within the same tow. It does not contain information about tows that did not have any predators in it (i.e., rows where n_preds == 0), or where tows had predators with only empty stomachs. 
 
 
 
