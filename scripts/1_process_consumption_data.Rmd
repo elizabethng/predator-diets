@@ -14,7 +14,7 @@ editor_options:
 
 
 Later: I can incorporate other tow covariates, like amount of prey or predator in tow
-
+4. Include stomach volume or mass for total
 
 # Preliminaries
 ```{r packages and options}
@@ -91,7 +91,8 @@ sum(preydat$pyamtw == 0)
 ## Predator Data
 Create a data frame with one row per predator and all the relevant predator/tow info.
 ```{r simplify predator data}
-preddat = frdata %>% 
+preddat = frdata %>%
+  filter(pynam != "EMPTY") %>% # remove empty stomachs, from 289,470 to 162,203
   dplyr::select(towid, station, geoarea, declat, declon, month, day, year, season, setdepth,
          predid, pdcomnam, pdsex, pdlen, sizecat, pdwgt) %>%
   distinct()
@@ -110,7 +111,7 @@ dat_preds_all = left_join(preddat, preydat, by = "predid") %>%
 if(save_data == TRUE) saveRDS(dat_preds_all, here("output", "data_formatted", "dat_preds_all.rds"))
 ```
 
-Split data by species.
+Split data by species.[Actually probably don't need to do this.]
 ```{r}
 pred_species = unique(dat_preds_all$pdcomnam)
 
