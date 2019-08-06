@@ -17,6 +17,10 @@ Later: I can incorporate other tow covariates, like amount of prey or predator i
 4. Include stomach volume or mass for total
 
 # Preliminaries
+```{r setup}
+knitr::opts_knit$set(root.dir = "D:/Dropbox/Predator_Diets") #rprojroot::find_rstudio_root_file())
+```
+
 ```{r packages and options}
 library(tidyverse)
 library(here)
