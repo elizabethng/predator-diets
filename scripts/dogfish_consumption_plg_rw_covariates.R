@@ -15,7 +15,7 @@ Species_name = gsub(" ", "_", Species)
 Subset_areas = TRUE
 
 # 0. Create output directory ----------------------------------------------
-DateFile = paste("output", "VAST", "TEST", "dogfish_covariates", sep = "/")
+DateFile = paste("output", "VAST", "TEST", "dogfish_non_spatial_covs", sep = "/")
 dir.create(here(DateFile))
 
 
@@ -164,23 +164,6 @@ Options = c(        # calculate derived quantities?
   "Calculate_Synchrony" = 0, 
   "Calculate_Coherence" = 0)
 
-# Save settings
-Record = ThorsonUtilities::bundlelist(c(
-  "Data_Set",
-  "Version",
-  "Method",
-  "grid_size_km",
-  "n_x",
-  "FieldConfig",
-  "RhoConfig",
-  "OverdispersionConfig",
-  "ObsModel",
-  "Options",
-  "Spatial_List"))
-save(Record, file = here(DateFile,"Record.RData"))
-capture.output(Record, file = here(DateFile, "Record.txt"))
-
-
 
 
 # Catchability Variables --------------------------------------------------
@@ -212,6 +195,27 @@ Q_ik[,4] = Q_ik[,3]^2
 # 4. Optimize model -------------------------------------------------------
 Use_REML = FALSE
 
+## Turn off spatio-temporal
+FieldConfig[] = 0
+# RhoConfig[] = 0 # might need to turn this back on
+Options[] = 0
+
+# Save settings
+Record = ThorsonUtilities::bundlelist(c(
+  "Data_Set",
+  "Version",
+  "Method",
+  "grid_size_km",
+  "n_x",
+  "FieldConfig",
+  "RhoConfig",
+  "OverdispersionConfig",
+  "ObsModel",
+  "Options",
+  "Spatial_List"))
+save(Record, file = here(DateFile,"Record.RData"))
+capture.output(Record, file = here(DateFile, "Record.txt"))
+
 TmbData = make_data(
   "b_i" = Data_Geostat$Catch_KG,
   "a_i" = Data_Geostat$AreaSwept_km2,
@@ -227,7 +231,7 @@ TmbData = make_data(
   "Q_ik" = 
         # Q_ik[,c(1,2)],    # int + cat
         # Q_ik[,c(1,3)],    # int + len
-         Q_ik[,c(1,3,4)],  # int + len + len^2
+        Q_ik[,c(1,3,4)],  # int + len + len^2
         # Q_ik[, c(1,5)],   # int + season
         # Q_ik[, c(1,3:5)], # int + season + len + len^2
   "Options" = Options,
@@ -263,6 +267,7 @@ Opt = TMBhelper::fit_tmb(
     sd=FALSE, split=NULL, nsplit=1, vars_to_correct = "Index_cyl"))
 
 Opt$AIC
+write.csv(Opt$AIC, here(DateFile, "AIC_non_spatial.txt"))
 # write.csv(Opt$AIC, here(DateFile, "AIC_no_Qik.txt"))
 # write.csv(Opt$AIC, here(DateFile, "AIC_int_cat.txt"))
 # write.csv(Opt$AIC, here(DateFile, "AIC_int_len.txt"))
