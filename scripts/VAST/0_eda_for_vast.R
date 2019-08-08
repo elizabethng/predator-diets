@@ -5,8 +5,8 @@ library(here)
 
 
 # Get Data
-dat = read_rds(here("output", "data_formatted", "dat_preds.rds")) %>%
-  pluck("ATLANTIC COD")
+dat = read_rds(here("output", "data_formatted", "dat_preds_all.rds")) %>%
+  filter(pdcomnam == "ATLANTIC COD")
 
 # Observations by season
 dat %>% group_by(season) %>% summarise(n())
