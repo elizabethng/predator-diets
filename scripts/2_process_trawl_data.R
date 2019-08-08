@@ -57,8 +57,8 @@ dat = mydata %>%
 # NAs are where no fish were found
 # Makes sense to switch so that 0 means none were measured, whereas NA means no weights were recorded
 
-# ifelse 0s to tmp
-# change NAs tp 0s
+# ifelse 0s to tmp (i.e., 9999999999)
+# change NAs to 0s
 # change tmp to NAs
 
 fixdat = dat %>%
