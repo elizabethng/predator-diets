@@ -1,4 +1,5 @@
-# Combine plots of indices
+# Simple line plots of multiple VAST indices
+# Plot VAST herring index from cod and dogfish consumption with Jon's index
 
 library(tidyverse)
 library(here)

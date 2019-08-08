@@ -1,4 +1,5 @@
-# Calculate roughly the area of each subregion
+# Calculate roughly the area of each subregion using concave hulls
+# Used in description/comparison to Jon's analyses
 
 library(sf)
 library(here)

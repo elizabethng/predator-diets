@@ -1,4 +1,5 @@
 # Density calculations and mapping for Atlantic Cod
+# Crude initial maps for VAST output (density estimates)
 
 library(tidyverse)
 library(here)

@@ -1,4 +1,5 @@
 # Script to make mesh that follows good INLA principles, but also works for VAST
+# This must be from John Best: https://github.com/jkbest2/PointProcessCoS/blob/master/ppcos_quads.R
 
 # Need the same things as for SpatialList object
 # Here are the components need for fit 
