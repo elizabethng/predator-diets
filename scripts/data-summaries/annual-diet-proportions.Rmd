@@ -16,31 +16,65 @@ knitr::opts_knit$set(root.dir = "D:/Dropbox/Predator_Diets") #rprojroot::find_rs
 library(tidyverse)
 library(here)
 
-save_data = FALSE
-use_harengus_only = FALSE # use only C. harengus? otherwise all clupea spp.
+save_data <- FALSE
+use_harengus_only <- FALSE # use only C. harengus? otherwise all clupea spp.
 ```
 
 ```{r load diet data}
-frdata = read_csv(here("data", "fr_diet.csv"), guess_max = 365080) %>%
+frdata <- read_csv(here("data", "fr_diet.csv"), guess_max = 365080) %>%
   dplyr::select(-X1)
+
+names(frdata)
 ```
 
 # 0. Clean data
 Make longitude negative, remove 7 observations missing date and location data, and one spatial outlier
 ```{r}
-frdata = frdata %>% mutate(declon  = - declon) %>%
+frdata <- frdata %>% mutate(declon  = - declon) %>%
   filter(!is.na(month)) %>%
   filter(declon > -78)
 ```
 
-
+Add IDs for tow and predator.
 Unique tow ID is cruise6 + station
 Unique predator ID needs to account for cruise, station, species, replicate, and sex
 ```{r create unique IDs}
-frdata = frdata %>% mutate(
-  towid = paste(cruise6, station),
-  predid = paste(cruise6, station, svspp, pdid, pdsex)
-)
+frdata <- frdata %>% 
+  mutate(
+    towid = paste(cruise6, station),
+    predid = paste(cruise6, station, svspp, pdid, pdsex)
+  )
+```
+
+Condense to two seasons. 
+```{r}
+frdata <- frdata %>%
+  mutate(myseason = ifelse(season == "FALL"|season == "SUMMER", "FALL", "SPRING"))
+```
+
+# Note:
+Need to look at relative consumption, so at minimum, a category for herring consumed, that predator consumed, and the amount of other prey consumed, whatever that should include. Maybe go by gut volume since that's the most straight forward? But what to do about "other prey" that aren't actually food (e.g., "STRING", "PLASTIC"), and non-fish prey? Non-fish prey seem important and should be inluded too I think. I also doubt that the non-food categories are very significant. 
+
+Check consumption of non-food items.
+```{r}
+non_food <- frdata %>% 
+  filter(analsci == "MISCELLANEOUS") %>%
+  select(pynam) %>%
+  distinct() %>%
+  pull(pynam)
+
+filter(frdata, analsci == "MISCELLANEOUS") %>%
+  group_by(year) %>%
+  summarise(
+    tot_mass = sum(pyamtw),
+    tot_volm = sum(pyamtv),
+    n = n())
+```
+
+Remove non-food items.
+```{r}
+frdata <- frdata %>%
+  filter(analsci != "MISCELLANEOUS")
 ```
 
 
