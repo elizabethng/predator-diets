@@ -1,4 +1,5 @@
-# Test fit to single species data
+# Fit model to data using covariates
+# Start with combined-season model, but then I'll have to split them out by season
 
 library(tidyverse)
 library(here)
