@@ -32,38 +32,50 @@ process_data <- function(dataset__, species, season, covariate){
   }
   
   # Select columns
-  species_data <- species_data %>%
-    mutate(
-      int = 1,
-      size_cat = ifelse(sizecat == "S", -1, 
-                        ifelse(sizecat == "M", 0, 1)),
-      pd_len_z = scale(pdlen),
-      pd_len_z_2 = pd_len_z^2
-      )
-    select(pyamtw, year, declat, declon, sizecat, pdlen)
+  dat <- species_data %>%
+    dplyr::mutate(int = 1,
+           size_cat = ifelse(sizecat == "S", -1, 
+                             ifelse(sizecat == "M", 0, 1)),
+           pd_len_z = scale(pdlen),
+           pd_len_z_2 = pd_len_z^2) %>%
+    dplyr::select(pyamtw, year, declat, declon, 
+           size_cat, pd_len_z, pd_len_z_2) %>%
+    na.omit()
   
-  data_geo <- data.frame(
-    Catch_KG = species_data$pyamtw,
-    Year = species_data$year,
-    Vessel = "missing",
-    AreaSwept_km2 = 1,
-    Lat = species_data$declat,
-    Lon = species_data$declon)
   
-  # Covariate data
-  Q_ik = matrix(
-    c(
-      rep(1, nrow(species_data)),                                                          # intercept
-      ifelse(species_data$sizecat == "S", -1, ifelse(species_data$sizecat == "M", 0, 1)),  # size categories
-      (species_data$pdlen - mean(species_data$pdlen))/sd(species_data$pdlen),              # z-score pd length
-      rep(NA, nrow(species_data))                                                          # spot for squared len 
-    ), 
-    nrow = nrow(species_data), 
-    ncol = 4, 
-    byrow = FALSE)
+  # Check for missing years
   
-  Q_ik[,4] = Q_ik[,3]^2
-  colnames(Q_ik) <-  c("int", "size_cat", "len_z", "len_z_2")
+  
+  
+  # Format output
+  data_geo <- data.frame(Catch_KG = dat$pyamtw,
+                         Year = dat$year,
+                         Vessel = "missing",
+                         AreaSwept_km2 = 1,
+                         Lat = dat$declat,
+                         Lon = dat$declon)
+  Q_ik <- dplyr::mutate(dat, int = 1) %>%
+    dplyr::select(int, size_cat, pd_len_z, pd_len_z_2) %>%
+    as.matrix()
   
   return(list(data_geo = data_geo, Q_ik = Q_ik))
 }
+
+
+
+
+
+# Covariate data
+Q_ik = matrix(
+  c(
+    rep(1, nrow(species_data)),                                                          # intercept
+    ifelse(species_data$sizecat == "S", -1, ifelse(species_data$sizecat == "M", 0, 1)),  # size categories
+    (species_data$pdlen - mean(species_data$pdlen))/sd(species_data$pdlen),              # z-score pd length
+    rep(NA, nrow(species_data))                                                          # spot for squared len 
+  ), 
+  nrow = nrow(species_data), 
+  ncol = 4, 
+  byrow = FALSE)
+
+Q_ik[,4] = Q_ik[,3]^2
+colnames(Q_ik) <-  c("int", "size_cat", "len_z", "len_z_2")
