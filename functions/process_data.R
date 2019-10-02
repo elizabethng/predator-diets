@@ -12,14 +12,12 @@
 #' @return data_geo = a data frame, which includes covariates as a columns
 #' @examples 
 #' \dontrun{
-
-raw_data <- readr::read_rds(here::here("output", "data_formatted", "dat_preds_all.rds"))
-test <- process_data(raw_data, 
-                     species = "SILVER HAKE",
-                     season = "spring")
-
-
+#' raw_data <- readr::read_rds(here::here("output", "data_formatted", "dat_preds_all.rds")) 
+#' test <- process_data(raw_data, 
+#'                   species = "SILVER HAKE",
+#'                   season = "spring")      
 #' }
+
 
 process_data <- function(dataset__, species, season, covariate){
   # Filter data
@@ -43,8 +41,14 @@ process_data <- function(dataset__, species, season, covariate){
     na.omit()
   
   
-  # Check for missing years
+  # Check for missing years and warn
+  all_years <- seq(min(dat$year), max(dat$year))
+  obs_years <- unique(dat$year)
+  missing_years <- all_years[!(all_years %in% obs_years)]
   
+  if(length(missing_years) > 0){
+    warning(paste("Missing year(s) detected:", missing_years))
+  }
   
   
   # Format output
@@ -61,21 +65,3 @@ process_data <- function(dataset__, species, season, covariate){
   return(list(data_geo = data_geo, Q_ik = Q_ik))
 }
 
-
-
-
-
-# Covariate data
-Q_ik = matrix(
-  c(
-    rep(1, nrow(species_data)),                                                          # intercept
-    ifelse(species_data$sizecat == "S", -1, ifelse(species_data$sizecat == "M", 0, 1)),  # size categories
-    (species_data$pdlen - mean(species_data$pdlen))/sd(species_data$pdlen),              # z-score pd length
-    rep(NA, nrow(species_data))                                                          # spot for squared len 
-  ), 
-  nrow = nrow(species_data), 
-  ncol = 4, 
-  byrow = FALSE)
-
-Q_ik[,4] = Q_ik[,3]^2
-colnames(Q_ik) <-  c("int", "size_cat", "len_z", "len_z_2")
