@@ -11,15 +11,17 @@
 #' @param covariate but maybe default to including all of them and making Qik
 #' @return data_geo = a data frame, which includes covariates as a columns
 #' @examples 
-#' \dontrun{
+#' \dontrun{ #' }
 
 raw_data <- readr::read_rds(here::here("output", "data_formatted", "dat_preds_all.rds"))
 test <- process_data(raw_data, 
                      species = "SILVER HAKE",
                      season = "spring")
 
+# for testing
+dataset__ <- raw_data
 
-#' }
+
 
 process_data <- function(dataset__, species, season, covariate){
   # Filter data
@@ -38,13 +40,38 @@ process_data <- function(dataset__, species, season, covariate){
                              ifelse(sizecat == "M", 0, 1)),
            pd_len_z = scale(pdlen),
            pd_len_z_2 = pd_len_z^2) %>%
-    dplyr::select(pyamtw, year, declat, declon, 
+    dplyr::select(towid, pyamtw, year, declat, declon, 
            size_cat, pd_len_z, pd_len_z_2) %>%
-    na.omit()
+    na.omit() %>%
+    dplyr::group_by(towid) %>%
+    summarise(pyamtw_tm = mean(pyamtw), # tm = tow mean/median
+              size_cat_tm = median(size_cat),
+              pd_len_z)
   
   
-  # Check for missing years
+  # How to aggregate covariates?
+  test <- dat %>% 
+    group_by(towid) %>% 
+    summarize(mean_size_cat = mean(size_cat), 
+              med_size_cat = median(size_cat),
+              round_mean_sc = round(mean(size_cat)),
+              n = n()) %>%
+    mutate(diff = abs(mean_size_cat - med_size_cat)) %>%
+    arrange(desc(diff))
   
+  
+  # Jim's approach would average over tows
+  dat <- dat %>%
+    dplyr::group_by(towid)
+  
+  # Check for missing years (but might not be a problem yet??)
+  # all_years <- seq(min(dat$year), max(dat$year))
+  # obs_years <- unique(dat$year)
+  # 
+  # all_years %in% obs_years
+  # 
+  # Year_Set = seq(min(Data_Geostat[,'Year']),max(Data_Geostat[,'Year']))
+  # Years2Include = which(Year_Set %in% sort(unique(Data_Geostat[,'Year'])))
   
   
   # Format output
