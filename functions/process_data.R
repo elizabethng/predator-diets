@@ -23,21 +23,21 @@ process_data <- function(dataset__, species, season, covariate){
   # Filter data
   species_data <- dplyr::filter(dataset__, pdcomnam == species)
   
-  if(season == "spring"){
+  if(tolower(season) == "spring"){
     species_data <- dplyr::filter(species_data, myseason == "SPRING")
-  }else if(season == "fall"){
+  }else if(tolower(season) == "fall"){
     species_data <- dplyr::filter(species_data, myseason == "FALL")
   }
   
   # Select columns
   dat <- species_data %>%
-    dplyr::mutate(int = 1,
-           size_cat = ifelse(sizecat == "S", -1, 
-                             ifelse(sizecat == "M", 0, 1)),
-           pd_len_z = scale(pdlen),
-           pd_len_z_2 = pd_len_z^2) %>%
+    dplyr::mutate(
+      int = 1,
+      size_cat = ifelse(sizecat == "S", -1, ifelse(sizecat == "M", 0, 1)),
+      pd_len_z = scale(pdlen)[,1],
+      pd_len_z_2 = pd_len_z^2) %>%
     dplyr::select(pyamtw, year, declat, declon, 
-           size_cat, pd_len_z, pd_len_z_2) %>%
+                  int, size_cat, pd_len_z, pd_len_z_2) %>%
     na.omit()
   
   
@@ -52,16 +52,16 @@ process_data <- function(dataset__, species, season, covariate){
   
   
   # Format output
-  data_geo <- data.frame(Catch_KG = dat$pyamtw,
-                         Year = dat$year,
-                         Vessel = "missing",
-                         AreaSwept_km2 = 1,
-                         Lat = dat$declat,
-                         Lon = dat$declon)
-  Q_ik <- dplyr::mutate(dat, int = 1) %>%
-    dplyr::select(int, size_cat, pd_len_z, pd_len_z_2) %>%
-    as.matrix()
-  
-  return(list(data_geo = data_geo, Q_ik = Q_ik))
+  data_geo <- dat %>%
+    dplyr::rename(
+      Catch_KG = pyamtw,
+      Year = year,
+      Lat = declat,
+      Lon = declon) %>%
+    dplyr::mutate(
+      Vessel = "missing",
+      AreaSwept_km2 = 1)
+
+  return(data_geo)
 }
 
