@@ -68,8 +68,8 @@ Region = "northwest_atlantic"
 # strata.limits <- data.frame('STRATA'="All_areas")
 
 # Set the location for saving files.
-unlink(paste0(getwd(),'/VAST_output/'), recursive = T)
-DateFile = paste0(getwd(),'/VAST_output/')
+unlink(file.path(getwd(), "VAST_output/"), recursive = T)
+DateFile = file.path(getwd(), "VAST_output/")
 dir.create(DateFile)
 
 #I also like to save all settings for later reference, although this is not necessary.
