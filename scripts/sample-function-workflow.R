@@ -2,10 +2,10 @@
 
 # library(here)
 # library(tidyverse)
-# library(VAST)
-# library(TMB)
+library(VAST)
+library(TMB)
 library(magrittr)
-library(compiler)
+# library(compiler)
 
 Version <- FishStatsUtils::get_latest_version()
 
