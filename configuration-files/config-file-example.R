@@ -1,8 +1,8 @@
 # Configuration file for model runs. 
 
 
-Species_set = "Species name"
-Model_name = "Model name"
+# Species_set = "Species name"  # change species set externally
+Model_name = "Model name"       # use this to name the model
 
 # Mesh Settings -----------------------------------------------------------
 
@@ -58,27 +58,3 @@ Options = c(
   "Calculate_Coherence" = 0
 )
 
-# Strata limits (source separately in main file)
-locdir <- c("C:/Users/Elizabeth Ng/Documents/GitHub/predator-diets")
-source(file.path(locdir, "functions", "strata_limits_subset.R")) # could save as RDS
-
-# Set region and species (should not need this)
-Region = "northwest_atlantic"
-# Species_set = "10110"
-# strata.limits <- data.frame('STRATA'="All_areas")
-
-# Set the location for saving files.
-unlink(file.path(getwd(), "VAST_output/"), recursive = T)
-DateFile = file.path(getwd(), "VAST_output/")
-dir.create(DateFile)
-
-#I also like to save all settings for later reference, although this is not necessary.
-Record <- list("Version"=Version,"Method"=Method,
-              "grid_size_km"=grid_size_km,"n_x"=n_x,
-              "FieldConfig"=FieldConfig,"RhoConfig"=RhoConfig,
-              "OverdispersionConfig"=OverdispersionConfig,
-              "ObsModel"=ObsModel,"Kmeans_Config"=Kmeans_Config,
-              "Region"=Region,"Species_set"=Species_set,"Model_name"=Model_name,
-              "strata.limits"=strata.limits)
-save( Record, file=file.path(DateFile,"Record.RData"))
-capture.output( Record, file=paste0(DateFile,"Record.txt"))

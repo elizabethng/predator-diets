@@ -1,22 +1,52 @@
 #' @description Model to run VAST using helper functions and configuration file. 
-#' @param Data_Geostat  = data frame formatted by process_data() function
-#' @param config_file   = file path to a configuration file 
-#'                        specifying mesh, model, and output settings
-#' @param folder_name   = file path for the output destination
-#' @param covar_columns = [not yet implemented] columns to use for
-#'                        catchability covariates (Q_ik matrix)
-#' @retrun No explicit return yet; saves output in folder_name destination
+#' @param Data_Geostat      = data frame formatted by process_data() function
+#' @param config_file_loc   = file path to a configuration file 
+#'                            specifying mesh, model, and output settings
+#' @param strata_file_loc   = file path to strata limits (data frame with 1 column STRATA)                       
+#' @param output_file_loc   = file path for the output destination
+#' @param covar_columns     = [not yet implemented] columns to use for
+#'                            catchability covariates (Q_ik matrix)
+#' @retrun No explicit return yet; saves output in output_loc destination
 
-# folder_name <- c("test_output")
+# output_loc <- c("test_output")
 # raw_data <- readr::read_rds(here::here("output", "data_formatted", "dat_preds_all.rds")) 
 # Data_Geostat <- process_data(raw_data, species = "SILVER HAKE", season = "spring")
 
-run_mod <- function(Data_Geostat, config_file, folder_name, covar_columns){
+run_mod <- function(species,
+                    season,
+                    covar_columns,
+                    config_file_loc,
+                    strata_file_loc,
+                    rawdat_file_loc,
+                    output_file_loc)
+  {
   
-  orig_dat <- Data_Geostat
+  # Set the location for saving files. Better to have flatter file structure?
+  DateFile <- file.path(output_file_loc, species, season, tools::file_path_sans_ext(basename(config_file_loc)))
+  dir.create(DateFile, recursive = TRUE) # can end in / or not
   
-  # Going to have to do something about my paths...
-  source(file.path(locdir, "configuration-files", "config-file-example.R"))
+  source(config_file_loc)
+  source(strata_file_loc)
+  
+  orig_dat <- readr::read_rds(here::here("output", "data_formatted", "dat_preds_all.rds")) %>%
+    process_data(species = species, # need !!species, !!season
+                 season = season)   
+  
+  Data_Geostat <- orig_dat # Do I need to remove covariates here?
+
+  
+  # Record output
+  Record <- list("Version" = Version,"Method"=Method,
+                 "grid_size_km"=grid_size_km,"n_x"=n_x,
+                 "FieldConfig"=FieldConfig,"RhoConfig"=RhoConfig,
+                 "OverdispersionConfig"=OverdispersionConfig,
+                 "ObsModel"=ObsModel,"Kmeans_Config"=Kmeans_Config,
+                 "Region"="northwest_atlantic",
+                 "Species_set"= paste(species, season),
+                 "Model_name" = tools::file_path_sans_ext(basename(config_file_loc)),
+                 "strata.limits" = strata.limits)
+  save(Record, file = file.path(DateFile,"Record.RData"))         # probably better if DateFile does not end in /
+  capture.output(Record, file = file.path(DateFile,"Record.txt"))
   
   
   Extrapolation_List <- FishStatsUtils::make_extrapolation_info(
@@ -32,8 +62,8 @@ run_mod <- function(Data_Geostat, config_file, folder_name, covar_columns){
     Lat = Data_Geostat$Lat,
     Extrapolation_List = Extrapolation_List,
     fine_scale = FALSE,
-    # DirPath = NA,
-    Save_Results = FALSE
+    DirPath = DateFile,
+    Save_Results = TRUE
   )
   
   # Add knots to Data_Geostat
@@ -70,15 +100,8 @@ run_mod <- function(Data_Geostat, config_file, folder_name, covar_columns){
        DateFile, 
        Version, 
        Method,
-       file = paste0(DateFile, "model-settings.RData"))
-  # # Versus my approach
-  # Save = list(
-  #   "Opt" = Opt,
-  #   "Report" = Report,
-  #   "ParHat" = Obj$env$parList(Opt$par),
-  #   "TmbData" = TmbData)
-  # save(Save, file = here(DateFile,"Save.RData"))
-  
+       file = file.path(DateFile, "model-settings.RData"))
+
   TmbList <- VAST::make_model(
     "TmbData" = TmbData, 
     "RunDir" = DateFile,
@@ -101,12 +124,104 @@ run_mod <- function(Data_Geostat, config_file, folder_name, covar_columns){
     bias.correct.control = list(
       sd=FALSE, split=NULL, nsplit=1, vars_to_correct = "Index_cyl"))
   
-  
-  OutFile = paste0(getwd(),"/",folder_name)
-  dir.create(OutFile)
-  setwd(OutFile)
+
   Report = Obj$report()
   Save = list("Opt"=Opt, "Report"=Report, "ParHat"= Obj$env$parList(Opt$par), "TmbData"=TmbData)
-  save(Save, file=paste0(DateFile, "Save.RData"))
+  save(Save, file = file.path(DateFile, "Save.RData"))
+  
+  write.csv(Opt$AIC, file.path(DateFile, "AIC.txt"))
+  
+  # Diagnostics and plots
+  # Data
+ FishStatsUtils::plot_data(
+    Extrapolation_List = Extrapolation_List,
+    Spatial_List = Spatial_List,
+    Data_Geostat = Data_Geostat,
+    PlotDir = paste0(DateFile, "/"))
+  
+  # Presence model
+  Enc_prob = FishStatsUtils::plot_encounter_diagnostic(
+    Report = Report,
+    Data_Geostat = Data_Geostat,
+    DirName = DateFile)
+  
+  # Positive model
+  Q = FishStatsUtils::plot_quantile_diagnostic(
+    TmbData = TmbData,
+    Report = Report,
+    FileName_PP = "Posterior_Predictive",
+    FileName_Phist = "Posterior_Predictive-Histogram", 
+    FileName_QQ = "Q-Q_plot", 
+    FileName_Qhist = "Q-Q_hist", 
+    DateFile = DateFile)
+  
+  # Get region-specific settings for plots
+  MapDetails_List = FishStatsUtils::make_map_info(
+    Region = "northwest_atlantic",
+    Extrapolation_List = Extrapolation_List,
+    spatial_list = Spatial_List,
+    NN_Extrap = Spatial_List$PolygonList$NN_Extrap,
+    fine_scale = Spatial_List$fine_scale,
+    Include = (Extrapolation_List[["Area_km2_x"]] > 0 &
+                 Extrapolation_List[["a_el"]][, 1] > 0))
+  
+  # Decide which years to plot                                                   
+  Year_Set = seq(min(Data_Geostat[,'Year']),max(Data_Geostat[,'Year']))
+  Years2Include = which(Year_Set %in% sort(unique(Data_Geostat[,'Year'])))
+  
+  # Map of residuals # can't use, TmbData no longer has n_x
+  # FishStatsUtils::plot_residuals(
+  #   Lat_i = Data_Geostat[,'Lat'],
+  #   Lon_i = Data_Geostat[,'Lon'],
+  #   TmbData = TmbData,
+  #   Report = Report,
+  #   Q = Q,
+  #   savedir = DateFile,
+  #   MappingDetails = MapDetails_List[["MappingDetails"]],
+  #   PlotDF = MapDetails_List[["PlotDF"]],
+  #   MapSizeRatio = MapDetails_List[["MapSizeRatio"]],
+  #   Xlim = MapDetails_List[["Xlim"]],
+  #   Ylim = MapDetails_List[["Ylim"]],
+  #   FileName = DateFile,
+  #   Year_Set = Year_Set,
+  #   Years2Include = Years2Include,
+  #   Rotate = MapDetails_List[["Rotate"]],
+  #   Cex = MapDetails_List[["Cex"]],
+  #   Legend = MapDetails_List[["Legend"]],
+  #   zone = MapDetails_List[["Zone"]],
+  #   mar = c(0,0,2,0),
+  #   oma = c(3.5,3.5,0,0),
+  #   cex = 1.8)
+  
+  # Anisotropy
+  FishStatsUtils::plot_anisotropy(
+    FileName = file.path(DateFile,"Aniso.png"),
+    Report = Report,
+    TmbData = TmbData)
+  
+  # Abundance index
+  Index = FishStatsUtils::plot_biomass_index(
+    DirName = DateFile,
+    TmbData = TmbData,
+    Sdreport = Opt[["SD"]],
+    Year_Set = Year_Set,
+    Years2Include = Years2Include,
+    use_biascorr = TRUE)
+  
+  # Pull out and format knot-level values (may change with fine scale)
+  est_dens = as.vector(Save$Report$D_gcy) # D_xcy) # stacked 1:100 knot value for each year
+  all_dens = tidyr::tibble(
+    year = sort(rep(Year_Set, n_x)),
+    x2i = rep(seq(n_x), max(Years2Include)),
+    density = est_dens,
+    E_km = rep(Spatial_List$MeshList$loc_x[, "E_km"], max(Years2Include)),
+    N_km = rep(Spatial_List$MeshList$loc_x[, "N_km"], max(Years2Include))
+  )
+  
+  # Expand for continuous plotting
+  map_dat = dplyr::left_join(all_dens, MapDetails_List$PlotDF) %>%
+    dplyr::mutate(density_log = log(density)) %>%
+    dplyr::rename(knot = x2i)
+  readr::write_csv(map_dat, file.path(DateFile, "my_map_dat.csv"))
   
 }
