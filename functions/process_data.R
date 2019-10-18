@@ -36,7 +36,7 @@ process_data <- function(dataset__, species, season, covariate){
       size_cat = ifelse(sizecat == "S", -1, ifelse(sizecat == "M", 0, 1)),
       pd_len_z = scale(pdlen)[,1],
       pd_len_z_2 = pd_len_z^2) %>%
-    dplyr::select(pyamtw, year, declat, declon, 
+    dplyr::select(pdcomnam, myseason, pyamtw, year, declat, declon, 
                   int, size_cat, pd_len_z, pd_len_z_2) %>%
     na.omit()
   
@@ -54,6 +54,8 @@ process_data <- function(dataset__, species, season, covariate){
   # Format output
   data_geo <- dat %>%
     dplyr::rename(
+      species = pdcomnam,
+      season = myseason,
       Catch_KG = pyamtw,
       Year = year,
       Lat = declat,
