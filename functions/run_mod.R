@@ -21,8 +21,12 @@ run_mod <- function(species,
                     output_file_loc)
   {
   
-  # Set the location for saving files. Better to have flatter file structure?
-  DateFile <- file.path(output_file_loc, species, season, tools::file_path_sans_ext(basename(config_file_loc)))
+  # Set the location for saving files. Keep structure very flat.
+  run_name <- paste0(gsub(" ", "-", tolower(species)), "_", 
+                    "season-", season, "_",
+                    tools::file_path_sans_ext(basename(config_file_loc))) # name config files consistently
+  DateFile <- file.path(output_file_loc, run_name)
+  # DateFile <- file.path(output_file_loc, species, season, tools::file_path_sans_ext(basename(config_file_loc)))
   dir.create(DateFile, recursive = TRUE) # can end in / or not
   
   source(config_file_loc)
@@ -32,7 +36,8 @@ run_mod <- function(species,
     process_data(species = species, # need !!species, !!season
                  season = season)   
   
-  Data_Geostat <- orig_dat # Do I need to remove covariates here?
+  Data_Geostat <- dplyr::filter(orig_dat, Year > 1990)
+  # orig_dat # Do I need to remove covariates here?
 
   
   # Record output
@@ -170,28 +175,28 @@ run_mod <- function(species,
   Years2Include = which(Year_Set %in% sort(unique(Data_Geostat[,'Year'])))
   
   # Map of residuals # can't use, TmbData no longer has n_x
-  # FishStatsUtils::plot_residuals(
-  #   Lat_i = Data_Geostat[,'Lat'],
-  #   Lon_i = Data_Geostat[,'Lon'],
-  #   TmbData = TmbData,
-  #   Report = Report,
-  #   Q = Q,
-  #   savedir = DateFile,
-  #   MappingDetails = MapDetails_List[["MappingDetails"]],
-  #   PlotDF = MapDetails_List[["PlotDF"]],
-  #   MapSizeRatio = MapDetails_List[["MapSizeRatio"]],
-  #   Xlim = MapDetails_List[["Xlim"]],
-  #   Ylim = MapDetails_List[["Ylim"]],
-  #   FileName = DateFile,
-  #   Year_Set = Year_Set,
-  #   Years2Include = Years2Include,
-  #   Rotate = MapDetails_List[["Rotate"]],
-  #   Cex = MapDetails_List[["Cex"]],
-  #   Legend = MapDetails_List[["Legend"]],
-  #   zone = MapDetails_List[["Zone"]],
-  #   mar = c(0,0,2,0),
-  #   oma = c(3.5,3.5,0,0),
-  #   cex = 1.8)
+  FishStatsUtils::plot_residuals(
+    Lat_i = Data_Geostat[,'Lat'],
+    Lon_i = Data_Geostat[,'Lon'],
+    TmbData = TmbData,
+    Report = Report,
+    Q = Q,
+    savedir = DateFile,
+    MappingDetails = MapDetails_List[["MappingDetails"]],
+    PlotDF = MapDetails_List[["PlotDF"]],
+    MapSizeRatio = MapDetails_List[["MapSizeRatio"]],
+    Xlim = MapDetails_List[["Xlim"]],
+    Ylim = MapDetails_List[["Ylim"]],
+    FileName = DateFile,
+    Year_Set = Year_Set,
+    Years2Include = Years2Include,
+    Rotate = MapDetails_List[["Rotate"]],
+    Cex = MapDetails_List[["Cex"]],
+    Legend = MapDetails_List[["Legend"]],
+    zone = MapDetails_List[["Zone"]],
+    mar = c(0,0,2,0),
+    oma = c(3.5,3.5,0,0),
+    cex = 1.8)
   
   # Anisotropy
   FishStatsUtils::plot_anisotropy(
