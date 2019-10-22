@@ -36,9 +36,9 @@ run_mod <- function(species,
     process_data(species = species, # need !!species, !!season
                  season = season)   
   
-  Data_Geostat <- dplyr::filter(orig_dat, Year > 1990)
-  # orig_dat # Do I need to remove covariates here?
-
+  Data_Geostat <- orig_dat
+  # dplyr::filter(orig_dat, Year > 1990)
+    
   
   # Record output
   Record <- list("Version" = Version,"Method"=Method,
