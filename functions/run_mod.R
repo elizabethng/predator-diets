@@ -138,7 +138,7 @@ run_mod <- function(species,
   
   # Diagnostics and plots
   # Data
- FishStatsUtils::plot_data(
+  FishStatsUtils::plot_data(
     Extrapolation_List = Extrapolation_List,
     Spatial_List = Spatial_List,
     Data_Geostat = Data_Geostat,
@@ -175,6 +175,8 @@ run_mod <- function(species,
   Years2Include = which(Year_Set %in% sort(unique(Data_Geostat[,'Year'])))
   
   # Map of residuals # can't use, TmbData no longer has n_x
+  TmbData$n_x <- n_x
+  TmbData$s_i <- (Data_Geostat$knot_i - 1)
   FishStatsUtils::plot_residuals(
     Lat_i = Data_Geostat[,'Lat'],
     Lon_i = Data_Geostat[,'Lon'],
