@@ -213,8 +213,6 @@ run_mod <- function(species,
     Years2Include = Years2Include,
     use_biascorr = TRUE)
   
-  browser()
-  
   # Make maps
   my_plots = FishStatsUtils::plot_maps(
     plot_set = 3, 
