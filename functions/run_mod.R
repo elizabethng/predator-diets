@@ -1,17 +1,15 @@
-#' @description Model to run VAST using helper functions and configuration file. 
-#' @param Data_Geostat      = data frame formatted by process_data() function
-#' @param config_file_loc   = file path to a configuration file 
-#'                            specifying mesh, model, and output settings
-#' @param strata_file_loc   = file path to strata limits (data frame with 1 column STRATA)                       
-#' @param output_file_loc   = file path for the output destination
-#' @param covar_columns     = [not yet implemented] columns to use for
-#'                            catchability covariates (Q_ik matrix)
-#' @retrun No explicit return yet; saves output in output_loc destination
-
-# output_loc <- c("test_output")
-# raw_data <- readr::read_rds(here::here("output", "data_formatted", "dat_preds_all.rds")) 
-# Data_Geostat <- process_data(raw_data, species = "SILVER HAKE", season = "spring")
-
+#' Run VAST using custom wrapper fucntions
+#'
+#' @description Model to run VAST using helper functions and configuration file.
+#' @param species Character name of species for subsetting ("SILVER HAKE", "RED HAKE", "FOURSPOT FLOUNDER", "ATLANTIC COD", "POLLOCK", "WHITE HAKE", "WINTER SKATE", "SPINY DOGFISH", "SUMMER FLOUNDER", "GOOSEFISH", "THORNY SKATE", "SEA RAVEN", "BLUEFISH", "WEAKFISH")
+#' @param season  Character season to use for subsetting ("spring", "fall", "both")
+#' @param covar_columns Not implemented yet. Which columns to use for covariates?
+#' @param config_file_loc filepath to configuration file
+#' @param strata_file_loc filepath to file with strata
+#' @param rawdat_file_loc filepath to raw data
+#' @param output_file_loc filepath for output folder location
+#'
+#' @return No explicit return. Saves output to output_file_loc destination
 run_mod <- function(species,
                     season,
                     covar_columns,
@@ -20,6 +18,7 @@ run_mod <- function(species,
                     rawdat_file_loc,
                     output_file_loc)
   {
+  
   
   # Set the location for saving files. Keep structure very flat.
   run_name <- paste0(gsub(" ", "-", tolower(species)), "_", 
