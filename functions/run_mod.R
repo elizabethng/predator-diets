@@ -3,7 +3,7 @@
 #' @description Model to run VAST using helper functions and configuration file.
 #' @param species Character name of species for subsetting ("SILVER HAKE", "RED HAKE", "FOURSPOT FLOUNDER", "ATLANTIC COD", "POLLOCK", "WHITE HAKE", "WINTER SKATE", "SPINY DOGFISH", "SUMMER FLOUNDER", "GOOSEFISH", "THORNY SKATE", "SEA RAVEN", "BLUEFISH", "WEAKFISH")
 #' @param season  Character season to use for subsetting ("spring", "fall", "both")
-#' @param covar_columns Not implemented yet. Which columns to use for covariates?
+#' @param covar_columns Vector of quoted column names in data set to use as covariates. 
 #' @param config_file_loc filepath to configuration file
 #' @param strata_file_loc filepath to file with strata
 #' @param rawdat_file_loc filepath to raw data
@@ -128,7 +128,6 @@ run_mod <- function(species,
     bias.correct.control = list(
       sd=FALSE, split=NULL, nsplit=1, vars_to_correct = "Index_cyl"))
   
-
   Report = Obj$report()
   Save = list("Opt"=Opt, "Report"=Report, "ParHat"= Obj$env$parList(Opt$par), "TmbData"=TmbData)
   save(Save, file = file.path(DateFile, "Save.RData"))
@@ -214,6 +213,8 @@ run_mod <- function(species,
     Years2Include = Years2Include,
     use_biascorr = TRUE)
   
+  browser()
+  
   # Make maps
   my_plots = FishStatsUtils::plot_maps(
     plot_set = 3, 
@@ -253,4 +254,9 @@ run_mod <- function(species,
     dplyr::rename(knot = x2i)
   readr::write_csv(map_dat, file.path(DateFile, "my_map_dat.csv"))
   
+  return(list(
+    aic = Opt$AIC[1],
+    index = Index$table,
+    knot_density = map_dat
+  ))
 }
