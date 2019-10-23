@@ -90,3 +90,14 @@ tow_avg_dat %>%
 # abundance was low. 
 
 # A good option could be to fix those years to zero, need to check how to do that.
+
+tow_avg_dat %>%
+  filter(pdcomnam %in% c("SPINY DOGFISH", "ATLANTIC COD", "WHITE HAKE", "GOOSEFISH", "SILVER HAKE")) %>%
+  group_by(pdcomnam, myseason, year) %>%
+  summarize(
+    pypres = sum(pyamtw_mean) > 0,
+    n = n()
+  ) %>%
+  ggplot(aes(year, n, fill = pypres)) +
+  geom_col() +
+  facet_grid(~ pdcomnam)
