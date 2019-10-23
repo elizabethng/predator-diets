@@ -1,25 +1,20 @@
-#' @description Function to take dataset and select desired species, columns,
-#' and rows/conditions and return in a form acceptable for VAST. 
-#' 
-#' @param dataset__ = data.frame containing raw data
-#' @param species = character vector indicating the desired species, 
-#'                  species %in% c("SILVER HAKE", "RED HAKE", "FOURSPOT FLOUNDER", 
-#'                                 "ATLANTIC COD", "POLLOCK", "WHITE HAKE", "WINTER SKATE", 
-#'                                 "SPINY DOGFISH", "SUMMER FLOUNDER", "GOOSEFISH", 
-#'                                 "THORNY SKATE", "SEA RAVEN", "BLUEFISH", "WEAKFISH")
-#' @param season = character vector for season to filter season %in% c("spring", "fall", "both")
-#' @param covariate but maybe default to including all of them and making Qik
-#' @return data_geo = a data frame, which includes covariates as a columns
-#' @examples 
+#' Process data for VAST 
+#'
+#' @description Function to take dataset and select desired species, columns, and rows/conditions and return in a form acceptable for VAST. 
+#' @param dataset__ data.frame containing raw data
+#' @param species character vector indicating the desired species ("SILVER HAKE", "RED HAKE", "FOURSPOT FLOUNDER", "ATLANTIC COD", "POLLOCK", "WHITE HAKE", "WINTER SKATE", "SPINY DOGFISH", "SUMMER FLOUNDER", "GOOSEFISH","THORNY SKATE", "SEA RAVEN", "BLUEFISH", "WEAKFISH")
+#' @param season character vector for season to filter ("spring", "fall", "both")
+#'
+#' @return data_geo data frame including covariates as a columns
+#'
+#' @examples
 #' \dontrun{
 #' raw_data <- readr::read_rds(here::here("output", "data_formatted", "dat_preds_all.rds")) 
 #' test <- process_data(raw_data, 
 #'                   species = "SILVER HAKE",
 #'                   season = "spring")      
 #' }
-
-
-process_data <- function(dataset__, species, season, covariate){
+process_data <- function(dataset__, species, season){
   # Filter data
   species_data <- dplyr::filter(dataset__, pdcomnam == species)
   
