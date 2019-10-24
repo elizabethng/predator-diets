@@ -3,7 +3,7 @@
 #' @description Model to run VAST using helper functions and configuration file.
 #' @param species Character name of species for subsetting ("SILVER HAKE", "RED HAKE", "FOURSPOT FLOUNDER", "ATLANTIC COD", "POLLOCK", "WHITE HAKE", "WINTER SKATE", "SPINY DOGFISH", "SUMMER FLOUNDER", "GOOSEFISH", "THORNY SKATE", "SEA RAVEN", "BLUEFISH", "WEAKFISH")
 #' @param season  Character season to use for subsetting ("spring", "fall", "both")
-#' @param covar_columns Not implemented yet. Which columns to use for covariates?
+#' @param covar_columns Vector of quoted column names (i.e., character values) in data set to use as covariates. 
 #' @param config_file_loc filepath to configuration file
 #' @param strata_file_loc filepath to file with strata
 #' @param rawdat_file_loc filepath to raw data
@@ -12,33 +12,30 @@
 #' @return No explicit return. Saves output to output_file_loc destination
 run_mod <- function(species,
                     season,
-                    covar_columns,
+                    covar_columns = NA,
                     config_file_loc,
                     strata_file_loc,
                     rawdat_file_loc,
                     output_file_loc)
   {
-  
-  
+  # browser()
   # Set the location for saving files. Keep structure very flat.
   run_name <- paste0(gsub(" ", "-", tolower(species)), "_", 
                     "season-", season, "_",
+                    "covar-", paste0(covar_columns, collapse = "-"), "_",
                     tools::file_path_sans_ext(basename(config_file_loc))) # name config files consistently
   DateFile <- file.path(output_file_loc, run_name)
-  # DateFile <- file.path(output_file_loc, species, season, tools::file_path_sans_ext(basename(config_file_loc)))
   dir.create(DateFile, recursive = TRUE) # can end in / or not
   
-  source(config_file_loc)
-  source(strata_file_loc)
+  source(config_file_loc, local = TRUE)
+  source(strata_file_loc, local = TRUE)
   
   orig_dat <- readr::read_rds(here::here("output", "data_formatted", "dat_preds_all.rds")) %>%
     process_data(species = species, # need !!species, !!season
                  season = season)   
   
   Data_Geostat <- orig_dat
-  # dplyr::filter(orig_dat, Year > 1990)
-    
-  
+
   # Record output
   Record <- list("Version" = Version,"Method"=Method,
                  "grid_size_km"=grid_size_km,"n_x"=n_x,
@@ -73,27 +70,57 @@ run_mod <- function(species,
   # Add knots to Data_Geostat
   Data_Geostat = cbind(Data_Geostat, "knot_i"=Spatial_List$knot_i)
   
-  # Use covariates for catchability, but select which ones?
-  TmbData <- VAST::make_data(
-    "b_i" = Data_Geostat$Catch_KG,
-    "a_i" = Data_Geostat$AreaSwept_km2,
-    "c_iz" = rep(0, nrow(Data_Geostat)),
-    "t_iz" = Data_Geostat$Year,
-    # "v_i" = as.numeric(Data_Geostat$Vessel) - 1, # don't include vessel effects
-    "FieldConfig" = FieldConfig,
-    "OverdispersionConfig" = OverdispersionConfig,
-    "ObsModel_ez" = ObsModel,
-    "RhoConfig" = RhoConfig,
-    "spatial_list" = Spatial_List,
-    "Aniso" = 1,
-    "Options" = Options,
-    "Version" =  Version, 
-    "s_i" = Data_Geostat$knot_i - 1,
-    "a_xl" = Spatial_List$a_xl,
-    "MeshList" = Spatial_List$MeshList,
-    "GridList" = Spatial_List$GridList, 
-    "Method" = Spatial_List$Method
-  )
+  
+  # Use covariates for catchability, but select which ones.
+  if(all(is.na(covar_columns))){
+    TmbData <- VAST::make_data(
+      "b_i" = Data_Geostat$Catch_KG,
+      "a_i" = Data_Geostat$AreaSwept_km2,
+      "c_iz" = rep(0, nrow(Data_Geostat)),
+      "t_iz" = Data_Geostat$Year,
+      "FieldConfig" = FieldConfig,
+      "OverdispersionConfig" = OverdispersionConfig,
+      "ObsModel_ez" = ObsModel,
+      "RhoConfig" = RhoConfig,
+      "spatial_list" = Spatial_List,
+      "Aniso" = 1,
+      "Options" = Options,
+      "Version" =  Version, 
+      "s_i" = Data_Geostat$knot_i - 1,
+      "a_xl" = Spatial_List$a_xl,
+      "MeshList" = Spatial_List$MeshList,
+      "GridList" = Spatial_List$GridList, 
+      "Method" = Spatial_List$Method
+    )
+  }else{
+    # Make matrix of covariates
+    
+    Q_ik <- Data_Geostat %>% 
+      dplyr::select(covar_columns) %>%
+      as.matrix()
+    
+    TmbData <- VAST::make_data(
+      "b_i" = Data_Geostat$Catch_KG,
+      "a_i" = Data_Geostat$AreaSwept_km2,
+      "c_iz" = rep(0, nrow(Data_Geostat)),
+      "t_iz" = Data_Geostat$Year,
+      "FieldConfig" = FieldConfig,
+      "OverdispersionConfig" = OverdispersionConfig,
+      "ObsModel_ez" = ObsModel,
+      "RhoConfig" = RhoConfig,
+      "spatial_list" = Spatial_List,
+      "Aniso" = 1,
+      "Q_ik" = Q_ik, 
+      "Options" = Options,
+      "Version" =  Version, 
+      "s_i" = Data_Geostat$knot_i - 1,
+      "a_xl" = Spatial_List$a_xl,
+      "MeshList" = Spatial_List$MeshList,
+      "GridList" = Spatial_List$GridList, 
+      "Method" = Spatial_List$Method
+      )
+  }
+ 
   
   save(FieldConfig, 
        RhoConfig, 
@@ -128,7 +155,6 @@ run_mod <- function(species,
     bias.correct.control = list(
       sd=FALSE, split=NULL, nsplit=1, vars_to_correct = "Index_cyl"))
   
-
   Report = Obj$report()
   Save = list("Opt"=Opt, "Report"=Report, "ParHat"= Obj$env$parList(Opt$par), "TmbData"=TmbData)
   save(Save, file = file.path(DateFile, "Save.RData"))
@@ -253,4 +279,11 @@ run_mod <- function(species,
     dplyr::rename(knot = x2i)
   readr::write_csv(map_dat, file.path(DateFile, "my_map_dat.csv"))
   
+  # browser()
+  
+  return(list(
+    aic = Opt$AIC[1],
+    index = Index$table,
+    knot_density = map_dat
+  ))
 }
