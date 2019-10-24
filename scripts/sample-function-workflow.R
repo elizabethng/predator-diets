@@ -54,27 +54,29 @@ check <- safe_run_mod(species = "SILVER HAKE",
 
 species <- c("ATLANTIC COD")
 season <- c("spring", "fall")
-covars <- list(NA,
-               c("int", "sizecat"),
-               c("int", "pdlenz"),
-               c("int", "pdlenz", "pdlenz2"))
+covars <- list(NA) # ,
+               # c("int", "sizecat"),
+               # c("int", "pdlenz"),
+               # c("int", "pdlenz", "pdlenz2"))
 
-test <- cross(
-  list(species, 
-       season, 
-       covars,
-       config_file_loc,
-       strata_file_loc,
-       rawdat_file_loc,
-       output_file_loc)) %>%
-  map(set_names, c("species", "season", "covars", "config", "strata", "rawdat", "outloc")) %>%
-  set_names(paste0("run", 1:length(.)))
+# modruns <- purrr::cross(
+#   list(species, 
+#        season, 
+#        covars,
+#        config_file_loc,
+#        strata_file_loc,
+#        rawdat_file_loc,
+#        output_file_loc)) %>%
+#   purrr::map(set_names, c("species", "season", "covars", "config", "strata", "rawdat", "outloc")) %>%
+#   rlang::set_names(paste0("run", 1:length(.)))
 
 modruns <- tidyr::expand_grid(species, season, covars,
-                       config_file_loc,
-                       strata_file_loc,
-                       rawdat_file_loc,
-                       output_file_loc)
+                              config_file_loc,
+                              strata_file_loc,
+                              rawdat_file_loc,
+                              output_file_loc)  %>%
+  tibble::rownames_to_column(var = "id")
+
 modruns <- modruns %>%
         dplyr::mutate(output = purrr::pmap(
           list(species, 
@@ -86,13 +88,26 @@ modruns <- modruns %>%
                output_file_loc),
           safe_run_mod))
 
+
+withres <- modruns %>% 
+  dplyr::mutate(errors = purrr::map(output,"error")) %>% 
+  dplyr::mutate(worked = purrr::map_lgl(errors, is.null)) %>% 
+  dplyr::filter(worked) %>% 
+  dplyr::mutate(output = purrr::map(output, "result"))
+
+# Pull out aic for making a table
+withres %>%
+  dplyr::mutate(aic = purrr::map_dbl(output, "aic")) %>%
+  dplyr::select(-contains("_"))
+
 # I think it needs a list...
 badruns <- modruns %>%
   tibble::rownames_to_column(var = "id") %>%
   dplyr::group_by(id) %>%
   tidyr::nest()
   
-  
+
+
   # dplyr::select(output) %>%
   # as.list() %>%
   purrr::map_lgl(~is.null(.x$error) == F) 
