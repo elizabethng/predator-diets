@@ -18,8 +18,7 @@ run_mod <- function(species,
                     rawdat_file_loc,
                     output_file_loc)
   {
-  
-
+  browser()
   # Set the location for saving files. Keep structure very flat.
   run_name <- paste0(gsub(" ", "-", tolower(species)), "_", 
                     "season-", season, "_",
@@ -73,7 +72,7 @@ run_mod <- function(species,
   
   
   # Use covariates for catchability, but select which ones.
-  if(is.na(covar_columns)){
+  if(all(is.na(covar_columns))){
     TmbData <- VAST::make_data(
       "b_i" = Data_Geostat$Catch_KG,
       "a_i" = Data_Geostat$AreaSwept_km2,
@@ -279,6 +278,8 @@ run_mod <- function(species,
     dplyr::mutate(density_log = log(density)) %>%
     dplyr::rename(knot = x2i)
   readr::write_csv(map_dat, file.path(DateFile, "my_map_dat.csv"))
+  
+  # browser()
   
   return(list(
     aic = Opt$AIC[1],
