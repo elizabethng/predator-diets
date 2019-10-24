@@ -37,7 +37,7 @@ process_data <- function(dataset__, species, season){
     dplyr::mutate(
       int = 1,
       pdlenz = scale(pdlen)[,1],
-      pdlenz2 = pd_len_z^2) %>%
+      pdlenz2 = pdlenz^2) %>%
     dplyr::select(pdcomnam, myseason, pyamtw, year, declat, declon, 
                   int, sizecat, pdlenz, pdlenz2) %>%
     na.omit()
