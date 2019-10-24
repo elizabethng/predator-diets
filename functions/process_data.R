@@ -32,14 +32,14 @@ process_data <- function(dataset__, species, season){
     dplyr::summarize(
       pyamtw = mean(pyamtw, na.rm = TRUE),
       pdlen = mean(pdlen, na.rm = TRUE),
-      size_cat = median(size_cat,  na.rm = TRUE)) %>%
+      sizecat = median(size_cat,  na.rm = TRUE)) %>%
     dplyr::ungroup() %>%
     dplyr::mutate(
       int = 1,
-      pd_len_z = scale(pdlen)[,1],
-      pd_len_z_2 = pd_len_z^2) %>%
+      pdlenz = scale(pdlen)[,1],
+      pdlenz2 = pd_len_z^2) %>%
     dplyr::select(pdcomnam, myseason, pyamtw, year, declat, declon, 
-                  int, size_cat, pd_len_z, pd_len_z_2) %>%
+                  int, sizecat, pdlenz, pdlenz2) %>%
     na.omit()
   
   
