@@ -2,18 +2,14 @@
 # Source functions from github
 # Ouput VAST Save file, diagnostics etc to Dropbox
 
-# library(here)
-# library(tidyverse)
+library(tidyverse)
 library(VAST)
 library(TMB)
-library(magrittr)
-
 
 # For transparency:
 #   1. set species and season externally
 #   2. pass species, config_file, season, covars to make output folder
 #   3. pipe read data directly to process data to generate output
-
 
 Version <- FishStatsUtils::get_latest_version()
 
@@ -46,29 +42,14 @@ check <- safe_run_mod(species = "SILVER HAKE",
                       rawdat_file_loc = rawdat_file_loc,
                       output_file_loc = output_file_loc)
 
-# Make a tibble of models to run (species, season, covariates)
-# and then use map_at or whatever to run this function with those
-# arguments.
-# Keep that in mind when figuring out how to pass "covar_columns"
-# to run mod. It would be easiest to pass it as a character vector.
 
 species <- c("ATLANTIC COD")
 season <- c("spring", "fall")
-covars <- list(NA) # ,
-               # c("int", "sizecat"),
+covars <- list(NA,
+               c("int", "sizecat"))
                # c("int", "pdlenz"),
                # c("int", "pdlenz", "pdlenz2"))
 
-# modruns <- purrr::cross(
-#   list(species, 
-#        season, 
-#        covars,
-#        config_file_loc,
-#        strata_file_loc,
-#        rawdat_file_loc,
-#        output_file_loc)) %>%
-#   purrr::map(set_names, c("species", "season", "covars", "config", "strata", "rawdat", "outloc")) %>%
-#   rlang::set_names(paste0("run", 1:length(.)))
 
 modruns <- tidyr::expand_grid(species, season, covars,
                               config_file_loc,
@@ -99,19 +80,6 @@ withres <- modruns %>%
 withres %>%
   dplyr::mutate(aic = purrr::map_dbl(output, "aic")) %>%
   dplyr::select(-contains("_"))
-
-# I think it needs a list...
-badruns <- modruns %>%
-  tibble::rownames_to_column(var = "id") %>%
-  dplyr::group_by(id) %>%
-  tidyr::nest()
-  
-
-
-  # dplyr::select(output) %>%
-  # as.list() %>%
-  purrr::map_lgl(~is.null(.x$error) == F) 
-
 
 
 
