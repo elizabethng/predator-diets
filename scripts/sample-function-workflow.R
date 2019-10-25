@@ -18,7 +18,7 @@ source(file.path(gitdir, "functions", "process_data.R"))
 source(file.path(gitdir, "functions", "run_mod.R"))
 
 # config_file_loc <- file.path(gitdir, "configuration-files", "config-file-example.R")
-config_file_loc <- file.path(gitdir, "configuration-files", "config-file-independent-years.R")
+# config_file_loc <- file.path(gitdir, "configuration-files", "config-file-independent-years.R")
 strata_file_loc <- file.path(gitdir, "configuration-files", "strata_limits_subset.R")
 rawdat_file_loc <- here::here("output", "data_formatted", "dat_preds_all.rds")
 output_file_loc <- here::here("TEST")
@@ -26,7 +26,40 @@ output_file_loc <- here::here("TEST")
 
 safe_run_mod <- purrr::safely(run_mod)
 
-# check <- safe_run_mod(species = "SILVER HAKE",
+
+
+# Compare NA vs removing years -------------------------------------------
+config_file_loc <- c(file.path(gitdir, "configuration-files", "lognm-pl-independent-years.R"), 
+                     file.path(gitdir, "configuration-files", "gamma-pl-independent-years.R"))
+
+# species <- c("BLUEFISH")
+# season <- c("fall")
+# covars <- list(NA)
+# 
+# modruns <- tidyr::expand_grid(species, season, covars,
+#                               config_file_loc,
+#                               strata_file_loc,
+#                               rawdat_file_loc,
+#                               output_file_loc)  %>%
+#   tibble::rownames_to_column(var = "id")
+# 
+# 
+# modruns <- modruns %>%
+#   dplyr::mutate(output = purrr::pmap(
+#     list(species, 
+#          season, 
+#          covars, 
+#          config_file_loc, 
+#          strata_file_loc, 
+#          rawdat_file_loc, 
+#          output_file_loc),
+#     safe_run_mod))
+
+
+
+# Single run checks -------------------------------------------------------
+
+# check <- safe_run_mod(species = "WHITE HAKE",
 #                       season = "fall",
 #                       covar_columns = NA,
 #                       config_file_loc = config_file_loc,
@@ -44,7 +77,11 @@ safe_run_mod <- purrr::safely(run_mod)
 #                       output_file_loc = output_file_loc)
 
 
-species <- c("ATLANTIC COD", "SILVER HAKE", "RED HAKE", "FOURSPOT FLOUNDER", "ATLANTIC COD", "POLLOCK", "WHITE HAKE", "WINTER SKATE", "SPINY DOGFISH", "SUMMER FLOUNDER", "GOOSEFISH","THORNY SKATE", "SEA RAVEN", "BLUEFISH", "WEAKFISH")
+
+# Functional programming approach -----------------------------------------
+
+
+species <- c("SPINY DOGFISH", "ATLANTIC COD", "GOOSEFISH", "WHITE HAKE")
 season <- c("spring", "fall")
 covars <- list(NA,
                c("int", "sizecat"),
