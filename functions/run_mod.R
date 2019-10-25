@@ -48,7 +48,6 @@ run_mod <- function(species,
   save(Record, file = file.path(DateFile,"Record.RData"))         # probably better if DateFile does not end in /
   capture.output(Record, file = file.path(DateFile,"Record.txt"))
   
-  
   Extrapolation_List <- FishStatsUtils::make_extrapolation_info(
     Region = "northwest_atlantic",
     strata.limits = strata.limits
@@ -159,9 +158,7 @@ run_mod <- function(species,
   save(Save, file = file.path(DateFile, "Save.RData"))
   
   write.csv(Opt$AIC, file.path(DateFile, "AIC.txt"))
-  
-  browser()
-  
+
   # Diagnostics and plots
   # Data
   FishStatsUtils::plot_data(
