@@ -34,7 +34,7 @@ run_mod <- function(species,
                  season = season)   
   
   Data_Geostat <- orig_dat
-
+  
   # Record output
   Record <- list("Version" = Version,"Method"=Method,
                  "grid_size_km"=grid_size_km,"n_x"=n_x,
@@ -66,7 +66,7 @@ run_mod <- function(species,
   )
   
   # Add knots to Data_Geostat
-  Data_Geostat = cbind(Data_Geostat, "knot_i"=Spatial_List$knot_i)
+  Data_Geostat <- cbind(Data_Geostat, Spatial_List$knot_i)
   
   
   # Use covariates for catchability, but select which ones.
@@ -142,7 +142,7 @@ run_mod <- function(species,
   Obj = TmbList[["Obj"]]
   
   Opt = TMBhelper::fit_tmb(
-    startpar = Obj$par,
+    startpar = Obj$par, # Opt$opt$par
     obj = Obj,
     lower = TmbList[["Lower"]],
     upper = TmbList[["Upper"]],
