@@ -1,5 +1,5 @@
-# Configuration file for model runs. 
-# Use this example to deal with missing years. 
+# Configuration file for:
+# Poisson-link lognormal model with independent years
 
 
 # Species_set = "Species name"  # change species set externally
