@@ -17,7 +17,8 @@ gitdir <- c("C:/Users/Elizabeth Ng/Documents/GitHub/predator-diets") # Alas, thi
 source(file.path(gitdir, "functions", "process_data.R"))
 source(file.path(gitdir, "functions", "run_mod.R"))
 
-config_file_loc <- file.path(gitdir, "configuration-files", "config-file-example.R")
+# config_file_loc <- file.path(gitdir, "configuration-files", "config-file-example.R")
+config_file_loc <- file.path(gitdir, "configuration-files", "config-file-independent-years.R")
 strata_file_loc <- file.path(gitdir, "configuration-files", "strata_limits_subset.R")
 rawdat_file_loc <- here::here("output", "data_formatted", "dat_preds_all.rds")
 output_file_loc <- here::here("TEST")
@@ -25,30 +26,30 @@ output_file_loc <- here::here("TEST")
 
 safe_run_mod <- purrr::safely(run_mod)
 
-check <- safe_run_mod(species = "SILVER HAKE",
-                      season = "fall",
-                      covar_columns = NA,
-                      config_file_loc = config_file_loc,
-                      strata_file_loc = strata_file_loc,
-                      rawdat_file_loc = rawdat_file_loc,
-                      output_file_loc = output_file_loc)
+# check <- safe_run_mod(species = "SILVER HAKE",
+#                       season = "fall",
+#                       covar_columns = NA,
+#                       config_file_loc = config_file_loc,
+#                       strata_file_loc = strata_file_loc,
+#                       rawdat_file_loc = rawdat_file_loc,
+#                       output_file_loc = output_file_loc)
+# 
+# # With covariates
+# check <- safe_run_mod(species = "ATLANTIC COD",
+#                       season = "fall",
+#                       covar_columns = c("int", "sizecat"),
+#                       config_file_loc = config_file_loc,
+#                       strata_file_loc = strata_file_loc,
+#                       rawdat_file_loc = rawdat_file_loc,
+#                       output_file_loc = output_file_loc)
 
-# With covariates
-check <- safe_run_mod(species = "SILVER HAKE",
-                      season = "fall",
-                      covar_columns = c("int", "sizecat"),
-                      config_file_loc = config_file_loc,
-                      strata_file_loc = strata_file_loc,
-                      rawdat_file_loc = rawdat_file_loc,
-                      output_file_loc = output_file_loc)
 
-
-species <- c("ATLANTIC COD")
+species <- c("ATLANTIC COD", "SILVER HAKE", "RED HAKE", "FOURSPOT FLOUNDER", "ATLANTIC COD", "POLLOCK", "WHITE HAKE", "WINTER SKATE", "SPINY DOGFISH", "SUMMER FLOUNDER", "GOOSEFISH","THORNY SKATE", "SEA RAVEN", "BLUEFISH", "WEAKFISH")
 season <- c("spring", "fall")
 covars <- list(NA,
-               c("int", "sizecat"))
-               # c("int", "pdlenz"),
-               # c("int", "pdlenz", "pdlenz2"))
+               c("int", "sizecat"),
+               c("int", "pdlenz"),
+               c("int", "pdlenz", "pdlenz2"))
 
 
 modruns <- tidyr::expand_grid(species, season, covars,
@@ -57,6 +58,7 @@ modruns <- tidyr::expand_grid(species, season, covars,
                               rawdat_file_loc,
                               output_file_loc)  %>%
   tibble::rownames_to_column(var = "id")
+
 
 modruns <- modruns %>%
         dplyr::mutate(output = purrr::pmap(
