@@ -25,11 +25,13 @@ FieldConfig = c(
 ) 
 
 RhoConfig = c(
-  "Beta1" = 2,      # temporal structure on years (intercepts) 
-  "Beta2" = 2, 
+  "Beta1" = 0,      # temporal structure on years (intercepts) 
+  "Beta2" = 0, 
   "Epsilon1" = 0,   # temporal structure on spatio-temporal variation
   "Epsilon2" = 0
 ) 
+# 0 off
+# 1 independent
 # 2 random walk
 # 3 constant among years (fixed effect)
 # 4 AR1
@@ -44,7 +46,8 @@ ObsModel = c(
   "Link"    = 1
 )   
 # c(2,0) gamma delta
-# c(2,1) compound poisson gamma
+# c(2,1) poisson-link gamma
+# c(1,1) poisson-link lognormal
 
 
 # Output Settings ---------------------------------------------------------
