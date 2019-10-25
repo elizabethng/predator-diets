@@ -101,3 +101,40 @@ tow_avg_dat %>%
   ggplot(aes(year, n, fill = pypres)) +
   geom_col() +
   facet_grid(~ pdcomnam)
+
+
+# Make a table to reference
+tow_avg_dat %>%
+  # filter(pdcomnam %in% c("SPINY DOGFISH", "ATLANTIC COD", "WHITE HAKE", "GOOSEFISH", "SILVER HAKE")) %>%
+  group_by(pdcomnam, myseason, year) %>%
+  summarize(
+    pypres = sum(pyamtw_mean) > 0,
+    n = n()
+  ) %>%
+  ungroup() %>%
+  pivot_wider(names_from = myseason, values_from = c(pypres, n)) %>%
+  write_csv(path = here("output", "tables", "summary_of_herring_presence_in_preds.csv"))
+  
+
+# Check for 0%, 100%, and low sample size among tows within a year
+check <- tow_avg_dat %>%
+  filter(pdcomnam %in% c("SPINY DOGFISH", "ATLANTIC COD", "WHITE HAKE", "GOOSEFISH", "SILVER HAKE")) %>%
+  group_by(pdcomnam, myseason, year) %>%
+  mutate(pypres = as.numeric(pyamtw_mean > 0)) %>%
+  summarize(
+    npos = sum(pypres),
+    ntot = n()
+  ) %>%
+  ungroup() %>%
+  mutate(
+    perc_pres = 100*(npos/ntot),
+    obs100 = perc_pres == 100,
+    obs0 = perc_pres== 0,
+    low_samps = ntot < 10)
+
+
+  mutate(flag = any(c(obs0, obs100, low_samps)))
+    
+    
+    
+Data_Geostat %>% mutate(pypres = as.numeric(Catch_KG>0))%>% group_by(Year) %>%  summarize(n_pos = sum(pypres), ntot = n()) %>% mutate(perc_obs = 100*round(n_pos/ntot, 2)) %>% View()
