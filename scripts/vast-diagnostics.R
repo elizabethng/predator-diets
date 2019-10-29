@@ -28,3 +28,19 @@ points(Spatial_List$loc_i[,1], Spatial_List$loc_i[,2],
        col = "blue", pch = 20)
 points(Spatial_List$loc_x[,1], Spatial_List$loc_x[,2], 
        col = "yellow", pch = 19)
+
+# Check variability in the second componenet of the model
+Data_Geostat %>%
+  mutate(prey_pres = ifelse(Catch_KG > 0, "present", "absent")) %>%
+  # filter(Catch_KG > 0) %>%
+  # ggplot(aes(Lon, Lat, color = Catch_KG)) +
+  ggplot(aes(Lon, Lat, color = prey_pres)) +
+  geom_point() +
+  facet_wrap(~Year)
+
+
+
+
+
+
+
