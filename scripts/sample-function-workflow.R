@@ -13,22 +13,20 @@ library(TMB)
 
 Version <- FishStatsUtils::get_latest_version()
 
-gitdir <- c("C:/Users/Elizabeth Ng/Documents/GitHub/predator-diets") # Alas, things get wonky now with my project structure. 
+gitdir <- c("C:/Users/Elizabeth Ng/Documents/GitHub/predator-diets")
 source(file.path(gitdir, "functions", "process_data.R"))
 source(file.path(gitdir, "functions", "run_mod.R"))
 
-# config_file_loc <- file.path(gitdir, "configuration-files", "config-file-example.R")
-# config_file_loc <- file.path(gitdir, "configuration-files", "config-file-independent-years.R")
 strata_file_loc <- file.path(gitdir, "configuration-files", "strata_limits_subset.R")
 rawdat_file_loc <- here::here("output", "data_formatted", "dat_preds_all.rds")
-output_file_loc <- here::here("TEST")
+output_file_loc <- here::here("new_test")
 
 
 safe_run_mod <- purrr::safely(run_mod)
 
 
-config_file_loc <- c(file.path(gitdir, "configuration-files", "lognm-pl-independent-years.R"), 
-                     file.path(gitdir, "configuration-files", "gamma-pl-independent-years.R"))
+config_file_loc <- c(file.path(gitdir, "configuration-files", "lognm-pl-independent-years-no2spatial.R"), 
+                     file.path(gitdir, "configuration-files", "gamma-pl-independent-years-no2spatial.R"))
 
 
 
@@ -60,7 +58,8 @@ modruns <- modruns %>%
                config_file_loc, 
                strata_file_loc, 
                rawdat_file_loc, 
-               output_file_loc),
+               output_file_loc,
+               check_identifiable = TRUE),
           safe_run_mod))
 
 
