@@ -63,6 +63,9 @@ check <- safe_run_mod(species = "SPINY DOGFISH",
 
 # Single run checks -------------------------------------------------------
 
+# config_file_loc <- file.path(gitdir, "configuration-files", "config-file-example.R")
+# config_file_loc <- file.path(gitdir, "configuration-files", "config-file-independent-years.R")
+
 # check <- safe_run_mod(species = "WHITE HAKE",
 #                       season = "fall",
 #                       covar_columns = NA,
