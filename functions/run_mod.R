@@ -20,8 +20,6 @@ run_mod <- function(species,
                     output_file_loc,
                     check_identifiable = FALSE)
   {
-  
-  # browser()
   # Set the location for saving files. Keep structure very flat.
   run_name <- paste0(gsub(" ", "-", tolower(species)), "_", 
                     "season-", season, "_",
@@ -33,7 +31,7 @@ run_mod <- function(species,
   source(config_file_loc, local = TRUE)
   source(strata_file_loc, local = TRUE)
   
-  orig_dat <- readr::read_rds(here::here("output", "data_formatted", "dat_preds_all.rds")) %>%
+  orig_dat <- readr::read_rds(rawdat_file_loc) %>%
     process_data(species = species, # need !!species, !!season
                  season = season)   
   
