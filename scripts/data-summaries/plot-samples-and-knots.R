@@ -80,7 +80,7 @@ plot(extrap_info$E_km, spatial_info$N_km, pch = ".")
 
 knot_info <- Spatial_List_2$loc_x %>%
   as.data.frame() %>%
-  sf::st_as_sf(coords = c("E_km", "N_km"), cros = 4326)
+  sf::st_as_sf(coords = c("E_km", "N_km"), crs = 4326)
   
 points(Spatial_List_2$loc_x[,1], Spatial_List_2$loc_x[,2], 
        col = "yellow", pch = 19)
