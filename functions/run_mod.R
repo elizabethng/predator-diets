@@ -8,6 +8,7 @@
 #' @param strata_file_loc filepath to file with strata
 #' @param rawdat_file_loc filepath to raw data
 #' @param output_file_loc filepath for output folder location
+#' @param check_identifiable if TRUE, runs TMBhelper::Check_Identifiable() and saves ouput (takes additional time)
 #'
 #' @return No explicit return. Saves output to output_file_loc destination
 run_mod <- function(species,
@@ -16,8 +17,11 @@ run_mod <- function(species,
                     config_file_loc,
                     strata_file_loc,
                     rawdat_file_loc,
-                    output_file_loc)
+                    output_file_loc,
+                    check_identifiable = FALSE)
   {
+  
+  # browser()
   # Set the location for saving files. Keep structure very flat.
   run_name <- paste0(gsub(" ", "-", tolower(species)), "_", 
                     "season-", season, "_",
@@ -33,7 +37,8 @@ run_mod <- function(species,
     process_data(species = species, # need !!species, !!season
                  season = season)   
   
-  Data_Geostat <- orig_dat
+  # Data_Geostat <- orig_dat
+  Data_Geostat <- filter(orig_dat, !is.na(Catch_KG))
   
   # Record output
   Record <- list("Version" = Version,"Method"=Method,
@@ -66,7 +71,7 @@ run_mod <- function(species,
   )
   
   # Add knots to Data_Geostat
-  Data_Geostat <- cbind(Data_Geostat, Spatial_List$knot_i)
+  Data_Geostat <- cbind(Data_Geostat, "knot_i" = Spatial_List$knot_i)
   
   
   # Use covariates for catchability, but select which ones.
@@ -154,7 +159,14 @@ run_mod <- function(species,
       sd=FALSE, split=NULL, nsplit=1, vars_to_correct = "Index_cyl"))
   
   Report = Obj$report()
-  Save = list("Opt"=Opt, "Report"=Report, "ParHat"= Obj$env$parList(Opt$par), "TmbData"=TmbData)
+  
+  if(check_identifiable){
+    Opt$identifiable <- TMBhelper::Check_Identifiable(Obj)  
+  }
+  
+  Save = list("Opt" = Opt, "Report" = Report, "TmbData" = TmbData)
+  Save$ParHat = Obj$env$parList(Opt$par)
+  
   save(Save, file = file.path(DateFile, "Save.RData"))
   
   write.csv(Opt$AIC, file.path(DateFile, "AIC.txt"))
@@ -240,7 +252,7 @@ run_mod <- function(species,
   
   # Make maps
   my_plots = FishStatsUtils::plot_maps(
-    plot_set = 3, 
+    plot_set = c(3, 6, 7), 
     MappingDetails = MapDetails_List[["MappingDetails"]],
     Report = Report,
     Sdreport = Opt$SD,
@@ -262,9 +274,9 @@ run_mod <- function(species,
     plot_legend_fig = FALSE)
   
   # Pull out and format knot-level values (may change with fine scale)
-  est_dens = as.vector(Save$Report$D_gcy) # D_xcy) # stacked 1:100 knot value for each year
+  est_dens = as.vector(Save$Report$D_gcy) # D_xcy) # stacked 1:100 knot value for each year, appears to include predictions for missing years
   all_dens = tidyr::tibble(
-    year = sort(rep(Year_Set, n_x)),
+    year = sort(rep(Year_Set, n_x)), 
     x2i = rep(seq(n_x), max(Years2Include)),
     density = est_dens,
     E_km = rep(Spatial_List$MeshList$loc_x[, "E_km"], max(Years2Include)),
@@ -277,6 +289,9 @@ run_mod <- function(species,
     dplyr::rename(knot = x2i)
   readr::write_csv(map_dat, file.path(DateFile, "my_map_dat.csv"))
 
+  # Save for mega-plotting
+  
+  
   return(list(
     aic = Opt$AIC[1],
     index = Index$Table,
