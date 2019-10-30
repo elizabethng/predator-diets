@@ -2,26 +2,27 @@
 #  * trawl locations
 #  * non-empty stomach locations (colored by presence/absence)
 #  * knot locations
-# Also potentially include
-#  * sample sizes for each?
-
-# How do I plan to use this as a function?
-# Give it a folder with config-file name
-#  * extract the season from the config-file name
-
-# Shouldn't need to make them for each one,
-# only the top models that I end up using 
-
-
-all_files <- list.files(here::here("new_test"), full.names = TRUE)
-
-rawdat_file_loc <- here::here("output", "data_formatted", "dat_preds_all.rds")
-output_file_loc <- all_files[1]
-plot_file_loc <- here::here("output", "map-tows-stomachs-and-knots")
-  
-map_tow_stomach_knots <- function(rawdat_file_loc, # path to the raw data
-                                  output_file_loc, # path to where VAST model results are
-                                  plot_file_loc){  # where should generated plot be saved? 
+#' @title Map tows, stomachs, and knot locations
+#' 
+#' Function to plot trawl locations, non-empty stomach locations,
+#' and knot locations using multiple data sources. 
+#'
+#' @param rawdat_file_loc path to the raw data for plotting trawl locations
+#' @param output_file_loc path to VAST model results (for Data_geostat and knots)
+#' @param plot_file_loc where should generated plot be saved? 
+#'
+#' @return no explicit return; save a pdf in the designated folder
+#'
+#' @examples
+#' all_files <- list.files(here::here("new_test"), full.names = TRUE)
+#' rawdat_file_loc <- here::here("output", "data_formatted", "dat_preds_all.rds")
+#' output_file_loc <- all_files[2]
+#' plot_file_loc <- here::here("output", "map-tows-stomachs-and-knots")
+#' map_tow_stomach_knots(rawdat_file_loc = rawdat_file_loc, output_file_loc = output_file_loc, plot_file_loc = plot_file_loc)
+#' 
+map_tow_stomach_knots <- function(rawdat_file_loc,
+                                  output_file_loc,
+                                  plot_file_loc){ 
   library(sf)
   library(here)
   library(dplyr)
@@ -119,19 +120,19 @@ map_tow_stomach_knots <- function(rawdat_file_loc, # path to the raw data
 }   
 
 # Check a subset of years
-ggplot() +
-  borders("world", fill = "grey", colour = "white") +
-  borders("state", fill = "grey", colour = "white") +
-  geom_sf(data = filter(all_trawls, Year %in% c(1990:1995)),
-          mapping = aes(), color = "grey", alpha = 0.1, pch = 20
-  ) +
-  geom_sf(data = datknots, color = "black", pch = 4, size = 1.5) +
-  geom_sf(data = filter(datgeo, Year %in% c(1990:1995)),
-          aes(color = Herring, fill = Herring), 
-          alpha = 0.7, show.legend = "point"
-  ) +
-  scale_color_manual(values = c("absent" = "grey40", "present" = "mediumblue")) +
-  scale_fill_manual(values = c("absent" = "grey40", "present" = "mediumblue")) +
-  coord_sf(xlim = c(-77, -65), ylim = c(35, 46)) + 
-  facet_wrap(~Year) +
-  map_theme()
+# ggplot() +
+#   borders("world", fill = "grey", colour = "white") +
+#   borders("state", fill = "grey", colour = "white") +
+#   geom_sf(data = filter(all_trawls, Year %in% c(1990:1995)),
+#           mapping = aes(), color = "grey", alpha = 0.1, pch = 20
+#   ) +
+#   geom_sf(data = datknots, color = "black", pch = 4, size = 1.5) +
+#   geom_sf(data = filter(datgeo, Year %in% c(1990:1995)),
+#           aes(color = Herring, fill = Herring), 
+#           alpha = 0.7, show.legend = "point"
+#   ) +
+#   scale_color_manual(values = c("absent" = "grey40", "present" = "mediumblue")) +
+#   scale_fill_manual(values = c("absent" = "grey40", "present" = "mediumblue")) +
+#   coord_sf(xlim = c(-77, -65), ylim = c(35, 46)) + 
+#   facet_wrap(~Year) +
+#   map_theme()
