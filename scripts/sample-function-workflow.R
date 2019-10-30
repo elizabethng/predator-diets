@@ -113,18 +113,6 @@ for(species_ in unique(aictabs$species)){
 }
 
 
-
-# Markdown display options  
-pander::pandoc.table()
-kableExtra::kable() %>%
-  kableExtra::kable_styling()
-
-  # tidyr::nest() %>%
-  # dplyr::mutate(data = purrr::map(data, dplyr::arrange(desc("aic"))))
-
-  
-
-
 # Pull out top models for for making index plots
 topmods <- worked %>%
   group_by(species, season) %>%
