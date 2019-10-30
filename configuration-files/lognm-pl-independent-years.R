@@ -42,7 +42,7 @@ OverdispersionConfig = c(
 )
 
 ObsModel = c(
-  "PosDist" = 2,   
+  "PosDist" = 1,   
   "Link"    = 1
 )   
 # c(2,0) gamma delta
