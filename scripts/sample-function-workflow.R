@@ -51,28 +51,56 @@ modruns <- tidyr::expand_grid(species, season, covars,
 
 
 modruns <- modruns %>%
-        dplyr::mutate(output = purrr::pmap(
-          list(species, 
-               season, 
-               covars, 
-               config_file_loc, 
-               strata_file_loc, 
-               rawdat_file_loc, 
-               output_file_loc,
-               check_identifiable = TRUE),
-          safe_run_mod))
+  dplyr::mutate(output = purrr::pmap(
+    list(species, 
+         season, 
+         covars, 
+         config_file_loc, 
+         strata_file_loc, 
+         rawdat_file_loc, 
+         output_file_loc,
+         check_identifiable = TRUE),
+    safe_run_mod))
+
+saveRDS(modruns, file = here::here("new_test", "modruns.rds"))
+
+# Which models failed?
+failed <- modruns %>% 
+  dplyr::mutate(errors = purrr::map(output,"error")) %>% 
+  dplyr::mutate(worked = purrr::map_lgl(errors, is.null)) %>% 
+  dplyr::filter(!worked) %>%
+  dplyr::mutate(errors = purrr::map_chr(errors, "message")) %>%
+  dplyr::mutate(config_file_loc = basename(config_file_loc)) %>%
+  dplyr::mutate(model = str_extract(config_file_loc, "^(.{8})")) %>%
+  dplyr::mutate(covars = purrr::map_chr(covars, ~paste0(.x, collapse = ", "))) %>% # neaten up covariates
+  dplyr::select(-contains("_")) %>%
+  dplyr::select(-output)
+
+# All the white hake spring, but that makes sense because there was very little data for those runs
 
 
-withres <- modruns %>% 
+# Pull out aic for making a table
+
+aictable <- modruns %>% 
   dplyr::mutate(errors = purrr::map(output,"error")) %>% 
   dplyr::mutate(worked = purrr::map_lgl(errors, is.null)) %>% 
   dplyr::filter(worked) %>% 
-  dplyr::mutate(output = purrr::map(output, "result"))
+  dplyr::mutate(output = purrr::map(output, "result")) %>%
+  dplyr::mutate(config_file_loc = basename(config_file_loc)) %>%
+  dplyr::mutate(model = str_extract(config_file_loc, "^(.{8})")) %>%
+  dplyr::mutate(covars = purrr::map_chr(covars, ~paste0(.x, collapse = ", ")))
 
-# Pull out aic for making a table
-withres %>%
+topmods <- withres %>%
   dplyr::mutate(aic = purrr::map_dbl(output, "aic")) %>%
-  dplyr::select(-contains("_"))
+  group_by(species, season) %>%
+  arrange(desc(aic)) %>%
+  top_n(n = 1)
+
+# dplyr::select(-contains("_"))
+# mutate(modname = str_replace_all(news_id, "\\d$", ""))  # some regex from research derby to try and do aic tables
+
+# Make a plot of the indices
+# Get runs that match top AIC and then extract the timeseries
 
 
 
