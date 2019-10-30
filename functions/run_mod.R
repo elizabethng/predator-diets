@@ -49,7 +49,7 @@ run_mod <- function(species,
                  "Model_name" = tools::file_path_sans_ext(basename(config_file_loc)),
                  "strata.limits" = strata.limits)
   save(Record, file = file.path(DateFile,"Record.RData"))         # probably better if DateFile does not end in /
-  capture.output(Record, file = file.path(DateFile,"Record.txt"))
+  capture.output(Record, file = file.path(DateFile,"Record.txt")) # ? Maybe move this lower down?
   
   Extrapolation_List <- FishStatsUtils::make_extrapolation_info(
     Region = "northwest_atlantic",
