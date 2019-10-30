@@ -30,7 +30,7 @@ RhoConfig = c(
   "Epsilon1" = 0,   # temporal structure on spatio-temporal variation
   "Epsilon2" = 0
 ) 
-# 0 off
+# 0 off (fixed effects)
 # 1 independent
 # 2 random walk
 # 3 constant among years (fixed effect)
