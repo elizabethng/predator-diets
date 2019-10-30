@@ -62,7 +62,8 @@ modruns <- modruns %>%
          check_identifiable = TRUE),
     safe_run_mod))
 
-saveRDS(modruns, file = here::here("new_test", "modruns.rds"))
+readr::write_rds(modruns, file = here::here("new_test", "modruns.rds"))
+modruns <- readr::read_rds(here::here("new_test", "modruns.rds"))
 
 # Which models failed?
 failed <- modruns %>% 
@@ -79,21 +80,55 @@ failed <- modruns %>%
 # All the white hake spring, but that makes sense because there was very little data for those runs
 
 
-# Pull out aic for making a table
 
-aictable <- modruns %>% 
+# Format the models that ran
+worked <- modruns %>% 
   dplyr::mutate(errors = purrr::map(output,"error")) %>% 
   dplyr::mutate(worked = purrr::map_lgl(errors, is.null)) %>% 
   dplyr::filter(worked) %>% 
   dplyr::mutate(output = purrr::map(output, "result")) %>%
   dplyr::mutate(config_file_loc = basename(config_file_loc)) %>%
   dplyr::mutate(model = str_extract(config_file_loc, "^(.{8})")) %>%
-  dplyr::mutate(covars = purrr::map_chr(covars, ~paste0(.x, collapse = ", ")))
+  dplyr::mutate(covars = purrr::map_chr(covars, ~paste0(.x, collapse = ", "))) %>%
+  dplyr::select(-contains("_")) %>%
+  dplyr::select(-c(errors, worked)) %>%
+  dplyr::mutate(aic = purrr::map_dbl(output, "aic"))
 
-topmods <- withres %>%
-  dplyr::mutate(aic = purrr::map_dbl(output, "aic")) %>%
+
+# Create aic tables for species
+aictabs <- worked %>%
+  dplyr::select(-output) %>%
+  dplyr::mutate(species = gsub(" ", "-", tolower(species))) %>%
+  dplyr::group_by(species, season) %>%
+  dplyr::arrange(aic) %>%
+  dplyr::mutate(delta_aic = round(aic - min(aic), 0))
+
+# Save output
+for(species_ in unique(aictabs$species)){
+  for(season_ in unique(aictabs$season)){
+    aictabs %>%
+      dplyr::filter(species == species_ & season == season_) %>%
+      readr::write_csv(here::here("output", "tables", paste(species_, season_, "aic.csv", sep = "_")))
+  }
+}
+
+
+
+# Markdown display options  
+pander::pandoc.table()
+kableExtra::kable() %>%
+  kableExtra::kable_styling()
+
+  # tidyr::nest() %>%
+  # dplyr::mutate(data = purrr::map(data, dplyr::arrange(desc("aic"))))
+
+  
+
+
+# Pull out top models for for making index plots
+topmods <- worked %>%
   group_by(species, season) %>%
-  arrange(desc(aic)) %>%
+  arrange(aic) %>%
   top_n(n = 1)
 
 # dplyr::select(-contains("_"))
