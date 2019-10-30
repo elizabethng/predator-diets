@@ -118,11 +118,33 @@ topmods <- worked %>%
   dplyr::group_by(species, season) %>%
   dplyr::top_n(n = -1, wt = aic)
 
-# dplyr::select(-contains("_"))
-# mutate(modname = str_replace_all(news_id, "\\d$", ""))  # some regex from research derby to try and do aic tables
-
-# Make a plot of the indices
-# Get runs that match top AIC and then extract the timeseries
-
+# Plot Index
+# Index unfortuantely contains all years, need to fix that in run_mod
+topmods %>%
+  dplyr::transmute(index = purrr::map(output, "index")) %>%
+  dplyr::ungroup() %>%
+  tidyr::unnest(index) %>%
+  dplyr::select(-c(Unit, Fleet)) %>%
+  dplyr::rename(
+    density = Estimate_metric_tons,
+    year = Year) %>%
+  dplyr::mutate(species = tolower(species)) %>%
+  dplyr::mutate(index = paste(species, season, sep = ", ")) %>%
+  ggplot(aes(x = year, y = density, group = index, color = index)) +
+  geom_line(lwd = 1) +
+  scale_color_manual(values = c(
+    "atlantic cod, fall"    = "#1b9e77",
+    "atlantic cod, spring"  = "#11634B",
+    "goosefish, fall"       = "#d95f02",
+    "goosefish, spring"     = "#8A3C01",
+    "spiny dogfish, fall"   = "#7570b3",
+    "spiny dogfish, spring" = "#3C3A5C",
+    "white hake, fall"      = "#e7298a",
+    "white hake, spring"    = "#80174D"               
+  )) + 
+  theme_bw() +
+  facet_wrap(~species)
+ggsave(here::here("output", "plots", "index-comparison.pdf"),
+       width = 9, height = 5, units = "in")
 
 
