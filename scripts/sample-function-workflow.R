@@ -115,9 +115,8 @@ for(species_ in unique(aictabs$species)){
 
 # Pull out top models for for making index plots
 topmods <- worked %>%
-  group_by(species, season) %>%
-  arrange(aic) %>%
-  top_n(n = 1)
+  dplyr::group_by(species, season) %>%
+  dplyr::top_n(n = -1, wt = aic)
 
 # dplyr::select(-contains("_"))
 # mutate(modname = str_replace_all(news_id, "\\d$", ""))  # some regex from research derby to try and do aic tables
