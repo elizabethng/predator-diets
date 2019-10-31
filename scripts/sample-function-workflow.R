@@ -63,7 +63,7 @@ modruns <- modruns %>%
     safe_run_mod))
 
 readr::write_rds(modruns, path = here::here("new_test", "modruns.rds"))
-modruns <- readr::read_rds(here::here("new_test", "modruns.rds"))
+# modruns <- readr::read_rds(here::here("new_test", "modruns.rds"))
 
 # Which models failed?
 failed <- modruns %>% 
@@ -147,4 +147,31 @@ topmods %>%
 ggsave(here::here("output", "plots", "index-comparison.pdf"),
        width = 9, height = 5, units = "in")
 
+# Plot data and knots
+source(file.path(gitdir, "functions", "map_tow_stomach_knots.R"))
+
+# Could be handy to move file naming outside of run_mod so
+# I can access it easily for plotting 
+# (output_file_loc is not very useful)
+allres <- tibble(filepath = list.files(output_file_loc, full.names = TRUE))
+
+plotdat <- c(
+  "D:/Dropbox/Predator_Diets/new_test/spiny-dogfish_season-spring_covar-int-pdlenz-pdlenz2_gamma-pl-independent-years-no2spatial",
+  "D:/Dropbox/Predator_Diets/new_test/spiny-dogfish_season-fall_covar-int-pdlenz-pdlenz2_gamma-pl-independent-years-no2spatial",
+  "D:/Dropbox/Predator_Diets/new_test/atlantic-cod_season-fall_covar-int-pdlenz-pdlenz2_gamma-pl-independent-years-no2spatial",
+  "D:/Dropbox/Predator_Diets/new_test/atlantic-cod_season-spring_covar-int-pdlenz-pdlenz2_gamma-pl-independent-years-no2spatial",
+  "D:/Dropbox/Predator_Diets/new_test/goosefish_season-spring_covar-int-pdlenz-pdlenz2_gamma-pl-independent-years-no2spatial",
+  "D:/Dropbox/Predator_Diets/new_test/goosefish_season-fall_covar-int-sizecat_lognm-pl-independent-years-no2spatial",
+  "D:/Dropbox/Predator_Diets/new_test/white-hake_season-fall_covar-int-pdlenz-pdlenz2_gamma-pl-independent-years-no2spatial",
+  "D:/Dropbox/Predator_Diets/new_test/white-hake_season-spring_covar-int-sizecat_gamma-pl-independent-years-no2spatial" 
+)
+  
+
+for(i in plotdat){
+  map_tow_stomach_knots(
+    rawdat_file_loc = rawdat_file_loc,
+    output_file_loc = i,
+    plot_file_loc = here::here("output", "map-tows-stomachs-and-knots")
+  )
+}
 
