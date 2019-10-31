@@ -8,7 +8,7 @@
 #' and knot locations using multiple data sources. 
 #'
 #' @param rawdat_file_loc path to the raw data for plotting trawl locations
-#' @param output_file_loc path to VAST model results (for Data_geostat and knots)
+#' @param output_file_loc path to VAST model results, must include config-file (for Data_geostat and knots)
 #' @param plot_file_loc where should generated plot be saved? 
 #'
 #' @return no explicit return; save a pdf in the designated folder
