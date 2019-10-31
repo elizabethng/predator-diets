@@ -130,8 +130,14 @@ topmods %>%
     year = Year) %>%
   dplyr::mutate(species = tolower(species)) %>%
   dplyr::mutate(index = paste(species, season, sep = ", ")) %>%
+  # dplyr::mutate(density = ifelse(is.na(reason), density, NA)) %>%
+  dplyr::mutate(
+    density_est = density, 
+    density = ifelse(is.na(reason), density, NA)) %>%
   ggplot(aes(x = year, y = density, group = index, color = index)) +
+  geom_point() +
   geom_line(lwd = 1) +
+  geom_line(aes(x = year, y = density_est, group = index, color = index), alpha = 0.5) +
   scale_color_manual(values = c(
     "atlantic cod, fall"    = "#1b9e77",
     "atlantic cod, spring"  = "#11634B",
