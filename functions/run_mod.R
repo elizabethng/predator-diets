@@ -31,12 +31,12 @@ run_mod <- function(species,
   source(config_file_loc, local = TRUE)
   source(strata_file_loc, local = TRUE)
   
-  orig_dat <- readr::read_rds(rawdat_file_loc) %>%
+  processed_dat <- readr::read_rds(rawdat_file_loc) %>%
     process_data(species = species, # need !!species, !!season
                  season = season)   
   
-  # Data_Geostat <- orig_dat
-  Data_Geostat <- filter(orig_dat, !is.na(Catch_KG))
+  Data_Geostat <- processed_dat$data_geo %>%
+    dplyr::filter(!is.na(Catch_KG))
   
   # Record output
   Record <- list("Version" = Version,"Method"=Method,
@@ -162,11 +162,15 @@ run_mod <- function(species,
     Opt$identifiable <- TMBhelper::Check_Identifiable(Obj)  
   }
   
+  
   Save = list("Opt" = Opt, "Report" = Report, "TmbData" = TmbData)
-  Save$ParHat = Obj$env$parList(Opt$par)
+  get_parhat <- function(Obj){
+    Obj$env$parList(b) # Opt$par
+  }  
+  safe_get_parhat <- purrr::safely(get_parhat)  # Wrap troublesome part in a function
+  Save$ParHat = safe_get_parhat(Obj)
   
   save(Save, file = file.path(DateFile, "Save.RData"))
-  
   write.csv(Opt$AIC, file.path(DateFile, "AIC.txt"))
 
   # Diagnostics and plots
@@ -288,11 +292,12 @@ run_mod <- function(species,
   readr::write_csv(map_dat, file.path(DateFile, "my_map_dat.csv"))
 
   # Save for mega-plotting
-  
+  myindex <- myindex %>% # Index$Table %>%
+    dplyr::left_join(processed_dat$exclude_years, by = c("Year" = "year"))
   
   return(list(
     aic = Opt$AIC[1],
-    index = Index$Table,
+    index = myindex,
     knot_density = map_dat
   ))
 }
