@@ -62,7 +62,7 @@ modruns <- modruns %>%
          check_identifiable = TRUE),
     safe_run_mod))
 
-readr::write_rds(modruns, file = here::here("new_test", "modruns.rds"))
+readr::write_rds(modruns, path = here::here("new_test", "modruns.rds"))
 modruns <- readr::read_rds(here::here("new_test", "modruns.rds"))
 
 # Which models failed?
