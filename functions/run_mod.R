@@ -290,9 +290,9 @@ run_mod <- function(species,
     dplyr::mutate(density_log = log(density)) %>%
     dplyr::rename(knot = x2i)
   readr::write_csv(map_dat, file.path(DateFile, "my_map_dat.csv"))
-
+  
   # Save for mega-plotting
-  myindex <- myindex %>% # Index$Table %>%
+  myindex <- Index$Table %>%
     dplyr::left_join(processed_dat$exclude_years, by = c("Year" = "year"))
   
   return(list(
