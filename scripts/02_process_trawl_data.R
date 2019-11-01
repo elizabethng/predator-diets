@@ -41,25 +41,25 @@ mydata[mydata$towid_unique == towid_dupes,][2,"towid_unique"] <- paste(towid_dup
 fixdat <- mydata %>%
   pivot_longer(
     cols = contains("_wt"),
-    names_to = "species",
+    names_to = "pdcomnam",
     values_to = "catch_kg"
   ) %>%
   mutate(
-    species = str_remove(species, "_wt"),
-    species = str_replace(species, "_", " ")
+    pdcomnam = str_remove(pdcomnam, "_wt"),
+    pdcomnam = str_replace(pdcomnam, "_", " ")
   ) %>%
   mutate(
-    season = ifelse(SEASON == "FALL"|SEASON == "SUMMER", "FALL", "SPRING")
+    myseason = ifelse(SEASON == "FALL"|SEASON == "SUMMER", "FALL", "SPRING")
   ) %>%
   select(
     towid,
     towid_unique,
     YEAR,
     SV_VESSEL,
-    season,
+    myseason,
     LAT,
     LON,
-    species,
+    pdcomnam,
     catch_kg
   ) %>%
   rename(
