@@ -17,9 +17,6 @@
 #' trawl_test <- process_data(trawl_data, species = "SILVER HAKE", season = "spring", diet_data = FALSE)      
 #' }
 process_data <- function(dataset__, species, season, diet_data = TRUE){
-  require(magrittr)
-  require(dplyr)
-  
   # Filter data
   species_data <- dplyr::filter(dataset__, pdcomnam == species)  
   
