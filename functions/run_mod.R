@@ -6,8 +6,8 @@
 #' @param covar_columns Vector of quoted column names (i.e., character values) in data set to use as covariates. 
 #' @param config_file_loc filepath to configuration file
 #' @param strata_file_loc filepath to file with strata
-#' @param rawdat_file_loc filepath to raw data
-#' @param output_file_loc filepath for output folder location
+#' @param processed_data X rawdat_file_loc filepath to raw data --> CHANGE this to the processed data frame
+#' @param output_file_loc full filepath for output folder location
 #' @param check_identifiable if TRUE, runs TMBhelper::Check_Identifiable() and saves ouput (takes additional time)
 #'
 #' @return No explicit return. Saves output to output_file_loc destination
@@ -16,26 +16,27 @@ run_mod <- function(species,
                     covar_columns = NA,
                     config_file_loc,
                     strata_file_loc,
-                    rawdat_file_loc,
+                    processed_data,
                     output_file_loc,
                     check_identifiable = FALSE)
   {
+  browser()
   # Set the location for saving files. Keep structure very flat.
-  run_name <- paste0(gsub(" ", "-", tolower(species)), "_", 
-                    "season-", season, "_",
-                    "covar-", paste0(covar_columns, collapse = "-"), "_",
-                    tools::file_path_sans_ext(basename(config_file_loc))) # name config files consistently
-  DateFile <- file.path(output_file_loc, run_name)
+  # run_name <- paste0(gsub(" ", "-", tolower(species)), "_", 
+  #                   "season-", season, "_",
+  #                   "covar-", paste0(covar_columns, collapse = "-"), "_",
+  #                   tools::file_path_sans_ext(basename(config_file_loc))) # name config files consistently
+  DateFile <- output_file_loc
   dir.create(DateFile, recursive = TRUE) # can end in / or not
   
   source(config_file_loc, local = TRUE)
   source(strata_file_loc, local = TRUE)
   
-  processed_dat <- readr::read_rds(rawdat_file_loc) %>%
-    process_data(species = species, # need !!species, !!season
-                 season = season)   
+  # processed_dat <- readr::read_rds(rawdat_file_loc) %>%
+  #   process_data(species = species, # need !!species, !!season
+  #                season = season)   
   
-  Data_Geostat <- processed_dat$data_geo %>%
+  Data_Geostat <- processed_data %>%
     dplyr::filter(!is.na(Catch_KG))
   
   # Record output
@@ -48,8 +49,8 @@ run_mod <- function(species,
                  "Species_set"= paste(species, season),
                  "Model_name" = tools::file_path_sans_ext(basename(config_file_loc)),
                  "strata.limits" = strata.limits)
-  save(Record, file = file.path(DateFile,"Record.RData"))         # probably better if DateFile does not end in /
-  capture.output(Record, file = file.path(DateFile,"Record.txt")) # ? Maybe move this lower down?
+  save(Record, file = file.path(DateFile,"Record.RData"))         # [ ]Change this to saveRDS
+  capture.output(Record, file = file.path(DateFile,"Record.txt"))
   
   Extrapolation_List <- FishStatsUtils::make_extrapolation_info(
     Region = "northwest_atlantic",
@@ -123,7 +124,7 @@ run_mod <- function(species,
   }
  
   
-  save(FieldConfig, 
+  save(FieldConfig, # [ ] change to saveRDS for each component
        RhoConfig, 
        ObsModel, 
        Data_Geostat, 
@@ -165,7 +166,7 @@ run_mod <- function(species,
   
   Save = list("Opt" = Opt, "Report" = Report, "TmbData" = TmbData)
   get_parhat <- function(Obj){
-    Obj$env$parList(b) # Opt$par
+    Obj$env$parList(Opt$par) # Obj$env$parList(b) # Opt$par
   }  
   safe_get_parhat <- purrr::safely(get_parhat)  # Wrap troublesome part in a function
   Save$ParHat = safe_get_parhat(Obj)
@@ -291,13 +292,13 @@ run_mod <- function(species,
     dplyr::rename(knot = x2i)
   readr::write_csv(map_dat, file.path(DateFile, "my_map_dat.csv"))
   
-  # Save for mega-plotting
-  myindex <- Index$Table %>%
-    dplyr::left_join(processed_dat$exclude_years, by = c("Year" = "year"))
+  # Save for mega-plotting # extract correct years outside this function
+  # myindex <- Index$Table %>%
+  #   dplyr::left_join(processed_data$exclude_years, by = c("Year" = "year"))
   
   return(list(
     aic = Opt$AIC[1],
-    index = myindex,
+    index = Index$Table,
     knot_density = map_dat
   ))
 }
