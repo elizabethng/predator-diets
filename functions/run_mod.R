@@ -20,22 +20,12 @@ run_mod <- function(species,
                     output_file_loc,
                     check_identifiable = FALSE)
   {
-  browser()
-  # Set the location for saving files. Keep structure very flat.
-  # run_name <- paste0(gsub(" ", "-", tolower(species)), "_", 
-  #                   "season-", season, "_",
-  #                   "covar-", paste0(covar_columns, collapse = "-"), "_",
-  #                   tools::file_path_sans_ext(basename(config_file_loc))) # name config files consistently
   DateFile <- output_file_loc
   dir.create(DateFile, recursive = TRUE) # can end in / or not
   
   source(config_file_loc, local = TRUE)
   source(strata_file_loc, local = TRUE)
-  
-  # processed_dat <- readr::read_rds(rawdat_file_loc) %>%
-  #   process_data(species = species, # need !!species, !!season
-  #                season = season)   
-  
+
   Data_Geostat <- processed_data %>%
     dplyr::filter(!is.na(Catch_KG))
   
@@ -291,10 +281,6 @@ run_mod <- function(species,
     dplyr::mutate(density_log = log(density)) %>%
     dplyr::rename(knot = x2i)
   readr::write_csv(map_dat, file.path(DateFile, "my_map_dat.csv"))
-  
-  # Save for mega-plotting # extract correct years outside this function
-  # myindex <- Index$Table %>%
-  #   dplyr::left_join(processed_data$exclude_years, by = c("Year" = "year"))
   
   return(list(
     aic = Opt$AIC[1],
