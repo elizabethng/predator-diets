@@ -6,32 +6,56 @@ library(tidyverse)
 library(VAST)
 library(TMB)
 
-# For transparency:
+# Approach:
 #   1. set species and season externally
 #   2. pass species, config_file, season, covars to make output folder
 #   3. pipe read data directly to process data to generate output
 
-Version <- FishStatsUtils::get_latest_version()
-
 gitdir <- c("C:/Users/Elizabeth Ng/Documents/GitHub/predator-diets")
 source(file.path(gitdir, "functions", "process_data.R"))
+source(file.path(gitdir, "functions", "make_run_name.R"))
 source(file.path(gitdir, "functions", "run_mod.R"))
 
-strata_file_loc <- file.path(gitdir, "configuration-files", "strata_limits_subset.R")
-rawdat_file_loc <- here::here("output", "data_formatted", "dat_preds_all.rds")
-output_file_loc <- here::here("new_test")
+Version <- FishStatsUtils::get_latest_version() # move into config_file ??
+safe_run_mod <- purrr::safely(run_mod) # move into run_mod function?
 
 
-safe_run_mod <- purrr::safely(run_mod)
+
+# 0. Set options
+species <- "SILVER HAKE"
+season <- "spring"
+covar_columns <- NA
+config_file_loc <- file.path(gitdir, "configuration-files", "lognm-pl-independent-years-no2spatial.R")
+strata_file_loc <- file.path(gitdir, "configuration-files", "strata_limits_subset.R") 
 
 
-config_file_loc <- c(file.path(gitdir, "configuration-files", "lognm-pl-independent-years-no2spatial.R"), 
-                     file.path(gitdir, "configuration-files", "gamma-pl-independent-years-no2spatial.R"))
+# 1. Process data
+diet_test <- readr::read_rds(here::here("output", "data_formatted", "dat_preds_all.rds")) %>%
+  process_data(species = species, season = season) # Split out exclude_years at this point since it is for plotting, not model running?
+
+
+# 2. Make file save location/run name
+run_name <- make_run_name("diet", species, season, covar_columns, config_file_loc)
+output_file_loc <- here::here("new_test", run_name)
+
+
+
+# 3. Run the model
+test <- safe_run_mod(species = species,
+                     season = season,
+                     covar_columns = covar_columns,
+                     config_file_loc = config_file_loc,
+                     strata_file_loc = strata_file_loc,
+                     processed_data = filter(diet_test$data_geo, Year %in% 1995:2005),
+                     output_file_loc = output_file_loc)
+
 
 
 
 
 # Functional programming approach -----------------------------------------
+config_file_loc <- c(file.path(gitdir, "configuration-files", "lognm-pl-independent-years-no2spatial.R"), 
+                     file.path(gitdir, "configuration-files", "gamma-pl-independent-years-no2spatial.R"))
 
 
 species <- c("SPINY DOGFISH", "ATLANTIC COD", "GOOSEFISH", "WHITE HAKE")
