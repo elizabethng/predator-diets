@@ -2,7 +2,7 @@
 # Save results as RDS files and then load and manipulate
 
 # Load the results
-modruns <- readr::read_rds(here::here("new_test", "modruns.rds"))
+modruns <- readr::read_rds(here::here("2019-10-29-new_test", "modruns.rds"))
 
 # Which models failed?
 failed <- modruns %>% 
