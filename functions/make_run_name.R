@@ -18,7 +18,7 @@ make_run_name <- function(type,
   run_name <- paste0(type, "_",
                      gsub(" ", "-", tolower(species)), "_",
                      "season-", tolower(season), "_",
-                     "covar-", paste0(covar_columns, collapse = "-"), "_",
+                     "covar-", gsub(" ", "-", covar_columns), "_",
                      tools::file_path_sans_ext(basename(config_file_loc)))
   return(run_name)
 }
