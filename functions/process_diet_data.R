@@ -17,7 +17,7 @@ process_diet_data <- function(dataset){
   dat <- dataset %>%
     dplyr::mutate(size_cat = ifelse(sizecat == "S", -1, 
                                     ifelse(sizecat == "M", 0, 1))) %>%
-    dplyr::group_by(pdcomnam, towid, year, myseason, declat, declon) %>%
+    dplyr::group_by(towid, year, declat, declon) %>%
     dplyr::summarize(
       pyamtw = mean(pyamtw, na.rm = TRUE),
       pdlen = mean(pdlen, na.rm = TRUE),
@@ -27,8 +27,7 @@ process_diet_data <- function(dataset){
       int = 1,
       pdlenz = scale(pdlen)[,1],
       pdlenz2 = pdlenz^2) %>%
-    dplyr::select(pdcomnam, myseason, pyamtw, year, declat, declon, 
-                  int, sizecat, pdlenz, pdlenz2)
+    dplyr::select(pyamtw, year, declat, declon, int, sizecat, pdlenz, pdlenz2)
   
   
   # Check for missing years and set to NA
@@ -56,8 +55,6 @@ process_diet_data <- function(dataset){
   # Format output
   data_geo <- fix_dat %>%
     dplyr::rename(
-      species = pdcomnam,
-      season = myseason,
       Catch_KG = pyamtw,
       Year = year,
       Lat = declat,
