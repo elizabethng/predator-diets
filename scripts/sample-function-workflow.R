@@ -1,10 +1,5 @@
 # Sample workflow with new data-processing functions. 
-# Source functions from github
-# Ouput VAST Save file, diagnostics etc to Dropbox
-
-library(tidyverse)
-library(VAST)
-library(TMB)
+# Source functions from github, ouput VAST Save file, diagnostics etc to Dropbox
 
 # Approach:
 #   1. filter species and season externally
@@ -12,7 +7,12 @@ library(TMB)
 #   3. pass settings to make name for output folder
 #   4. pass data, name, and other setting to process data to generate output
 
-# Load functions
+library(tidyverse)
+library(VAST)
+library(TMB)
+
+
+# Load functions ----------------------------------------------------------
 gitdir <- "C:/Users/Elizabeth Ng/Documents/GitHub/predator-diets"
 functions <- list.files(file.path(gitdir, "functions"), full.names = TRUE)
 sapply(functions, source)
