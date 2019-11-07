@@ -1,19 +1,16 @@
 #' Run VAST using custom wrapper fucntions
 #'
-#' @description Model to run VAST using helper functions and configuration file.
-#' @param species Character name of species for subsetting ("SILVER HAKE", "RED HAKE", "FOURSPOT FLOUNDER", "ATLANTIC COD", "POLLOCK", "WHITE HAKE", "WINTER SKATE", "SPINY DOGFISH", "SUMMER FLOUNDER", "GOOSEFISH", "THORNY SKATE", "SEA RAVEN", "BLUEFISH", "WEAKFISH")
-#' @param season  Character season to use for subsetting ("spring", "fall", "both")
+#' @description Script to run VAST using helper functions, configuration file, and external strata file.
+#'
 #' @param covar_columns Character element of column names (separated by spaces)
-#' @param config_file_loc filepath to configuration file
+#' @param config_file_loc filepath to configuration file with model set up information
 #' @param strata_file_loc filepath to file with strata
-#' @param processed_data X rawdat_file_loc filepath to raw data --> CHANGE this to the processed data frame
-#' @param output_file_loc full filepath for output folder location
+#' @param processed_data a filtered data frame of processed data 
+#' @param output_file_loc full filepath for output folder location where results are saved
 #' @param check_identifiable if TRUE, runs TMBhelper::Check_Identifiable() and saves ouput (takes additional time)
 #'
 #' @return No explicit return. Saves output to output_file_loc destination
-run_mod <- function(# species,
-                    # season,
-                    covar_columns = NA,
+run_mod <- function(covar_columns = NA,
                     config_file_loc,
                     strata_file_loc,
                     processed_data,
