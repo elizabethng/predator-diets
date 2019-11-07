@@ -1,69 +1,8 @@
-# Sample workflow with new data-processing functions. 
-# Source functions from github
-# Ouput VAST Save file, diagnostics etc to Dropbox
+# Script to process VAST output
+# Save results as RDS files and then load and manipulate
 
-library(tidyverse)
-library(VAST)
-library(TMB)
-
-# For transparency:
-#   1. set species and season externally
-#   2. pass species, config_file, season, covars to make output folder
-#   3. pipe read data directly to process data to generate output
-
-Version <- FishStatsUtils::get_latest_version()
-
-gitdir <- c("C:/Users/Elizabeth Ng/Documents/GitHub/predator-diets")
-source(file.path(gitdir, "functions", "process_data.R"))
-source(file.path(gitdir, "functions", "run_mod.R"))
-
-strata_file_loc <- file.path(gitdir, "configuration-files", "strata_limits_subset.R")
-rawdat_file_loc <- here::here("output", "data_formatted", "dat_preds_all.rds")
-output_file_loc <- here::here("new_test")
-
-
-safe_run_mod <- purrr::safely(run_mod)
-
-
-config_file_loc <- c(file.path(gitdir, "configuration-files", "lognm-pl-independent-years-no2spatial.R"), 
-                     file.path(gitdir, "configuration-files", "gamma-pl-independent-years-no2spatial.R"))
-
-
-
-
-# Functional programming approach -----------------------------------------
-
-
-species <- c("SPINY DOGFISH", "ATLANTIC COD", "GOOSEFISH", "WHITE HAKE")
-season <- c("spring", "fall")
-covars <- list(NA,
-               c("int", "sizecat"),
-               c("int", "pdlenz"),
-               c("int", "pdlenz", "pdlenz2"))
-
-
-modruns <- tidyr::expand_grid(species, season, covars,
-                              config_file_loc,
-                              strata_file_loc,
-                              rawdat_file_loc,
-                              output_file_loc)  %>%
-  tibble::rownames_to_column(var = "id")
-
-
-modruns <- modruns %>%
-  dplyr::mutate(output = purrr::pmap(
-    list(species, 
-         season, 
-         covars, 
-         config_file_loc, 
-         strata_file_loc, 
-         rawdat_file_loc, 
-         output_file_loc,
-         check_identifiable = TRUE),
-    safe_run_mod))
-
-readr::write_rds(modruns, path = here::here("new_test", "modruns.rds"))
-# modruns <- readr::read_rds(here::here("new_test", "modruns.rds"))
+# Load the results
+modruns <- readr::read_rds(here::here("2019-10-29-new_test", "modruns.rds"))
 
 # Which models failed?
 failed <- modruns %>% 
@@ -171,7 +110,7 @@ plotdat <- c(
   "D:/Dropbox/Predator_Diets/new_test/white-hake_season-fall_covar-int-pdlenz-pdlenz2_gamma-pl-independent-years-no2spatial",
   "D:/Dropbox/Predator_Diets/new_test/white-hake_season-spring_covar-int-sizecat_gamma-pl-independent-years-no2spatial" 
 )
-  
+
 
 for(i in plotdat){
   map_tow_stomach_knots(

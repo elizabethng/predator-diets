@@ -1,41 +1,29 @@
 #' Run VAST using custom wrapper fucntions
 #'
-#' @description Model to run VAST using helper functions and configuration file.
-#' @param species Character name of species for subsetting ("SILVER HAKE", "RED HAKE", "FOURSPOT FLOUNDER", "ATLANTIC COD", "POLLOCK", "WHITE HAKE", "WINTER SKATE", "SPINY DOGFISH", "SUMMER FLOUNDER", "GOOSEFISH", "THORNY SKATE", "SEA RAVEN", "BLUEFISH", "WEAKFISH")
-#' @param season  Character season to use for subsetting ("spring", "fall", "both")
-#' @param covar_columns Vector of quoted column names (i.e., character values) in data set to use as covariates. 
-#' @param config_file_loc filepath to configuration file
+#' @description Function to run VAST using helper functions, configuration file, and external strata file.
+#'
+#' @param covar_columns Character element of column names (separated by spaces)
+#' @param config_file_loc filepath to configuration file with model set up information
 #' @param strata_file_loc filepath to file with strata
-#' @param rawdat_file_loc filepath to raw data
-#' @param output_file_loc filepath for output folder location
+#' @param processed_data a filtered data frame of processed data 
+#' @param output_file_loc full filepath for output folder location where results are saved
 #' @param check_identifiable if TRUE, runs TMBhelper::Check_Identifiable() and saves ouput (takes additional time)
 #'
 #' @return No explicit return. Saves output to output_file_loc destination
-run_mod <- function(species,
-                    season,
-                    covar_columns = NA,
+run_mod <- function(covar_columns = NA,
                     config_file_loc,
                     strata_file_loc,
-                    rawdat_file_loc,
+                    processed_data,
                     output_file_loc,
                     check_identifiable = FALSE)
   {
-  # Set the location for saving files. Keep structure very flat.
-  run_name <- paste0(gsub(" ", "-", tolower(species)), "_", 
-                    "season-", season, "_",
-                    "covar-", paste0(covar_columns, collapse = "-"), "_",
-                    tools::file_path_sans_ext(basename(config_file_loc))) # name config files consistently
-  DateFile <- file.path(output_file_loc, run_name)
+  DateFile <- output_file_loc
   dir.create(DateFile, recursive = TRUE) # can end in / or not
   
   source(config_file_loc, local = TRUE)
   source(strata_file_loc, local = TRUE)
-  
-  processed_dat <- readr::read_rds(rawdat_file_loc) %>%
-    process_data(species = species, # need !!species, !!season
-                 season = season)   
-  
-  Data_Geostat <- processed_dat$data_geo %>%
+
+  Data_Geostat <- processed_data %>%
     dplyr::filter(!is.na(Catch_KG))
   
   # Record output
@@ -45,11 +33,11 @@ run_mod <- function(species,
                  "OverdispersionConfig"=OverdispersionConfig,
                  "ObsModel"=ObsModel,"Kmeans_Config"=Kmeans_Config,
                  "Region"="northwest_atlantic",
-                 "Species_set"= paste(species, season),
+                 "Species_set"= tools::file_path_sans_ext(basename(output_file_loc)),
                  "Model_name" = tools::file_path_sans_ext(basename(config_file_loc)),
                  "strata.limits" = strata.limits)
-  save(Record, file = file.path(DateFile,"Record.RData"))         # probably better if DateFile does not end in /
-  capture.output(Record, file = file.path(DateFile,"Record.txt")) # ? Maybe move this lower down?
+  save(Record, file = file.path(DateFile,"Record.RData"))
+  capture.output(Record, file = file.path(DateFile,"Record.txt"))
   
   Extrapolation_List <- FishStatsUtils::make_extrapolation_info(
     Region = "northwest_atlantic",
@@ -95,9 +83,10 @@ run_mod <- function(species,
     )
   }else{
     # Make matrix of covariates
-    
+    covar_columns_vec <- stringr::str_split(covar_columns, " ", simplify = TRUE)[1,]
+      
     Q_ik <- Data_Geostat %>% 
-      dplyr::select(covar_columns) %>%
+      dplyr::select(covar_columns_vec) %>%
       as.matrix()
     
     TmbData <- VAST::make_data(
@@ -122,8 +111,8 @@ run_mod <- function(species,
       )
   }
  
-  
-  save(FieldConfig, 
+  # Save model settings
+  save(FieldConfig, # [ ] change to saveRDS for each component
        RhoConfig, 
        ObsModel, 
        Data_Geostat, 
@@ -133,7 +122,8 @@ run_mod <- function(species,
        Version, 
        Method,
        file = file.path(DateFile, "model-settings.RData"))
-
+  saveRDS(Spatial_List, file = file.path(DateFile, "Spatial_List"))
+  
   TmbList <- VAST::make_model(
     "TmbData" = TmbData, 
     "RunDir" = DateFile,
@@ -165,7 +155,7 @@ run_mod <- function(species,
   
   Save = list("Opt" = Opt, "Report" = Report, "TmbData" = TmbData)
   get_parhat <- function(Obj){
-    Obj$env$parList(b) # Opt$par
+    Obj$env$parList(Opt$par) # Obj$env$parList(b) # Opt$par
   }  
   safe_get_parhat <- purrr::safely(get_parhat)  # Wrap troublesome part in a function
   Save$ParHat = safe_get_parhat(Obj)
@@ -285,19 +275,28 @@ run_mod <- function(species,
     N_km = rep(Spatial_List$MeshList$loc_x[, "N_km"], max(Years2Include))
   )
   
+  # Exclusion table
+  exclude_years <- processed_data %>%
+    dplyr::select(Year, exclude_reason) %>% 
+    dplyr::distinct()
+    
   # Expand for continuous plotting
-  map_dat = dplyr::left_join(all_dens, MapDetails_List$PlotDF) %>%
+  map_dat <- dplyr::left_join(all_dens, MapDetails_List$PlotDF, by = "x2i") %>%
     dplyr::mutate(density_log = log(density)) %>%
-    dplyr::rename(knot = x2i)
+    dplyr::rename(
+      knot = x2i,
+      Year = year) %>%
+    dplyr::full_join(exclude_years, by = "Year") %>%
+    dplyr::rename(year = Year)
   readr::write_csv(map_dat, file.path(DateFile, "my_map_dat.csv"))
   
-  # Save for mega-plotting
-  myindex <- Index$Table %>%
-    dplyr::left_join(processed_dat$exclude_years, by = c("Year" = "year"))
+  my_index <- Index$Table %>%
+    dplyr::full_join(exclude_years, by = "Year") %>%
+    dplyr::as_tibble()
   
   return(list(
     aic = Opt$AIC[1],
-    index = myindex,
+    index = my_index,
     knot_density = map_dat
   ))
 }
