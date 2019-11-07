@@ -20,7 +20,6 @@ run_mod <- function(# species,
                     output_file_loc,
                     check_identifiable = FALSE)
   {
-  browser()
   DateFile <- output_file_loc
   dir.create(DateFile, recursive = TRUE) # can end in / or not
   
