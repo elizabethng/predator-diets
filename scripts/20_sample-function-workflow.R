@@ -126,16 +126,16 @@ test <- safe_run_mod(covar_columns = covar_columns,
 # Functional programming approach for trawl data -----------------------------------------
 # 1. Filter and 2. process data
 setup <- readr::read_rds(here::here("output", "data_formatted", "dat_trawl.rds")) %>%
-  dplyr::filter(year %in% 1990:1995) %>%
-  filter(pdcomnam == "SPINY DOGFISH") %>%
+  # dplyr::filter(year %in% 1990:1995) %>%
+  # filter(pdcomnam == "SPINY DOGFISH") %>%
   group_by(pdcomnam, myseason) %>%
   nest() %>%
   mutate(processed_data = purrr::map(data, process_trawl_data))
 
 # 0. Add in model options (covariates, config_files)
 covar_columns <- NA
-config_file_loc <- c(file.path(gitdir, "configuration-files", "lognm-pl-independent-years-no2spatial.R"), 
-                     file.path(gitdir, "configuration-files", "gamma-pl-independent-years-no2spatial.R"))[[1]]
+config_file_loc <- c(file.path(gitdir, "configuration-files", "gamma-pl-independent-years.R"), 
+                     file.path(gitdir, "configuration-files", "lognm-pl-independent-years.R"))
 
 mytest <- setup %>% 
   tidyr::expand_grid(
@@ -149,7 +149,7 @@ mytest <- mytest %>%
     make_run_name
   )) %>%
   dplyr::mutate(output_file_loc = map2_chr(
-    "new_test",
+    "TRAWL",
     run_name,
     here::here
   ))
