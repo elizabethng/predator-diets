@@ -1,6 +1,6 @@
 #' Run VAST using custom wrapper fucntions
 #'
-#' @description Script to run VAST using helper functions, configuration file, and external strata file.
+#' @description Function to run VAST using helper functions, configuration file, and external strata file.
 #'
 #' @param covar_columns Character element of column names (separated by spaces)
 #' @param config_file_loc filepath to configuration file with model set up information
