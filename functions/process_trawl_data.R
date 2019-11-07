@@ -42,8 +42,6 @@ process_trawl_data <- function(dataset){
   # Format output
   data_geo <- fix_dat %>%
     dplyr::rename(
-      species = pdcomnam,
-      season = myseason,
       Catch_KG = catch_kg,
       Year = year,
       Lat = declat,
@@ -51,13 +49,8 @@ process_trawl_data <- function(dataset){
       Vessel = vessel,
       exclude_reason = reason) %>%
     dplyr::mutate(
-      # Vessel = as.factor(vessel),
-      # Vessel = as.numeric(Vessel),
-      # Vessel = Vessel - 1,
       AreaSwept_km2 = 1) %>%
     dplyr::select(
-      species,
-      season,
       Catch_KG,
       Year,
       Lat,
