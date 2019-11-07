@@ -11,8 +11,8 @@
 #' @param check_identifiable if TRUE, runs TMBhelper::Check_Identifiable() and saves ouput (takes additional time)
 #'
 #' @return No explicit return. Saves output to output_file_loc destination
-run_mod <- function(species,
-                    season,
+run_mod <- function(# species,
+                    # season,
                     covar_columns = NA,
                     config_file_loc,
                     strata_file_loc,
@@ -36,10 +36,10 @@ run_mod <- function(species,
                  "OverdispersionConfig"=OverdispersionConfig,
                  "ObsModel"=ObsModel,"Kmeans_Config"=Kmeans_Config,
                  "Region"="northwest_atlantic",
-                 "Species_set"= paste(species, season),
+                 "Species_set"= tools::file_path_sans_ext(basename(output_file_loc)),
                  "Model_name" = tools::file_path_sans_ext(basename(config_file_loc)),
                  "strata.limits" = strata.limits)
-  save(Record, file = file.path(DateFile,"Record.RData"))         # [ ]Change this to saveRDS
+  save(Record, file = file.path(DateFile,"Record.RData"))
   capture.output(Record, file = file.path(DateFile,"Record.txt"))
   
   Extrapolation_List <- FishStatsUtils::make_extrapolation_info(
@@ -113,7 +113,7 @@ run_mod <- function(species,
       )
   }
  
-  
+  # Save model settings
   save(FieldConfig, # [ ] change to saveRDS for each component
        RhoConfig, 
        ObsModel, 
@@ -124,7 +124,8 @@ run_mod <- function(species,
        Version, 
        Method,
        file = file.path(DateFile, "model-settings.RData"))
-
+  saveRDS(Spatial_List, file = file.path(DateFile, "Spatial_List"))
+  
   TmbList <- VAST::make_model(
     "TmbData" = TmbData, 
     "RunDir" = DateFile,
@@ -276,15 +277,28 @@ run_mod <- function(species,
     N_km = rep(Spatial_List$MeshList$loc_x[, "N_km"], max(Years2Include))
   )
   
+  # Exclusion table
+  exclude_years <- processed_data %>%
+    dplyr::select(Year, exclude_reason) %>% 
+    dplyr::distinct()
+    
   # Expand for continuous plotting
-  map_dat = dplyr::left_join(all_dens, MapDetails_List$PlotDF) %>%
+  map_dat <- dplyr::left_join(all_dens, MapDetails_List$PlotDF, by = "x2i") %>%
     dplyr::mutate(density_log = log(density)) %>%
-    dplyr::rename(knot = x2i)
+    dplyr::rename(
+      knot = x2i,
+      Year = year) %>%
+    dplyr::full_join(exclude_years, by = "Year") %>%
+    dplyr::rename(year = Year)
   readr::write_csv(map_dat, file.path(DateFile, "my_map_dat.csv"))
+  
+  my_index <- Index$Table %>%
+    dplyr::full_join(exclude_years, by = "Year") %>%
+    dplyr::as_tibble()
   
   return(list(
     aic = Opt$AIC[1],
-    index = Index$Table,
+    index = my_index,
     knot_density = map_dat
   ))
 }
