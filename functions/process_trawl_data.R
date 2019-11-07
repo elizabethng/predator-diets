@@ -1,17 +1,15 @@
 #' Process trawl data for VAST 
 #'
 #' @description Function to take dataset and select desired species, columns, and rows/conditions and return in a form acceptable for VAST. 
+#'
 #' @param dataset data frame or tibble containing raw data
 #' 
 #' @return data_geo data frame with rows for all years, including missing
 #'
 #' @examples
-#' 
-#' \dontrun{
 #' trawl_data <- readr::read_rds(here::here("output", "data_formatted", "dat_trawl.rds")) %>%
 #'   dplyr::filter(pdcomnam == "SILVER HAKE" & myseason == "SPRING")
 #' trawl_test <- process_trawl_data(trawl_data)      
-#' }
 process_trawl_data <- function(dataset){
   
   dat <- dataset %>%

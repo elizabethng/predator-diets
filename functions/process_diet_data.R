@@ -1,16 +1,15 @@
 #' Process diet data for VAST 
 #'
 #' @description Function to take dataset and select desired species, columns, and rows/conditions and return in a form acceptable for VAST. 
-#' @param dataset data.frame or tibble containing raw data
+#'
+#' @param dataset data frame or tibble containing raw data
 #' 
 #' @return data_geo data frame including covariates as a columns and rows for all years, including missing
 #'
 #' @examples
-#' \dontrun{
 #' diet_data <- readr::read_rds(here::here("output", "data_formatted", "dat_preds_all.rds")) %>%
 #'   dplyr::filter(pdcomnam == "SILVER HAKE" & myseason == "SPRING")
 #' diet_test <- process_diet_data(diet_data)      
-#' }
 process_diet_data <- function(dataset){
 
   # Aggregate data to tow level and add covariate columns
@@ -28,7 +27,6 @@ process_diet_data <- function(dataset){
       pdlenz = scale(pdlen)[,1],
       pdlenz2 = pdlenz^2) %>%
     dplyr::select(pyamtw, year, declat, declon, int, sizecat, pdlenz, pdlenz2)
-  
   
   # Check for missing years and set to NA
   all_years <- seq(min(dat$year), max(dat$year))
@@ -51,7 +49,6 @@ process_diet_data <- function(dataset){
     dplyr::mutate(pyamtw = ifelse(year %in% yrs_wo_obs, NA, pyamtw)) %>%
     dplyr::full_join(exclude_years, by = "year")
   
-  
   # Format output
   data_geo <- fix_dat %>%
     dplyr::rename(
@@ -63,7 +60,6 @@ process_diet_data <- function(dataset){
     dplyr::mutate(
       Vessel = "missing",
       AreaSwept_km2 = 1)
-
     
   return(data_geo)
 }
