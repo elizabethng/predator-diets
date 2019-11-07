@@ -3,7 +3,7 @@
 #' @description Model to run VAST using helper functions and configuration file.
 #' @param species Character name of species for subsetting ("SILVER HAKE", "RED HAKE", "FOURSPOT FLOUNDER", "ATLANTIC COD", "POLLOCK", "WHITE HAKE", "WINTER SKATE", "SPINY DOGFISH", "SUMMER FLOUNDER", "GOOSEFISH", "THORNY SKATE", "SEA RAVEN", "BLUEFISH", "WEAKFISH")
 #' @param season  Character season to use for subsetting ("spring", "fall", "both")
-#' @param covar_columns Vector of quoted column names (i.e., character values) in data set to use as covariates. 
+#' @param covar_columns Character element of column names (separated by spaces)
 #' @param config_file_loc filepath to configuration file
 #' @param strata_file_loc filepath to file with strata
 #' @param processed_data X rawdat_file_loc filepath to raw data --> CHANGE this to the processed data frame
@@ -86,7 +86,8 @@ run_mod <- function(# species,
     )
   }else{
     # Make matrix of covariates
-    
+    covar_columns_vec <- str_splot(covar_columns, " ") %>% unlist()
+      
     Q_ik <- Data_Geostat %>% 
       dplyr::select(covar_columns) %>%
       as.matrix()
