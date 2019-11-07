@@ -165,6 +165,4 @@ mytest <- mytest %>%
          check_identifiable = TRUE),
     safe_run_mod))
 
-mytest$output
-
-# readr::write_rds(modruns, path = here::here("new_test", "modruns.rds"))
+readr::write_rds(mytest, path = here::here("TRAWL", "modruns.rds"))
