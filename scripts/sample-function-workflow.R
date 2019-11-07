@@ -27,7 +27,7 @@ safe_run_mod <- purrr::safely(run_mod)          # [ ] move into run_mod function
 # 0. Set options
 # species <- "SILVER HAKE"
 # season <- "spring"
-covar_columns <- NA
+covar_columns <- NA # "int sizecat"
 config_file_loc <- file.path(gitdir, "configuration-files", "lognm-pl-independent-years-no2spatial.R")
 strata_file_loc <- file.path(gitdir, "configuration-files", "strata_limits_subset.R") 
 
@@ -39,12 +39,12 @@ diet_test <- readr::read_rds(here::here("output", "data_formatted", "dat_preds_a
   dplyr::filter(Year %in% 1990:2000)
 
 
-# 3. Make file save location/run name
+# 3. Make file run name and save file location
 run_name <- make_run_name("diet", "SILVER HAKE", "SPRING", covar_columns, config_file_loc)
 output_file_loc <- here::here("new_test", run_name)
 
 
-# 3. Run the model
+# 4. Run the model
 test <- safe_run_mod(covar_columns = covar_columns,
                      config_file_loc = config_file_loc,
                      strata_file_loc = strata_file_loc,
@@ -55,20 +55,60 @@ test <- safe_run_mod(covar_columns = covar_columns,
 
 
 
-# Functional programming approach -----------------------------------------
+# Functional programming approach for diet data -----------------------------------------
 
-# Alternative since I know I'll want to do all the species
-# Remove filtering by year, season, species from process_data
-
-mytest <- readr::read_rds(here::here("output", "data_formatted", "dat_preds_all.rds")) %>%
-  # mutate(species = pdcomnam) %>%
+# 1. Filter and 2. process data
+setup <- readr::read_rds(here::here("output", "data_formatted", "dat_preds_all.rds")) %>%
+  dplyr::filter(year %in% 1990:2000) %>%
   filter(pdcomnam == "SPINY DOGFISH") %>%
   group_by(pdcomnam, myseason) %>%
   nest() %>%
-  # mutate(diet_data = TRUE) %>%
-  mutate(proc_dat = purrr::map(data, process_data))
-  
-  
+  mutate(processed_data = purrr::map(data, process_diet_data))
+
+# 0. Add in model options (covariates, config_files)
+covar_columns <- c(NA,
+            "int sizecat",
+            "int pdlenz",
+            "int pdlenz pdlenz2")[2]
+config_file_loc <- c(file.path(gitdir, "configuration-files", "lognm-pl-independent-years-no2spatial.R"), 
+                    file.path(gitdir, "configuration-files", "gamma-pl-independent-years-no2spatial.R"))[[1]]
+
+mytest <- setup %>% 
+  tidyr::expand_grid(
+    covar_columns,
+    config_file_loc)
+
+
+# 3. Make file run name and save file location
+# run_name <- make_run_name("diet", "SILVER HAKE", "SPRING", covar_columns, config_file_loc)
+# output_file_loc <- here::here("new_test", run_name)
+
+mytest <- mytest %>%
+  dplyr::mutate(run_name = purrr::pmap_chr(
+    list("diet", pdcomnam, myseason, covar_columns, config_file_loc),
+    make_run_name
+  )) %>%
+  dplyr::mutate(output_file_loc = map2_chr(
+    "new_test",
+    run_name,
+    here::here
+  ))
+
+# 4. Run the model
+mytest <- mytest %>%
+  dplyr::mutate(output = purrr::pmap(
+  list(covar_columns, 
+       config_file_loc, 
+       strata_file_loc = file.path(gitdir, "configuration-files", "strata_limits_subset.R"), 
+       processed_data, 
+       output_file_loc,
+       check_identifiable = TRUE),
+  safe_run_mod))
+
+mytest$output
+
+# Old functional approach -------------------------------------------------
+
 
 
 
