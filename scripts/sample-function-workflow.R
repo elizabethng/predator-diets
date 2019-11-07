@@ -7,46 +7,48 @@ library(VAST)
 library(TMB)
 
 # Approach:
-#   1. set species and season externally
-#   2. pass species, config_file, season, covars to make output folder
-#   3. pipe read data directly to process data to generate output
+#   1. filter species and season externally
+#   2. process data using appropriate function
+#   3. pass settings to make name for output folder
+#   4. pass data, name, and other setting to process data to generate output
 
-gitdir <- c("C:/Users/Elizabeth Ng/Documents/GitHub/predator-diets")
-source(file.path(gitdir, "functions", "process_data.R"))
-source(file.path(gitdir, "functions", "make_run_name.R"))
-source(file.path(gitdir, "functions", "run_mod.R"))
+# Load functions
+gitdir <- "C:/Users/Elizabeth Ng/Documents/GitHub/predator-diets"
+functions <- list.files(file.path(gitdir, "functions"), full.names = TRUE)
+sapply(functions, source)
 
-Version <- FishStatsUtils::get_latest_version() # move into config_file ??
-safe_run_mod <- purrr::safely(run_mod) # move into run_mod function?
+Version <- FishStatsUtils::get_latest_version() # [ ] move into config_file ??
+safe_run_mod <- purrr::safely(run_mod)          # [ ] move into run_mod function?
 
 
+
+# Run one diet data approach --------------------------------------------------------
 
 # 0. Set options
-species <- "SILVER HAKE"
-season <- "spring"
+# species <- "SILVER HAKE"
+# season <- "spring"
 covar_columns <- NA
 config_file_loc <- file.path(gitdir, "configuration-files", "lognm-pl-independent-years-no2spatial.R")
 strata_file_loc <- file.path(gitdir, "configuration-files", "strata_limits_subset.R") 
 
 
-# 1. Process data
+# 1. Filter and 2. process data
 diet_test <- readr::read_rds(here::here("output", "data_formatted", "dat_preds_all.rds")) %>%
-  process_data(species = species, season = season) # Split out exclude_years at this point since it is for plotting, not model running?
+  dplyr::filter(pdcomnam == "SILVER HAKE" & myseason == "SPRING") %>%
+  process_diet_data() %>%
+  dplyr::filter(Year %in% 1990:2000)
 
 
-# 2. Make file save location/run name
-run_name <- make_run_name("diet", species, season, covar_columns, config_file_loc)
+# 3. Make file save location/run name
+run_name <- make_run_name("diet", "SILVER HAKE", "SPRING", covar_columns, config_file_loc)
 output_file_loc <- here::here("new_test", run_name)
 
 
-
 # 3. Run the model
-test <- safe_run_mod(species = species,
-                     season = season,
-                     covar_columns = covar_columns,
+test <- safe_run_mod(covar_columns = covar_columns,
                      config_file_loc = config_file_loc,
                      strata_file_loc = strata_file_loc,
-                     processed_data = filter(diet_test$data_geo, Year %in% 1995:2005),
+                     processed_data = diet_test,
                      output_file_loc = output_file_loc)
 
 
@@ -54,25 +56,60 @@ test <- safe_run_mod(species = species,
 
 
 # Functional programming approach -----------------------------------------
-config_file_loc <- c(file.path(gitdir, "configuration-files", "lognm-pl-independent-years-no2spatial.R"), 
-                     file.path(gitdir, "configuration-files", "gamma-pl-independent-years-no2spatial.R"))
+
+# Alternative since I know I'll want to do all the species
+# Remove filtering by year, season, species from process_data
+
+mytest <- readr::read_rds(here::here("output", "data_formatted", "dat_preds_all.rds")) %>%
+  # mutate(species = pdcomnam) %>%
+  filter(pdcomnam == "SPINY DOGFISH") %>%
+  group_by(pdcomnam, myseason) %>%
+  nest() %>%
+  # mutate(diet_data = TRUE) %>%
+  mutate(proc_dat = purrr::map(data, process_data))
+  
+  
 
 
-species <- c("SPINY DOGFISH", "ATLANTIC COD", "GOOSEFISH", "WHITE HAKE")
+
+
+# 0. Set options
+species <- c("SPINY DOGFISH", "ATLANTIC COD", "GOOSEFISH", "WHITE HAKE")[1]
 season <- c("spring", "fall")
 covars <- list(NA,
                c("int", "sizecat"),
                c("int", "pdlenz"),
-               c("int", "pdlenz", "pdlenz2"))
-
+               c("int", "pdlenz", "pdlenz2"))[[1]]
+config_file_loc <- c(file.path(gitdir, "configuration-files", "lognm-pl-independent-years-no2spatial.R"), 
+                     file.path(gitdir, "configuration-files", "gamma-pl-independent-years-no2spatial.R"))[[1]]
+strata_file_loc <- file.path(gitdir, "configuration-files", "strata_limits_subset.R") 
+rawdat_file_loc <- here::here("output", "data_formatted", "dat_preds_all.rds")
+output_file_loc <- here::here("new_test")
 
 modruns <- tidyr::expand_grid(species, season, covars,
                               config_file_loc,
                               strata_file_loc,
                               rawdat_file_loc,
                               output_file_loc)  %>%
-  tibble::rownames_to_column(var = "id")
+  tibble::rownames_to_column(var = "id") %>%
+  dplyr::mutate(diet_data = TRUE)
 
+# 1. Process data
+modruns <- modruns %>%
+  dplyr::mutate(raw_data = purrr::map(rawdat_file_loc, readr::read_rds)) %>%
+  dplyr::mutate(proc_data = purrr::pmap(
+    list(raw_data,
+         species,
+         season,
+         diet_data),
+    process_data)) 
+# %>%
+mytest <- dplyr::mutate(data_geo = purrr::map(proc_data, `[`, "data_geo"))
+    
+    
+diet_test <- readr::read_rds(here::here("output", "data_formatted", "dat_preds_all.rds")) %>%
+      process_data(species = species, season = season) # Split out exclude_years at this point since it is for plotting, not model running?
+    
 
 modruns <- modruns %>%
   dplyr::mutate(output = purrr::pmap(
