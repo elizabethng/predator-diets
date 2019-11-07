@@ -145,7 +145,7 @@ mytest <- setup %>%
 # 3. Make file run name and save file location
 mytest <- mytest %>%
   dplyr::mutate(run_name = purrr::pmap_chr(
-    list("diet", pdcomnam, myseason, covar_columns, config_file_loc),
+    list("trawl", pdcomnam, myseason, covar_columns, config_file_loc),
     make_run_name
   )) %>%
   dplyr::mutate(output_file_loc = map2_chr(
