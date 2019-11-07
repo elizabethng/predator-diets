@@ -20,6 +20,7 @@ run_mod <- function(# species,
                     output_file_loc,
                     check_identifiable = FALSE)
   {
+  browser()
   DateFile <- output_file_loc
   dir.create(DateFile, recursive = TRUE) # can end in / or not
   
@@ -86,10 +87,10 @@ run_mod <- function(# species,
     )
   }else{
     # Make matrix of covariates
-    covar_columns_vec <- str_splot(covar_columns, " ") %>% unlist()
+    covar_columns_vec <- stringr::str_split(covar_columns, " ", simplify = TRUE)[1,]
       
     Q_ik <- Data_Geostat %>% 
-      dplyr::select(covar_columns) %>%
+      dplyr::select(covar_columns_vec) %>%
       as.matrix()
     
     TmbData <- VAST::make_data(
