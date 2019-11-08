@@ -35,9 +35,26 @@ overlap_diet_comp %>%
   geom_line() +
   facet_grid(species ~ season) +
   theme_bw()
-ggsave(file.path(gitdir, "output", "overlap-diet-comparison.pdf"), width = 10, height = 6, units = "in")
+ggsave(file.path(gitdir, "output", "overlap-diet-comp-ts.pdf"), width = 10, height = 6, units = "in")
 
 
+overlap_diet_comp %>% 
+  pivot_wider(id_cols = c(year, species, season), names_from = index, values_from = value) %>%
+  ggplot(aes(y = `diet index`, x = `overlap index`, color = year)) +
+  geom_point() +
+  scale_color_viridis_c(option = "plasma") +
+  geom_abline(color = "lightgrey") +
+  scale_x_continuous(limits = c(-5.13, 5.13)) +
+  scale_y_continuous(limits = c(-5.13, 5.13)) +
+  coord_fixed() +
+  facet_grid(species ~ season) +
+  theme_bw()
+ggsave(file.path(gitdir, "output", "overlap-diet-comp-1to1.pdf"), width = 6, height = 8, units = "in")
+
+# overlap_diet_comp %>%
+#   ggplot(aes(x = value, color = index)) +
+#   geom_freqpoly() +
+#   facet_grid(species ~ season)
 
 
 assessdat <- assessdatr %>%
