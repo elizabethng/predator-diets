@@ -26,6 +26,7 @@ overlapindex <- overlapindexr %>%
   pivot_longer(cols = `overlap index`, names_to = "index", values_to = "value")
 
 
+# Plot comparison of diet data and overlap data
 overlap_diet_comp <- bind_rows(dietindex, overlapindex) %>%
   mutate(full_name = paste0(name, ", ", index)) %>%
   dplyr::filter(species != "white hake", species != "silver hake")
@@ -37,10 +38,9 @@ overlap_diet_comp %>%
   theme_bw()
 ggsave(file.path(gitdir, "output", "overlap-diet-comp-ts.pdf"), width = 10, height = 6, units = "in")
 
-
 overlap_diet_comp %>% 
   pivot_wider(id_cols = c(year, species, season), names_from = index, values_from = value) %>%
-  ggplot(aes(y = `diet index`, x = `overlap index`, color = year)) +
+  ggplot(aes(x = `overlap index`, y = `diet index`, color = year)) +
   geom_point() +
   scale_color_viridis_c(option = "plasma") +
   geom_abline(color = "lightgrey") +
@@ -51,20 +51,21 @@ overlap_diet_comp %>%
   theme_bw()
 ggsave(file.path(gitdir, "output", "overlap-diet-comp-1to1.pdf"), width = 6, height = 8, units = "in")
 
-# overlap_diet_comp %>%
-#   ggplot(aes(x = value, color = index)) +
-#   geom_freqpoly() +
-#   facet_grid(species ~ season)
 
-
+# Format the assessment data
 assessdat <- assessdatr %>%
   dplyr::filter(Year > 1972) %>%
   pivot_longer(cols = -Year, names_to = "index", values_to = "value") %>%
   group_by(index) %>%
   mutate(value = scale(value)[,1]) %>%
   ungroup() %>%
-  rename(year = Year) %>%
-  mutate(name = index)
+  rename(year = Year)
+
+ggplot(assessdat, aes(x = year, y = value, color = index)) +
+  geom_line()
+
+
+
 
 
 
