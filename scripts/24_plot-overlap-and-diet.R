@@ -10,17 +10,35 @@ assessdatr <- readxl::read_xlsx(here::here("data", "TimeSeries.xlsx"))
 
 # Format for combining
 dietindex <- dietindexr %>%
-  dplyr::filter(is.na(reason)) %>%
+  # dplyr::filter(is.na(reason)) %>%
+  mutate(density = ifelse(is.na(reason), density, NA)) %>%
   select(-SD_log, -SD_mt, -reason) %>%
   mutate(density = scale(density)[,1]) %>%
   rename(`diet index` = density) %>%
   pivot_longer(cols = `diet index`, names_to = "index", values_to = "value")
 
 overlapindex <- overlapindexr %>%
+  group_by(season) %>%
   mutate(bhat = scale(bhat)[,1]) %>%
+  ungroup() %>%
   rename(species = pred, 
          `overlap index` = bhat) %>%
   pivot_longer(cols = `overlap index`, names_to = "index", values_to = "value")
+
+
+overlap_diet_comp <- bind_rows(dietindex, overlapindex) %>%
+  mutate(full_name = paste0(name, ", ", index)) %>%
+  dplyr::filter(species != "white hake", species != "silver hake")
+  
+overlap_diet_comp %>%
+  ggplot(aes(x = year, y = value, group = full_name, color = index)) +
+  geom_line() +
+  facet_grid(species ~ season) +
+  theme_bw()
+ggsave(file.path(gitdir, "output", "overlap-diet-comparison.pdf"), width = 10, height = 6, units = "in")
+
+
+
 
 assessdat <- assessdatr %>%
   dplyr::filter(Year > 1972) %>%
