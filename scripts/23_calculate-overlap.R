@@ -59,19 +59,22 @@ bhatdat <- left_join(pred, prey, by = c("season", "year", "knot")) %>%
     prey = species.y,
     prey_dens = density.y
   ) %>%
+  group_by(season, pred, year) %>%
   mutate(
-    p_pred = pred_dens/(pred_dens + prey_dens),
-    p_prey = prey_dens/(pred_dens + prey_dens)
+    # p_pred = pred_dens/(pred_dens + prey_dens),
+    # p_prey = prey_dens/(pred_dens + prey_dens)
+    p_pred = pred_dens/sum(pred_dens),
+    p_prey = prey_dens/sum(prey_dens)
   ) %>%
   mutate(
     bhat = sqrt(p_pred*p_prey)
   )
   
 # How correlated is bhat with p_pred and p_prey?  
-bhatdat %>%
-  filter(season == "spring" & pred == "atlantic_cod") %>%
-  select(prey_dens, pred_dens, bhat) %>%
-  GGally::ggpairs()
+# bhatdat %>%
+#   filter(season == "spring" & pred == "atlantic_cod") %>%
+#   select(prey_dens, pred_dens, bhat) %>%
+#   GGally::ggpairs()
   
   
 # Aggregate by year  
@@ -81,12 +84,16 @@ overlapindex <- bhatdat %>%
     bhat = sum(bhat)
   ) %>%
   ungroup() %>%
-  mutate(pred = gsub("_", " ", pred))
+  mutate(pred = gsub("_", " ", pred)) %>%
+  mutate(name = paste0(pred, ", ", season))
   
 # Plot the indices
-ggplot(overlapindex, aes(x = year, y = bhat, color = paste(season, pred))) +
-  geom_line() %>%
-  facet_wrap(~season)
+ggplot(overlapindex, aes(x = year, y = bhat, group = name, color = season)) +
+  geom_line() +
+  facet_wrap(~pred) + 
+  theme_bw()
+ggsave(here::here("output", "plots", "overlap-comparison.pdf"),
+       width = 9, height = 5, units = "in")
 
 gitdir <- "C:/Users/Elizabeth Ng/Documents/GitHub/predator-diets"
 write_rds(overlapindex, path = file.path(gitdir, "output", "overlap_index.rds"))
