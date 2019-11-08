@@ -4,24 +4,49 @@ library(tidyverse)
 
 # Load data and format for combining
 gitdir <- "C:/Users/Elizabeth Ng/Documents/GitHub/predator-diets"
-rawoverlapindex <- readr::read_rds(file.path(gitdir, "output", "overlap_index.rds"))
-rawdietindex <- readr::read_rds(file.path(gitdir, "output", "diet_index.rds"))
-
-
+dietindexr <- readr::read_rds(file.path(gitdir, "output", "diet_index.rds"))
+overlapindexr <- readr::read_rds(file.path(gitdir, "output", "overlap_index.rds"))
+assessdatr <- readxl::read_xlsx(here::here("data", "TimeSeries.xlsx"))
 
 # Format for combining
-dietindex <- rawoverlapindex %>%
+dietindex <- dietindexr %>%
   dplyr::filter(is.na(reason)) %>%
   select(-SD_log, -SD_mt, -reason) %>%
   mutate(density = scale(density)[,1]) %>%
-  rename(diet_index = density) %>%
-  pivot_longer(cols = diet_index, names_to = "index", values_to = "value")
+  rename(`diet index` = density) %>%
+  pivot_longer(cols = `diet index`, names_to = "index", values_to = "value")
 
-
-overlapindex <- rawdietindex %>%
+overlapindex <- overlapindexr %>%
+  mutate(bhat = scale(bhat)[,1]) %>%
   rename(species = pred, 
-         overlap_index = bhat) %>%
-  mutate(overlap_index = scale(overlap_index)[,1]) %>%
-  pivot_longer(cols = overlap_index, names_to = "index", values_to = "value")
+         `overlap index` = bhat) %>%
+  pivot_longer(cols = `overlap index`, names_to = "index", values_to = "value")
 
-indexdat <- bind_rows(dietindex, overlapindex)
+assessdat <- assessdatr %>%
+  dplyr::filter(Year > 1972) %>%
+  pivot_longer(cols = -Year, names_to = "index", values_to = "value") %>%
+  group_by(index) %>%
+  mutate(value = scale(value)[,1]) %>%
+  ungroup() %>%
+  rename(year = Year) %>%
+  mutate(name = index)
+
+
+
+
+
+indexdat <- bind_rows(dietindex, overlapindex, assessdat) %>%
+  mutate(composite_name = paste(name, index, ))
+
+# Make a plot with everything
+# (will ggplot know to include the NA stuff in all the plots??)
+
+ggplot(indexdat, aes(x = year, y = value, group = name, color = name)) +
+  geom_line() +
+  facet_wrap(~name)
+
+
+
+
+
+
