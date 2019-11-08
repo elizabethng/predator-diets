@@ -1,6 +1,8 @@
 # Script to process VAST output
 # Save results as RDS files and then load and manipulate
 
+library(tidyverse)
+
 # Load the results
 modruns <- readr::read_rds(here::here("2019-10-29-new_test", "modruns.rds"))
 
@@ -59,7 +61,7 @@ topmods <- worked %>%
 
 # Plot Index
 # Index unfortuantely contains all years, need to fix that in run_mod
-topmods %>%
+dietindex <- topmods %>%
   dplyr::transmute(index = purrr::map(output, "index")) %>%
   dplyr::ungroup() %>%
   tidyr::unnest(index) %>%
@@ -68,15 +70,17 @@ topmods %>%
     density = Estimate_metric_tons,
     year = Year) %>%
   dplyr::mutate(species = tolower(species)) %>%
-  dplyr::mutate(index = paste(species, season, sep = ", ")) %>%
-  # dplyr::mutate(density = ifelse(is.na(reason), density, NA)) %>%
+  dplyr::mutate(name = paste(species, season, sep = ", "))
+
+  
+dietindex %>%
   dplyr::mutate(
     density_est = density, 
     density = ifelse(is.na(reason), density, NA)) %>%
-  ggplot(aes(x = year, y = density, group = index, color = index)) +
+  ggplot(aes(x = year, y = density, group = name, color = name)) +
   geom_point() +
   geom_line(lwd = 1) +
-  geom_line(aes(x = year, y = density_est, group = index, color = index), alpha = 0.5) +
+  geom_line(aes(x = year, y = density_est, group = name, color = name), alpha = 0.5) +
   scale_color_manual(values = c(
     "atlantic cod, fall"    = "#1b9e77",
     "atlantic cod, spring"  = "#11634B",
@@ -91,6 +95,15 @@ topmods %>%
   facet_wrap(~species)
 ggsave(here::here("output", "plots", "index-comparison.pdf"),
        width = 9, height = 5, units = "in")
+
+
+gitdir <- "C:/Users/Elizabeth Ng/Documents/GitHub/predator-diets"
+write_rds(dietindex, path = file.path(gitdir, "output", "diet_index.rds"))
+
+
+
+
+
 
 # Plot data and knots
 source(file.path(gitdir, "functions", "map_tow_stomach_knots.R"))
