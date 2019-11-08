@@ -74,25 +74,17 @@ bhatdat %>%
   GGally::ggpairs()
   
   
+# Aggregate by year  
+overlapindex <- bhatdat %>%
+  group_by(season, pred, year) %>%
+  summarize(
+    bhat = sum(bhat)
+  )
   
-  select(-pred_dens, -prey, -prey_dens, -)
-  group_by(season, pred, year)
+# Plot the indices
+ggplot(overlapindex, aes(x = year, y = bhat, color = paste(season, pred))) +
+  geom_line() %>%
+  facet_wrap(~season)
 
-
-poop <- knotdat %>%
-  mutate(type = ifelse(species == "atlantic_herring", "prey", "predator")) %>%
-  pivot_wider(id_cols = c(season, year, knot, species),
-              names_from = type,
-              values_from = density)
-
-
-
-# Only need one density value per knot per species and year
-specdat <- knotdat %>%
-  pivot_wider(id_cols = c(season, year, knot), names_from = species, values_from = density)
-
-
-  
-  
-
-
+gitdir <- "C:/Users/Elizabeth Ng/Documents/GitHub/predator-diets"
+write_rds(overlapindex, path = file.path(gitdir, "output", "overlap_index.rds"))
