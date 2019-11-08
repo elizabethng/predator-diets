@@ -73,24 +73,33 @@ dietindex <- topmods %>%
   dplyr::mutate(name = paste(species, season, sep = ", "))
 
   
+# dietindex %>%
+#   dplyr::mutate(
+#     density_est = density, 
+#     density = ifelse(is.na(reason), density, NA)) %>%
+#   ggplot(aes(x = year, y = density, group = name, color = name)) +
+#   geom_point() +
+#   geom_line(lwd = 1) +
+#   geom_line(aes(x = year, y = density_est, group = name, color = name), alpha = 0.5) +
+#   scale_color_manual(values = c(
+#     "atlantic cod, fall"    = "#1b9e77",
+#     "atlantic cod, spring"  = "#11634B",
+#     "goosefish, fall"       = "#d95f02",
+#     "goosefish, spring"     = "#8A3C01",
+#     "spiny dogfish, fall"   = "#7570b3",
+#     "spiny dogfish, spring" = "#3C3A5C",
+#     "white hake, fall"      = "#e7298a",
+#     "white hake, spring"    = "#80174D"               
+#   )) + 
+#   theme_bw() +
+#   facet_wrap(~species)
 dietindex %>%
   dplyr::mutate(
     density_est = density, 
     density = ifelse(is.na(reason), density, NA)) %>%
-  ggplot(aes(x = year, y = density, group = name, color = name)) +
+  ggplot(aes(x = year, y = density, group = name, color = season)) +
   geom_point() +
-  geom_line(lwd = 1) +
-  geom_line(aes(x = year, y = density_est, group = name, color = name), alpha = 0.5) +
-  scale_color_manual(values = c(
-    "atlantic cod, fall"    = "#1b9e77",
-    "atlantic cod, spring"  = "#11634B",
-    "goosefish, fall"       = "#d95f02",
-    "goosefish, spring"     = "#8A3C01",
-    "spiny dogfish, fall"   = "#7570b3",
-    "spiny dogfish, spring" = "#3C3A5C",
-    "white hake, fall"      = "#e7298a",
-    "white hake, spring"    = "#80174D"               
-  )) + 
+  geom_line() +
   theme_bw() +
   facet_wrap(~species)
 ggsave(here::here("output", "plots", "index-comparison.pdf"),
