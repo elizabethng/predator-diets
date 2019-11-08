@@ -79,7 +79,9 @@ overlapindex <- bhatdat %>%
   group_by(season, pred, year) %>%
   summarize(
     bhat = sum(bhat)
-  )
+  ) %>%
+  ungroup() %>%
+  mutate(pred = gsub("_", " ", pred))
   
 # Plot the indices
 ggplot(overlapindex, aes(x = year, y = bhat, color = paste(season, pred))) +
