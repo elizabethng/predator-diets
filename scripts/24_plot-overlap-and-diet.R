@@ -96,6 +96,27 @@ ggsave(file.path(gitdir, "output", "assess-diet-comp-ts.pdf"), width = 10, heigh
 
 
 
+# One to one plot
+assess_diet_comp <- assessdat %>%
+  dplyr::filter(index == "Jan.1 Biomass (mt)") %>%
+  right_join(dietindex, by = "year") %>%
+  rename(
+    `Jan.1 Biomass (mt)` = value.x,
+    `diet index` = value.y
+  ) %>%
+  select(-index.x, -index.y)
+
+assess_diet_comp %>% 
+  ggplot(aes(x = `Jan.1 Biomass (mt)`, y = `diet index`, color = year)) +
+  geom_point() +
+  scale_color_viridis_c(option = "plasma") +
+  geom_abline(color = "lightgrey") +
+  scale_x_continuous(limits = c(-5.13, 5.13)) +
+  scale_y_continuous(limits = c(-5.13, 5.13)) +
+  coord_fixed() +
+  facet_grid(species ~ season) +
+  theme_bw()
+ggsave(file.path(gitdir, "output", "assess-diet-comp-1to1.pdf"), width = 6, height = 8, units = "in")
 
 
 
