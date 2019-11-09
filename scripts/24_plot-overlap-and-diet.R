@@ -1,4 +1,9 @@
-# Script to plot all of the indices together
+# Script to plot index comparisons
+# 1. plot time series comparison of diet index and overlap index
+# 2. plot one to one comparison of diet index and overlap index
+# 3. plot time series comparison of diet index and assessment biomass index
+# 4. plot one to one comparison of diet index and assessment biomass index
+
 
 library(tidyverse)
 
@@ -117,36 +122,6 @@ assess_diet_comp %>%
   facet_grid(species ~ season) +
   theme_bw()
 ggsave(file.path(gitdir, "output", "assess-diet-comp-1to1.pdf"), width = 6, height = 8, units = "in")
-
-
-
-
-
-assess_diet_comp <- assessdat %>%
-  dplyr::filter(index == "Jan.1 Biomass (mt)") %>%
-  bind_rows(dietindex)
-
-
-ggplot(assess_diet_comp, aes(x = year, y = value, group = index)) +
-  geom_line() +
-  geom_point() +
-  facet_wrap(species ~ season)
-
-
-
-
-
-indexdat <- bind_rows(dietindex, overlapindex, assessdat) %>%
-  mutate(composite_name = paste(name, index, ))
-
-# Make a plot with everything
-# (will ggplot know to include the NA stuff in all the plots??)
-
-ggplot(indexdat, aes(x = year, y = value, group = name, color = name)) +
-  geom_line() +
-  facet_wrap(~name)
-
-
 
 
 
