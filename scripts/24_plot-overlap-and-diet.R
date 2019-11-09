@@ -33,11 +33,19 @@ overlap_diet_comp <- bind_rows(dietindex, overlapindex) %>%
   
 overlap_diet_comp %>%
   ggplot(aes(x = year, y = value, group = full_name, color = index)) +
-  geom_line() +
+  geom_line(size = 1) +
+  scale_color_manual(
+    values = c(
+      "diet index" = "black",
+      "overlap index" = viridisLite::viridis(n = 200, option = "plasma")[70]
+      )
+    ) +
+  geom_point() +
   facet_grid(species ~ season) +
   theme_bw()
 ggsave(file.path(gitdir, "output", "overlap-diet-comp-ts.pdf"), width = 10, height = 6, units = "in")
 
+# One to one plot
 overlap_diet_comp %>% 
   pivot_wider(id_cols = c(year, species, season), names_from = index, values_from = value) %>%
   ggplot(aes(x = `overlap index`, y = `diet index`, color = year)) +
@@ -61,11 +69,47 @@ assessdat <- assessdatr %>%
   ungroup() %>%
   rename(year = Year)
 
-ggplot(assessdat, aes(x = year, y = value, color = index)) +
-  geom_line()
+
+assessdat %>%
+  dplyr::filter(index == "Jan.1 Biomass (mt)") %>%
+  ggplot(aes(x = year, y = value)) +
+  geom_line(
+    color =  "firebrick", 
+    size = 1
+  ) +
+  geom_line(
+    data = dietindex,
+    aes(x = year, y = value, group = name),
+    inherit.aes = FALSE,
+    color = "black",
+    size = 1
+  ) +
+  geom_point(
+    data = dietindex, 
+    aes(x = year, y = value), 
+    inherit.aes = FALSE,
+    color = "black",
+    size = 1.5) +
+  facet_grid(species ~ season) +
+  theme_bw()
+ggsave(file.path(gitdir, "output", "assess-diet-comp-ts.pdf"), width = 10, height = 6, units = "in")
 
 
 
+
+
+
+
+
+assess_diet_comp <- assessdat %>%
+  dplyr::filter(index == "Jan.1 Biomass (mt)") %>%
+  bind_rows(dietindex)
+
+
+ggplot(assess_diet_comp, aes(x = year, y = value, group = index)) +
+  geom_line() +
+  geom_point() +
+  facet_wrap(species ~ season)
 
 
 
