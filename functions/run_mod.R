@@ -17,7 +17,6 @@ run_mod <- function(covar_columns = NA,
                     output_file_loc,
                     check_identifiable = FALSE)
   {
-  browser()
   DateFile <- output_file_loc
   dir.create(DateFile, recursive = TRUE) # can end in / or not
   
@@ -266,31 +265,7 @@ run_mod <- function(covar_columns = NA,
     cex = 1.8,
     plot_legend_fig = FALSE)
   
-  # Plot covariate relationships
-  if(!is.na(covar_columns)){
-    covar_plots <- FishStatsUtils::plot_maps(
-      plot_set = c(11, 13, 14), 
-      MappingDetails = MapDetails_List[["MappingDetails"]],
-      Report = Report,
-      Sdreport = Opt$SD,
-      PlotDF = MapDetails_List[["PlotDF"]], 
-      MapSizeRatio = MapDetails_List[["MapSizeRatio"]],
-      Xlim = MapDetails_List[["Xlim"]],
-      Ylim = MapDetails_List[["Ylim"]],
-      TmbData = TmbData, 
-      FileName = paste0(DateFile, "/"),
-      Year_Set = Year_Set,
-      Years2Include = Years2Include,
-      Rotate = MapDetails_List[["Rotate"]],
-      Cex = MapDetails_List[["Cex"]],
-      Legend = MapDetails_List[["Legend"]],
-      zone = MapDetails_List[["Zone"]],
-      mar = c(0,0,2,0),
-      oma = c(3.5,3.5,0,0),
-      cex = 1.8,
-      plot_legend_fig = FALSE)
-  }
-  
+
   # Pull out and format knot-level values (may change with fine scale)
   est_dens = as.vector(Save$Report$D_gcy) # D_xcy) # stacked 1:100 knot value for each year, appears to include predictions for missing years
   all_dens = tidyr::tibble(
