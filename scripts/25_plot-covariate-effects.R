@@ -25,7 +25,7 @@ ggplot(covdat, aes(x = pdlen_z, y = effect, color = type)) +
   geom_line() +
   theme_bw()
 gitdir <- "C:/Users/Elizabeth Ng/Documents/GitHub/predator-diets"
-ggsave(file.path(gitdir, "output", "cov-effect-cod-spring.pdf"), width = 6, height = 8, units = "in")
+ggsave(file.path(gitdir, "output", "cov-effect-cod-spring.pdf"), width = 6, height = 4, units = "in")
 
 ggplot(covdat, aes(x = pdlen_z, y = exp_effect, color = type)) +
   geom_line() +
