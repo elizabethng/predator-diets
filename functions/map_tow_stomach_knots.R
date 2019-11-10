@@ -34,11 +34,12 @@ map_tow_stomach_knots <- function(rawdat_file_loc,
   config_file_name <- basename(output_file_loc)
   
   # Extract the season from the file name
-  season <- config_file_name %>%
-    str_split("_", simplify = TRUE) %>%
-    extract(2) %>%
-    str_split("-", simplify = TRUE) %>%
-    extract(2)
+  if(str_detect(config_file_name, "spring")){
+    season <- "spring"
+  }else{
+    season <- "fall"
+  }
+
     
   # Map theme
   map_theme <- function(...){
@@ -62,9 +63,9 @@ map_tow_stomach_knots <- function(rawdat_file_loc,
   load(file.path(output_file_loc, "model-settings.RData"))
   
   datgeo <- Data_Geostat %>%
-    rename(Season = season) %>%
+    # rename(Season = season) %>%
     filter(!is.na(Catch_KG)) %>%
-    mutate(Season = tolower(Season)) %>%
+    # mutate(Season = tolower(Season)) %>%
     mutate(Herring = ifelse(Catch_KG > 0, "present", "absent")) %>%
     st_as_sf(coords = c("Lon", "Lat"), crs = 4326)
   
