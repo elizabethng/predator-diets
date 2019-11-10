@@ -69,4 +69,4 @@ mytest <- mytest %>%
        check_identifiable = TRUE),
   safe_run_mod))
 
-readr::write_rds(modruns, path = here::here("spatial-comparison", "modruns.rds"))
+readr::write_rds(mytest, path = here::here("spatial-comparison", "modruns.rds"))
