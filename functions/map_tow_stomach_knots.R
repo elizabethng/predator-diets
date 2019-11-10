@@ -63,9 +63,7 @@ map_tow_stomach_knots <- function(rawdat_file_loc,
   load(file.path(output_file_loc, "model-settings.RData"))
   
   datgeo <- Data_Geostat %>%
-    # rename(Season = season) %>%
     filter(!is.na(Catch_KG)) %>%
-    # mutate(Season = tolower(Season)) %>%
     mutate(Herring = ifelse(Catch_KG > 0, "present", "absent")) %>%
     st_as_sf(coords = c("Lon", "Lat"), crs = 4326)
   
@@ -120,20 +118,3 @@ map_tow_stomach_knots <- function(rawdat_file_loc,
   
 }   
 
-# Check a subset of years
-# ggplot() +
-#   borders("world", fill = "grey", colour = "white") +
-#   borders("state", fill = "grey", colour = "white") +
-#   geom_sf(data = filter(all_trawls, Year %in% c(1990:1995)),
-#           mapping = aes(), color = "grey", alpha = 0.1, pch = 20
-#   ) +
-#   geom_sf(data = datknots, color = "black", pch = 4, size = 1.5) +
-#   geom_sf(data = filter(datgeo, Year %in% c(1990:1995)),
-#           aes(color = Herring, fill = Herring), 
-#           alpha = 0.7, show.legend = "point"
-#   ) +
-#   scale_color_manual(values = c("absent" = "grey40", "present" = "mediumblue")) +
-#   scale_fill_manual(values = c("absent" = "grey40", "present" = "mediumblue")) +
-#   coord_sf(xlim = c(-77, -65), ylim = c(35, 46)) + 
-#   facet_wrap(~Year) +
-#   map_theme()
