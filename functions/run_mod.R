@@ -295,9 +295,41 @@ run_mod <- function(covar_columns = NA,
     dplyr::full_join(exclude_years, by = "Year") %>%
     dplyr::as_tibble()
   
+  converged <- try(all(abs(Opt$diagnostics$final_gradient)<1e-6 ))
+  
+  if(is.null(Save$ParHat$error)){
+    estimates <- tibble(
+      covariate = "epsilon",
+      pred1 = Save$ParHat$result$L_epsilon1_z,
+      pred2 = Save$ParHat$result$L_epsilon2_z
+    )
+    
+    if(!is.na(covar_columns)){
+      estimates <- bind_rows(
+        list(
+          estimates,
+          tibble(
+            covariate = covar_columns_vec,
+            pred1 = Save$ParHat$result$lambda1_k, 
+            pred2 = Save$ParHat$result$lambda2_k
+          )
+        )
+      )
+    }
+    
+    estimates <- pivot_longer(estimates,
+                              cols = c(pred1, pred2), 
+                              names_to = "predictor", 
+                              values_to = "estimate")
+  }else{
+    estimates <- Save$ParHat$error 
+  }
+  
   return(list(
     aic = Opt$AIC[1],
     index = my_index,
-    knot_density = map_dat
+    knot_density = map_dat,
+    estimates = estimates,
+    converged = converged
   ))
 }
