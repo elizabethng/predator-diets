@@ -1,5 +1,6 @@
-# Results folder
+# Data and Results folder
 output/
+data/
 
 # History files
 .Rhistory
