@@ -24,20 +24,20 @@ safe_run_mod <- purrr::safely(run_mod)          # [ ] move into run_mod function
 
 # Run one diet data approach --------------------------------------------------------
 # 0. Set options
-covar_columns <- "int pdlenz pdlenz2"
-config_file_loc <- file.path(gitdir, "configuration-files", "gamma-pl-independent-years-no2spatial.R")
+covar_columns <- NA
+config_file_loc <- file.path(gitdir, "configuration-files", "gamma-pl-independent-years-nospatial.R")
 strata_file_loc <- file.path(gitdir, "configuration-files", "strata_limits_subset.R") 
 
 
 # 1. Filter and 2. process data
 diet_test <- readr::read_rds(here::here("output", "data_formatted", "dat_preds_all.rds")) %>%
-  dplyr::filter(pdcomnam == "SPINY DOGFISH" & myseason == "SPRING") %>%
-  process_diet_data() %>%
+  dplyr::filter(pdcomnam == "SPINY DOGFISH" & myseason == "FALL") %>%
+  process_diet_data() %>% 
   dplyr::filter(Year %in% 1990:2000)
 
 
 # 3. Make file run name and save file location
-run_name <- make_run_name("diet", "SPINY DOGFISH", "SPRING", covar_columns, config_file_loc)
+run_name <- make_run_name("diet", "SPINY DOGFISH", "FALL", covar_columns, config_file_loc)
 output_file_loc <- here::here("check_covars", run_name)
 
 
@@ -126,8 +126,8 @@ test <- safe_run_mod(covar_columns = covar_columns,
 # Functional programming approach for trawl data -----------------------------------------
 # 1. Filter and 2. process data
 setup <- readr::read_rds(here::here("output", "data_formatted", "dat_trawl.rds")) %>%
-  # dplyr::filter(year %in% 1990:1995) %>%
-  # filter(pdcomnam == "SPINY DOGFISH") %>%
+  dplyr::filter(year %in% 1990:1995) %>%
+  filter(pdcomnam == "SPINY DOGFISH") %>%
   group_by(pdcomnam, myseason) %>%
   nest() %>%
   mutate(processed_data = purrr::map(data, process_trawl_data))
