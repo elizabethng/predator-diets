@@ -1,5 +1,6 @@
 # Configuration file for:
-# Poisson-link lognormal model with independent years
+# Poisson-link gamma model with independent years and 
+# spatiotemporal random effects in both predictors
 
 
 # Species_set = "Species name"  # change species set externally
@@ -30,7 +31,7 @@ RhoConfig = c(
   "Epsilon1" = 0,   # temporal structure on spatio-temporal variation
   "Epsilon2" = 0
 ) 
-# 0 off
+# 0 off (fixed effects)
 # 1 independent
 # 2 random walk
 # 3 constant among years (fixed effect)
@@ -42,7 +43,7 @@ OverdispersionConfig = c(
 )
 
 ObsModel = c(
-  "PosDist" = 1,   
+  "PosDist" = 2,   
   "Link"    = 1
 )   
 # c(2,0) gamma delta

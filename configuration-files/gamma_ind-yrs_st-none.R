@@ -1,5 +1,6 @@
 # Configuration file for:
-# poisson-link gamma model with independent years with no spatial variation in the second component
+# poisson-link gamma model with independent years and
+# with no spatial temporal random effects in either component
 
 
 # Species_set = "Species name"  # change species set externally
@@ -18,8 +19,8 @@ Kmeans_Config = list( "randomseed" = 1, "nstart" = 100, "iter.max" = 1e3 )
 # Model Settings ----------------------------------------------------------
 
 FieldConfig = c(
-  "Omega1"   = 1,   # number of spatial variation factors (0, 1, AR1)
-  "Epsilon1" = 1,   # number of spatio-temporal factors
+  "Omega1"   = 0,   # number of spatial variation factors (0, 1, AR1)
+  "Epsilon1" = 0,   # number of spatio-temporal factors
   "Omega2"   = 0, 
   "Epsilon2" = 0
 ) 
