@@ -66,44 +66,43 @@ readr::write_rds(dietrun, path = here("output", "dietraw.rds"))
 
 # Trawl Data --------------------------------------------------------------
 # Filter and process data
-setup <- readr::read_rds(here::here("output", "data_formatted", "dat_trawl.rds")) %>%
-  # dplyr::filter(year %in% 1990:1995) %>%
-  # filter(pdcomnam == "SPINY DOGFISH") %>%
+trawlsetup <- readr::read_rds(here("data", "processed", "dat_trawl.rds")) %>%
+  dplyr::filter(year %in% 1990:1995) %>%
+  filter(pdcomnam == "SPINY DOGFISH", myseason == "SPRING") %>%
   group_by(pdcomnam, myseason) %>%
   nest() %>%
   mutate(processed_data = purrr::map(data, process_trawl_data))
 
-# 0. Add in model options (covariates, config_files)
+# Add in model options (covariates, config_files)
 covar_columns <- NA
-config_file_loc <- c(file.path(gitdir, "configuration-files", "gamma-pl-independent-years.R"), 
-                     file.path(gitdir, "configuration-files", "lognm-pl-independent-years.R"))
+config_file_loc <- c(here("configuration-files", "gamma-pl-independent-years.R"), 
+                     here("configuration-files", "lognm-pl-independent-years.R"))[[1]]
 
-mytest <- setup %>% 
-  tidyr::expand_grid(
-    covar_columns,
-    config_file_loc)
+trawlrun <- tidyr::expand_grid(trawlsetup, covar_columns, config_file_loc)
 
-# 3. Make file run name and save file location
-mytest <- mytest %>%
+# Make file run name and save file location
+trawlrun <- trawlrun %>%
   dplyr::mutate(run_name = purrr::pmap_chr(
-    list("trawl", pdcomnam, myseason, covar_columns, config_file_loc),
+    list("trawl", 
+         pdcomnam, 
+         myseason, 
+         covar_columns, 
+         config_file_loc),
     make_run_name
   )) %>%
-  dplyr::mutate(output_file_loc = map2_chr(
-    folder_name,
-    run_name,
-    here::here
-  ))
+  dplyr::mutate(output_file_loc = map2_chr(diagnostic_folder, run_name, file.path))
 
-# 4. Run the model
-mytest <- mytest %>%
+
+# Run the model
+trawlrun <- trawlrun %>%
   dplyr::mutate(output = purrr::pmap(
     list(covar_columns, 
          config_file_loc, 
-         strata_file_loc = file.path(gitdir, "configuration-files", "strata_limits_subset.R"), 
+         strata_file_loc = here("configuration-files", "strata_limits_subset.R"), 
          processed_data, 
          output_file_loc,
          check_identifiable = TRUE),
     safe_run_mod))
 
-readr::write_rds(mytest, path = here::here("TRAWL", "modruns.rds"))
+
+readr::write_rds(trawlrun, path = here::here("output", "trawlraw.rds"))
