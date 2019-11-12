@@ -22,6 +22,7 @@ diagnostic_folder <- file.path("D:", "Dropbox", "Predator_Diets", "output", "VAS
 dietsetup <- readr::read_rds(here("data", "processed", "dat_preds_all.rds")) %>%
   # dplyr::filter(year %in% 1990:1995) %>%
   # dplyr::filter(pdcomnam == "SPINY DOGFISH", myseason == "SPRING") %>%
+  dplyr::filter(pdcomnam %in% c("ATLANTIC COD", "SILVER HAKE", "SPINY DOGFISH", "GOOSEFISH")) %>%
   group_by(pdcomnam, myseason) %>%
   nest() %>%
   mutate(processed_data = purrr::map(data, process_diet_data))
