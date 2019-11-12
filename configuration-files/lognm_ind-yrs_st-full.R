@@ -1,5 +1,6 @@
 # Configuration file for:
-# Poisson-link lognormal model with independent years with no spatial variation in the second component
+# Poisson-link lognormal model with independent years and
+# spatiotemporal random effects in both predictors
 
 
 # Species_set = "Species name"  # change species set externally
@@ -20,8 +21,8 @@ Kmeans_Config = list( "randomseed" = 1, "nstart" = 100, "iter.max" = 1e3 )
 FieldConfig = c(
   "Omega1"   = 1,   # number of spatial variation factors (0, 1, AR1)
   "Epsilon1" = 1,   # number of spatio-temporal factors
-  "Omega2"   = 0, 
-  "Epsilon2" = 0
+  "Omega2"   = 1, 
+  "Epsilon2" = 1
 ) 
 
 RhoConfig = c(
@@ -30,7 +31,7 @@ RhoConfig = c(
   "Epsilon1" = 0,   # temporal structure on spatio-temporal variation
   "Epsilon2" = 0
 ) 
-# 0 off
+# 0 off (fixed effects)
 # 1 independent
 # 2 random walk
 # 3 constant among years (fixed effect)

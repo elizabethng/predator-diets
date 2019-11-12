@@ -1,7 +1,7 @@
 # Process Trawl Data
 
-library(tidyverse)
-library(here)
+library("tidyverse")
+library("here")
 
 save_data <- TRUE
 
@@ -10,7 +10,7 @@ save_data <- TRUE
 # Remove spatial outliers
 # Add tow ID
 
-rawdata <- read_csv(here("data", "Ng_OPS.txt"), guess_max = 365080)
+rawdata <- read_csv(here("data", "raw", "Ng_OPS.txt"), guess_max = 365080)
 
 mydata <- rawdata %>% 
   filter(!(LAT > 37.5 & LON < -75.6)) %>%
@@ -94,6 +94,6 @@ dat <- fixdat %>%
 
 # Save output -------------------------------------------------------------
 if(save_data == TRUE){
-  saveRDS(dat, file = here("output", "data_formatted", "dat_trawl.rds"))
+  saveRDS(dat, file = here("data", "processed", "dat_trawl.rds"))
 }
 

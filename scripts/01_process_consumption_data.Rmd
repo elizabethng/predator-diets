@@ -6,38 +6,31 @@ editor_options:
 ---
 
 # Plan
-[probably easiest to have a list of data frames with each entry being a separate species]
-
-1. Create a data frame where each row is a sampled predator. Include predator specific information (weight, species), tow specific information (towid, season, location, depth, year). This approach doesn't account for the correlation of predators within tows.[Should be similar to what I did for EDA.]
+1. Create a data frame where each row is a sampled predator. Include predator specific information (weight, species), tow specific information (towid, season, location, depth, year). This approach doesn't account for the correlation of predators within tows.
 2. Create a data frame where each row is a unique tow. For the average tow level consumption, have a column for average consumption. Include average predator length and sample size. 
-3. [separate script] In TMB, write up a simple hurdle model (or Tweedie model??) for a fixed-effects catch standardization. 
-
 
 Later: I can incorporate other tow covariates, like amount of prey or predator in tow
 4. Include stomach volume or mass for total
 
 # Preliminaries
 ```{r setup}
-knitr::opts_knit$set(root.dir = "D:/Dropbox/Predator_Diets") #rprojroot::find_rstudio_root_file())
+library("tidyverse")
+library("here")
+
+save_data <- TRUE
+use_harengus_only <- FALSE # use only C. harengus? otherwise all clupea spp.
 ```
 
-```{r packages and options}
-library(tidyverse)
-library(here)
-
-save_data = TRUE
-use_harengus_only = FALSE # use only C. harengus? otherwise all clupea spp.
-```
-
-```{r load diet data}
-frdata = read_csv(here("data", "fr_diet.csv"), guess_max = 365080) %>%
+```{r load-raw-diet-data}
+frdata <- read_csv(here("data", "raw", "fr_diet.csv"), guess_max = 365080) %>%
   dplyr::select(-X1)
 ```
 
 # 0. Clean data
 Make longitude negative, remove 7 observations missing date and location data, and one spatial outlier
-```{r}
-frdata = frdata %>% mutate(declon  = - declon) %>%
+```{r fix-locations}
+frdata <- frdata %>% 
+  mutate(declon  = -declon) %>%
   filter(!is.na(month)) %>%
   filter(declon > -78)
 ```
@@ -45,11 +38,12 @@ frdata = frdata %>% mutate(declon  = - declon) %>%
 
 Unique tow ID is cruise6 + station
 Unique predator ID needs to account for cruise, station, species, replicate, and sex
-```{r create unique IDs}
-frdata = frdata %>% mutate(
-  towid = paste(cruise6, station),
-  predid = paste(cruise6, station, svspp, pdid, pdsex)
-)
+```{r create-unique-IDs}
+frdata <- frdata %>% 
+  mutate(
+    towid = paste(cruise6, station),
+    predid = paste(cruise6, station, svspp, pdid, pdsex)
+  )
 ```
 
 
@@ -57,8 +51,8 @@ frdata = frdata %>% mutate(
 Get the ids and predator data, match it up with consumption
 
 ## Prey Data
-I will not use eggs, larvae, or scales, but like Jon, I will use the Clupidae category, sice I guess these are the most common clupeidae. All prey weights are real numbers. 
-```{r check herring weights}
+I will not use eggs, larvae, or scales, but like Deroba 2019, I will use the Clupidae category, since these are the most common clupeidae. All prey weights are real numbers. 
+```{r check-herring-weights}
 filter(frdata, analcat == "CLUFAM") %>%
   group_by(pynam) %>%
   summarize(mean = mean(pyamtw),
@@ -72,20 +66,20 @@ slice(frdata, frdata$pynam %>% str_which("CLUP")) %>%
             n = n())
 ```
 
-```{r filter out prey}
+```{r filter-out-prey}
 if(use_harengus_only == FALSE){
-  preydat = frdata %>% 
+  preydat <- frdata %>% 
     filter(pynam == "CLUPEA HARENGUS" | pynam == "CLUPEIDAE") %>%
     dplyr::select(predid, pyamtw)
 }else{
-  preydat = frdata %>% 
+  preydat <- frdata %>% 
     filter(pynam == "CLUPEA HARENGUS") %>%
     dplyr::select(predid, pyamtw)
 }
 ```
 
 Check that there is just one entry per predator, and also look at the weights. Note there is one entry with a zero weight, but that won't matter once I merge with the predator data anyway.
-```{r check prey data}
+```{r check-prey-data}
 sum(duplicated(preydat$predid)) > 0 # any duplicates?
 
 summary(preydat$pyamtw) # any zero weights?
@@ -94,8 +88,8 @@ sum(preydat$pyamtw == 0)
 
 ## Predator Data
 Create a data frame with one row per predator and all the relevant predator/tow info. Exclude predators whose stomachs were empty, because we don't know why they were empty (e.g., regurgitated in trawl due to barotrauma).
-```{r simplify predator data}
-preddat = frdata %>%
+```{r simplify-predator-data}
+preddat <- frdata %>%
   filter(pynam != "EMPTY") %>% # remove empty stomachs, from 289,470 to 162,203
   dplyr::select(towid, station, geoarea, declat, declon, month, day, year, season, setdepth,
          predid, pdcomnam, pdsex, pdlen, sizecat, pdwgt) %>%
@@ -105,9 +99,9 @@ sum(duplicated(preddat$predid)) > 0 # any duplicates?
 ```
 
 ## Merge predators and prey
-Now merge with a dataframe with the rest of the predator data. It should have the same number of rows as predid unless I have wonky duplicated stuff that needs more investigation. Need to convert NAs to 0s for unobserved prey. 
-```{r merge predator and consumption data}
-dat_preds_all = left_join(preddat, preydat, by = "predid") %>%
+Now join with data frame with the rest of the predator data. It should have the same number of rows as predid unless I have wonky duplicated stuff that needs more investigation. Need to convert NAs to 0s for unobserved prey. 
+```{r merge-predator-and-consumption-data}
+dat_preds_all <- left_join(preddat, preydat, by = "predid") %>%
   mutate(pyamtw = ifelse(is.na(pyamtw), 0, pyamtw),
          pypres = ifelse(pyamtw == 0, 0, 1))
 ```
@@ -115,8 +109,8 @@ dat_preds_all = left_join(preddat, preydat, by = "predid") %>%
 
 # 2. Create a data frame where each row is a unique tow. 
 Need to take the data frame I have now and condense by tow/species combo (averaging within tows).
-```{r pool predators in tows}
-pooled_tows = dat_preds_all %>% 
+```{r pool-predators-in-tows}
+pooled_tows <- dat_preds_all %>% 
   group_by(towid, pdcomnam) %>%
   summarize(mean_pyamtw = mean(pyamtw), 
             mean_pdlen = mean(pdlen),
@@ -125,31 +119,31 @@ pooled_tows = dat_preds_all %>%
 ```
 
 Add back in the tow-level information to the pooled predator data by merging with tibble of tow info.  
-```{r get one tow per row}
-towdat = frdata %>% 
+```{r get-one-tow-per-row}
+towdat <- frdata %>% 
   dplyr::select(towid, station, geoarea, declat, declon, month, day, year, season, setdepth) %>%
   distinct()
 
 sum(duplicated(preddat$predid)) > 0 # any duplicates?
 
-dat_tows_all = right_join(towdat, pooled_tows, by = "towid")
+dat_tows_all <- right_join(towdat, pooled_tows, by = "towid")
 ```
 I had previously then joined with all tow data, but here, I'm just looking at tows with predators that had non-empty stomachs. We don't want to look at tows that had no predators, or tows that had predators with no consumption whatsoever. 
 
 
 # 3. Condense season names
 Condense the four season designation by NEFSC into 2 seasons. The groupings are Fall and Summer (FALL) and Winter and Spring (spring), based on which seasons were closest together.
-```{r fix seasons}
-dat_preds_all = mutate(dat_preds_all, myseason = ifelse(season == "FALL"|season == "SUMMER", "FALL", "SPRING"))
-dat_tows_all = mutate(dat_tows_all, myseason = ifelse(season == "FALL"|season == "SUMMER", "FALL", "SPRING"))
+```{r fix-seasons}
+dat_preds_all <- mutate(dat_preds_all, myseason = ifelse(season == "FALL"|season == "SUMMER", "FALL", "SPRING"))
+dat_tows_all <- mutate(dat_tows_all, myseason = ifelse(season == "FALL"|season == "SUMMER", "FALL", "SPRING"))
 ```
 
 
 # 4. Save output
-```{r save output}
+```{r save-output}
 if(save_data == TRUE){
-  saveRDS(dat_preds_all, here("output", "data_formatted", "dat_preds_all.rds"))
-  saveRDS(dat_tows_all, here("output", "data_formatted", "dat_tows_all.rds"))
+  saveRDS(dat_preds_all, here("data", "processed", "dat_preds_all.rds"))
+  saveRDS(dat_tows_all, here("data", "processed", "dat_tows_all.rds"))
 }
 ```
 
