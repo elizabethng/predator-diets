@@ -20,7 +20,7 @@ diagnostic_folder <- file.path("D:", "Dropbox", "Predator_Diets", "output", "VAS
 # Diet Data ---------------------------------------------------------------
 # Filter and process data
 dietsetup <- readr::read_rds(here("data", "processed", "dat_preds_all.rds")) %>%
-  dplyr::filter(year %in% 1990:2000) %>%
+  dplyr::filter(year %in% 1990:1995) %>%
   dplyr::filter(pdcomnam == "SPINY DOGFISH", myseason == "SPRING") %>%
   group_by(pdcomnam, myseason) %>%
   nest() %>%
@@ -31,10 +31,16 @@ covar_columns <- c(NA,
                    "int sizecat",
                    "int pdlenz",
                    "int pdlenz pdlenz2")[2]
-config_file_loc <- c(here("configuration-files", "lognm-pl-independent-years-no2spatial.R"), 
-                     here("configuration-files", "gamma-pl-independent-years-no2spatial.R"))[[1]]
+config_file_loc <- map2_chr("configuration-files", 
+                            c("gamma_ind-yrs_st-full.R", 
+                              "gamma_ind-yrs_st-pres.R", 
+                              "gamma_ind-yrs_st-none.R", 
+                              "lognm_ind-yrs_st-full.R", 
+                              "lognm_ind-yrs_st-pres.R", 
+                              "lognm_ind-yrs_st-none.R"), 
+                            here)
 
-dietrun <- tidyr::expand_grid(dietsetup, covar_columns, config_file_loc)
+dietrun <- tidyr::expand_grid(dietsetup, covar_columns, config_file_loc)[1, ]
 
 # Make file run name and save file location
 dietrun <- dietrun %>%
@@ -59,7 +65,7 @@ dietrun <- dietrun %>%
        check_identifiable = TRUE),
   safe_run_mod))
 
-readr::write_rds(dietrun, path = here("output", "dietraw.rds"))
+readr::write_rds(dietrun, path = here("output", "raw_diet.rds"))
 
 
 
@@ -75,10 +81,16 @@ trawlsetup <- readr::read_rds(here("data", "processed", "dat_trawl.rds")) %>%
 
 # Add in model options (covariates, config_files)
 covar_columns <- NA
-config_file_loc <- c(here("configuration-files", "gamma-pl-independent-years.R"), 
-                     here("configuration-files", "lognm-pl-independent-years.R"))[[1]]
+config_file_loc <- map2_chr("configuration-files", 
+                            c("gamma_ind-yrs_st-full.R", 
+                              "gamma_ind-yrs_st-pres.R", 
+                              "gamma_ind-yrs_st-none.R", 
+                              "lognm_ind-yrs_st-full.R", 
+                              "lognm_ind-yrs_st-pres.R", 
+                              "lognm_ind-yrs_st-none.R"), 
+                            here)
 
-trawlrun <- tidyr::expand_grid(trawlsetup, covar_columns, config_file_loc)
+trawlrun <- tidyr::expand_grid(trawlsetup, covar_columns, config_file_loc)[1, ]
 
 # Make file run name and save file location
 trawlrun <- trawlrun %>%
@@ -105,4 +117,4 @@ trawlrun <- trawlrun %>%
     safe_run_mod))
 
 
-readr::write_rds(trawlrun, path = here::here("output", "trawlraw.rds"))
+readr::write_rds(trawlrun, path = here::here("output", "raw_trawl.rds"))
