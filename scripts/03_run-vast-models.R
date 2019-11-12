@@ -20,8 +20,8 @@ diagnostic_folder <- file.path("D:", "Dropbox", "Predator_Diets", "output", "VAS
 # Diet Data ---------------------------------------------------------------
 # Filter and process data
 dietsetup <- readr::read_rds(here("data", "processed", "dat_preds_all.rds")) %>%
-  dplyr::filter(year %in% 1990:1995) %>%
-  dplyr::filter(pdcomnam == "SPINY DOGFISH", myseason == "SPRING") %>%
+  # dplyr::filter(year %in% 1990:1995) %>%
+  # dplyr::filter(pdcomnam == "SPINY DOGFISH", myseason == "SPRING") %>%
   group_by(pdcomnam, myseason) %>%
   nest() %>%
   mutate(processed_data = purrr::map(data, process_diet_data))
@@ -40,7 +40,7 @@ config_file_loc <- map2_chr("configuration-files",
                               "lognm_ind-yrs_st-none.R"), 
                             here)
 
-dietrun <- tidyr::expand_grid(dietsetup, covar_columns, config_file_loc)[1, ]
+dietrun <- tidyr::expand_grid(dietsetup, covar_columns, config_file_loc)
 
 # Make file run name and save file location
 dietrun <- dietrun %>%
@@ -73,8 +73,8 @@ readr::write_rds(dietrun, path = here("output", "raw_diet.rds"))
 # Trawl Data --------------------------------------------------------------
 # Filter and process data
 trawlsetup <- readr::read_rds(here("data", "processed", "dat_trawl.rds")) %>%
-  dplyr::filter(year %in% 1990:1995) %>%
-  filter(pdcomnam == "SPINY DOGFISH", myseason == "SPRING") %>%
+  # dplyr::filter(year %in% 1990:1995) %>%
+  # filter(pdcomnam == "SPINY DOGFISH", myseason == "SPRING") %>%
   group_by(pdcomnam, myseason) %>%
   nest() %>%
   mutate(processed_data = purrr::map(data, process_trawl_data))
@@ -90,7 +90,7 @@ config_file_loc <- map2_chr("configuration-files",
                               "lognm_ind-yrs_st-none.R"), 
                             here)
 
-trawlrun <- tidyr::expand_grid(trawlsetup, covar_columns, config_file_loc)[1, ]
+trawlrun <- tidyr::expand_grid(trawlsetup, covar_columns, config_file_loc)
 
 # Make file run name and save file location
 trawlrun <- trawlrun %>%
