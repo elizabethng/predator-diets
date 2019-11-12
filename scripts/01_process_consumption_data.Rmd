@@ -14,8 +14,8 @@ Later: I can incorporate other tow covariates, like amount of prey or predator i
 
 # Preliminaries
 ```{r setup}
-library(tidyverse)
-library(here)
+library("tidyverse")
+library("here")
 
 save_data <- TRUE
 use_harengus_only <- FALSE # use only C. harengus? otherwise all clupea spp.
