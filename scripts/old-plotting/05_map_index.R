@@ -42,8 +42,7 @@ map_fun <- function(dat){
     geom_point() +
     scale_color_viridis_c(
       option = "inferno", 
-      name = "log(Density)",
-      limits = c(-10.060097, 5.052691) # range(dat$density_log)
+      name = "log(Density)" # ,limits = c(-10.060097, 5.052691) # range(dat$density_log)
       ) + 
     borders("world", fill = "grey", colour = "white") +
     coord_quickmap(xlim = c(-77, -63), ylim = c(30, 47)) +
@@ -55,7 +54,7 @@ map_fun <- function(dat){
           axis.title.y = element_blank(),
           axis.text.y = element_blank(),
           axis.ticks.y = element_blank()) +
-    facet_wrap(~Year)
+    facet_wrap(~Year, ncol = 9)
   return(p)
 }
 
@@ -66,25 +65,46 @@ map_dat %>%
   map_fun()
 
 mymaps <- map_dat %>%
-  group_by(species, season, year) %>% 
+  # filter(year %in% 1999:2000) %>%
+  group_by(species, season) %>% 
   nest() %>%
   mutate(plot = purrr::map(data, ~ map_fun(.x))) %>%
   ungroup() %>%
-  mutate(species = gsub(" ", "-", species))
+  mutate(species = gsub(" ", "-", species)) %>%
+  mutate(name = paste0(species, "-", season, ".pdf"))
+
+walk2(mymaps$name, mymaps$plot, ~ ggsave(
+    plot = .y,
+    filename = .x,
+    device = "pdf",
+    path = here::here("output", "plots", "diet-ts"),
+    width = 13.2, height = 10.2, units = "in")
+  )
 
 
-for(species_ in unique(mymaps$species)){
-  for(season_ in unique(mymaps$season)){
-    pdf(here("output", "plots", "diet-ts", 
-             paste0(paste0(c(species_, season_), collapse = "-"), ".pdf")))
-    mymaps %>%
-      dplyr::filter(species == species_ & season == season_) %>%
-      select(plot) %>%
-      pwalk(~ print(.x))
-      
-    dev.off()
-  }
-}
+# iwalk(mymaps, ~ cat(..1, ..2))
+
+# mymaps %>%
+#   iwalk( ~ ggsave(
+#     filename = paste0(paste0(c(..1, ..2), collapse = "-"), ".pdf"),
+#     plot = ..4,
+#     path = here::here("output", "plots", "diet-ts"),
+#     width = 13.2, height = 10.2, units = "in")
+#     )
+
+
+# for(species_ in unique(mymaps$species)){
+#   for(season_ in unique(mymaps$season)){
+#     pdf(here("output", "plots", "diet-ts", 
+#              paste0(paste0(c(species_, season_), collapse = "-"), ".pdf")))
+#     mymaps %>%
+#       dplyr::filter(species == species_ & season == season_) %>%
+#       select(plot) %>%
+#       pwalk(~ print(.x))
+#       
+#     dev.off()
+#   }
+# }
 
 
 
