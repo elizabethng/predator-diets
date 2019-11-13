@@ -147,6 +147,9 @@ aictabs <- worked %>%
   dplyr::arrange(aic) %>%
   dplyr::mutate(delta_aic = round(aic - min(aic), 1))
 
+# [ ] Might want to add dashes back into species name?
+# dplyr::mutate(name = paste(species, season, sep = ", "))
+
 # Save output
 for(species_ in unique(aictabs$species)){
   for(season_ in unique(aictabs$season)){
