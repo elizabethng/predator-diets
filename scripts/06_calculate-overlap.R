@@ -2,33 +2,33 @@
 
 library(tidyverse)
 
-trawlmods <- readr::read_rds(path = here::here("TRAWL", "modruns.rds"))
+trawlmods <- readr::read_rds(here::here("output", "top_trawl.rds"))
 
 # Filter out any errors and get top models
-results <- trawlmods %>% 
-  dplyr::rename(
-    season = myseason,
-    species = pdcomnam
-  )  %>%
-  dplyr::mutate(
-    species = gsub(" ", "_", tolower(species)),
-    season = tolower(season)
-  ) %>%
-  dplyr::mutate(errors = purrr::map(output,"error")) %>% 
-  dplyr::mutate(worked = purrr::map_lgl(errors, is.null)) %>% 
-  dplyr::filter(worked) %>% 
-  dplyr::mutate(output = purrr::map(output, "result")) %>%
-  dplyr::mutate(model = basename(config_file_loc)) %>%
-  dplyr::mutate(model = str_extract(model, "^(.{8})")) %>%
-  dplyr::select(-contains("_")) %>%
-  dplyr::select(-c(errors, worked)) %>%
-  dplyr::mutate(aic = purrr::map_dbl(output, "aic")) %>%
-  dplyr::group_by(season, species) %>%
-  dplyr::mutate(delta_aic = round(aic - min(aic), 0)) %>%
-  dplyr::filter(delta_aic == 0)
+# results <- trawlmods %>% 
+#   dplyr::rename(
+#     season = myseason,
+#     species = pdcomnam
+#   )  %>%
+#   dplyr::mutate(
+#     species = gsub(" ", "_", tolower(species)),
+#     season = tolower(season)
+#   ) %>%
+#   dplyr::mutate(errors = purrr::map(output,"error")) %>% 
+#   dplyr::mutate(worked = purrr::map_lgl(errors, is.null)) %>% 
+#   dplyr::filter(worked) %>% 
+#   dplyr::mutate(output = purrr::map(output, "result")) %>%
+#   dplyr::mutate(model = basename(config_file_loc)) %>%
+#   dplyr::mutate(model = str_extract(model, "^(.{8})")) %>%
+#   dplyr::select(-contains("_")) %>%
+#   dplyr::select(-c(errors, worked)) %>%
+#   dplyr::mutate(aic = purrr::map_dbl(output, "aic")) %>%
+#   dplyr::group_by(season, species) %>%
+#   dplyr::mutate(delta_aic = round(aic - min(aic), 0)) %>%
+#   dplyr::filter(delta_aic == 0)
 
-# Extract and consolidate knot-level data
-knotdat <- results %>%
+# Extract and consolidate knot-level data (only need for each knot)
+knotdat <- trawlmods %>%
   dplyr::select(season, species, output) %>%
   dplyr::transmute(knotdat = purrr::map(output, "knot_density")) %>%
   tidyr::unnest(cols = c(knotdat)) %>%
@@ -47,10 +47,10 @@ knotdat <- results %>%
 
 
 prey <- knotdat %>%
-  filter(species == "atlantic_herring")
+  filter(species == "atlantic herring")
 
 pred <- knotdat %>%
-  filter(species != "atlantic_herring")
+  filter(species != "atlantic herring")
 
 bhatdat <- left_join(pred, prey, by = c("season", "year", "knot")) %>%
   rename(
@@ -95,5 +95,4 @@ ggplot(overlapindex, aes(x = year, y = bhat, group = name, color = season)) +
 ggsave(here::here("output", "plots", "overlap-comparison.pdf"),
        width = 9, height = 5, units = "in")
 
-gitdir <- "C:/Users/Elizabeth Ng/Documents/GitHub/predator-diets"
-write_rds(overlapindex, path = file.path(gitdir, "output", "overlap_index.rds"))
+write_rds(overlapindex, here::here("output", "index_overlap.rds"))
