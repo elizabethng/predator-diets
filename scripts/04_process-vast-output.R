@@ -6,14 +6,24 @@ library(tidyverse)
 # Load the results
 modruns <- readr::read_rds(here::here("output", "raw_diet.rds"))
 
+dietruns <- modruns %>%
+  rename(species = pdcomnam, 
+         season = myseason) %>%
+  mutate(
+    species = tolower(species),
+    season = tolower(season)
+  )
+  
 # Which models failed?
-failed <- modruns %>% 
+failed <- dietruns %>% 
   dplyr::mutate(errors = purrr::map(output,"error")) %>% 
   dplyr::mutate(worked = purrr::map_lgl(errors, is.null)) %>% 
   dplyr::filter(!worked) %>%
   dplyr::mutate(errors = purrr::map_chr(errors, "message")) %>%
-  dplyr::mutate(config_file_loc = basename(config_file_loc)) %>%
-  dplyr::mutate(model = str_extract(config_file_loc, "^(.{8})")) %>%
+  dplyr::mutate(
+    model = basename(config_file_loc),
+    model = gsub(".R", "", model)
+  ) %>%
   dplyr::mutate(covars = purrr::map_chr(covar_columns, ~sub(" ", ", ", .x))) %>% # neaten up covariates
   dplyr::select(
     -contains("_"),
@@ -26,26 +36,32 @@ write_csv(failed, here::here("output", "failed_diet.csv"))
 
 
 # Format the models that ran
-worked <- modruns %>% 
-  dplyr::mutate(errors = purrr::map(output,"error")) %>% 
-  dplyr::mutate(worked = purrr::map_lgl(errors, is.null)) %>% 
+worked <- dietruns %>% 
+  dplyr::mutate(
+    errors = purrr::map(output,"error"), 
+    worked = purrr::map_lgl(errors, is.null)
+  ) %>% 
   dplyr::filter(worked) %>% 
-  dplyr::mutate(output = purrr::map(output, "result")) %>%
-  dplyr::mutate(config_file_loc = basename(config_file_loc)) %>%
-  dplyr::mutate(model = str_extract(config_file_loc, "^(.{8})")) %>%
-  dplyr::mutate(covars = purrr::map_chr(covars, ~paste0(.x, collapse = ", "))) %>%
-  dplyr::select(-contains("_")) %>%
-  dplyr::select(-c(errors, worked)) %>%
+  dplyr::mutate(
+    output = purrr::map(output, "result"),
+    model = basename(config_file_loc), 
+    model = gsub(".R", "", model),
+    covars = purrr::map_chr(covar_columns, ~sub(" ", ", ", .x))) %>%
+  dplyr::select(
+    -contains("_"),
+    -c(errors, worked)) %>%
   dplyr::mutate(aic = purrr::map_dbl(output, "aic"))
 
 
 # Create aic tables for species
 aictabs <- worked %>%
-  dplyr::select(-output) %>%
-  dplyr::mutate(species = gsub(" ", "-", tolower(species))) %>%
+  dplyr::select(
+    -output,
+    -data
+  ) %>%
   dplyr::group_by(species, season) %>%
   dplyr::arrange(aic) %>%
-  dplyr::mutate(delta_aic = round(aic - min(aic), 0))
+  dplyr::mutate(delta_aic = round(aic - min(aic), 1))
 
 # Save output
 for(species_ in unique(aictabs$species)){
