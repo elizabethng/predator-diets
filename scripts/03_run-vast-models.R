@@ -114,7 +114,7 @@ trawlrun <- trawlrun %>%
          strata_file_loc = here("configuration-files", "strata_limits_subset.R"), 
          processed_data, 
          output_file_loc,
-         check_identifiable = TRUE),
+         check_identifiable = FALSE),
     safe_run_mod))
 
 
