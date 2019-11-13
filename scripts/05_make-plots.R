@@ -54,7 +54,7 @@ write_rds(dietindex, path = here::here("output", "index_diet.rds"))
 
 
 # Plot data and knots
-source(file.path(gitdir, "functions", "map_tow_stomach_knots.R"))
+source(here::here("functions", "map_tow_stomach_knots.R"))
 
 # Could be handy to move file naming outside of run_mod so
 # I can access it easily for plotting 
