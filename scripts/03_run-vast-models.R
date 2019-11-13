@@ -8,7 +8,7 @@ library("TMB")
 # Setup -------------------------------------------------------------------
 # Load helper functions
 functions <- list.files(here("functions"), full.names = TRUE)
-sapply(functions, source)
+invisible(sapply(functions, source))
 
 Version <- FishStatsUtils::get_latest_version() # [ ] move into config_file ??
 safe_run_mod <- purrr::safely(run_mod)          # [ ] move into run_mod function?
