@@ -155,7 +155,7 @@ for(species_ in unique(aictabs$species)){
   for(season_ in unique(aictabs$season)){
     aictabs %>%
       dplyr::filter(species == species_ & season == season_) %>%
-      readr::write_csv(here::here("output", "aic", paste(species_, season_, "aic.csv", sep = "_")))
+      readr::write_csv(here::here("output", "aic", paste("trawl", species_, season_, "aic.csv", sep = "_")))
   }
 }
 

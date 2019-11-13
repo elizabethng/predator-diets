@@ -80,3 +80,42 @@ for(i in plotdat){
     plot_file_loc = here::here("output", "map-tows-stomachs-and-knots")
   )
 }
+
+
+
+# Trawl version -----------------------------------------------------------
+
+# Plot Index
+
+topmods <- readr::read_rds(here::here("output", "top_trawl.rds"))
+
+# Index unfortuantely contains all years, need to fix that in run_mod
+trawlindex <- topmods %>%
+  dplyr::transmute(index = purrr::map(output, "index")) %>%
+  dplyr::ungroup() %>%
+  tidyr::unnest(index) %>%
+  dplyr::select(-c(Unit, Fleet)) %>%
+  dplyr::rename(
+    density = Estimate_metric_tons,
+    year = Year) %>%
+  dplyr::mutate(name = paste(species, season, sep = ", "))
+
+
+
+
+trawlindex %>%
+  dplyr::mutate(
+    density_est = density, 
+    density = ifelse(is.na(exclude_reason), density, NA)) %>%
+  ggplot(aes(x = year, y = density, group = name, color = season)) +
+  geom_point() +
+  geom_line() +
+  theme_bw() +
+  facet_wrap(~species, scales = "free")
+
+ggsave(here::here("output", "plots", "trawl-index-ts.pdf"),
+       width = 9, height = 5, units = "in")
+write_rds(trawlindex, path = here::here("output", "index_trawl.rds"))
+
+
+
