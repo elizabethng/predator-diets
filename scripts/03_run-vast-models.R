@@ -31,7 +31,7 @@ dietsetup <- readr::read_rds(here("data", "processed", "dat_preds_all.rds")) %>%
 covar_columns <- c(NA,
                    "int sizecat",
                    "int pdlenz",
-                   "int pdlenz pdlenz2")[2]
+                   "int pdlenz pdlenz2")
 config_file_loc <- map2_chr("configuration-files", 
                             c("gamma_ind-yrs_st-full.R", 
                               "gamma_ind-yrs_st-pres.R", 
