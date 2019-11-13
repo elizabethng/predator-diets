@@ -4,7 +4,7 @@
 library(tidyverse)
 
 # Load the results
-modruns <- readr::read_rds(here::here("2019-10-29-new_test", "modruns.rds"))
+modruns <- readr::read_rds(here::here("output", "raw_diet.rds"))
 
 # Which models failed?
 failed <- modruns %>% 
