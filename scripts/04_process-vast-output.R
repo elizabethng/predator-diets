@@ -14,10 +14,13 @@ failed <- modruns %>%
   dplyr::mutate(errors = purrr::map_chr(errors, "message")) %>%
   dplyr::mutate(config_file_loc = basename(config_file_loc)) %>%
   dplyr::mutate(model = str_extract(config_file_loc, "^(.{8})")) %>%
-  dplyr::mutate(covars = purrr::map_chr(covars, ~paste0(.x, collapse = ", "))) %>% # neaten up covariates
-  dplyr::select(-contains("_")) %>%
-  dplyr::select(-output)
-
+  dplyr::mutate(covars = purrr::map_chr(covar_columns, ~sub(" ", ", ", .x))) %>% # neaten up covariates
+  dplyr::select(
+    -contains("_"),
+    -output,
+    -data
+  )
+write_csv(failed, here::here("output", "failed_diet.csv"))
 # All the white hake spring, but that makes sense because there was very little data for those runs
 
 
