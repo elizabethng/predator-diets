@@ -43,7 +43,8 @@ map_fun <- function(dat){
     scale_color_viridis_c(
       option = "inferno", 
       name = "log(Density)",
-      limits = range(map_dat$density_log))
+      limits = c(-10.060097, 5.052691) # range(dat$density_log)
+      ) + 
     borders("world", fill = "grey", colour = "white") +
     coord_quickmap(xlim = c(-77, -63), ylim = c(30, 47)) +
     theme(panel.grid.major = element_line(color = "white"),
