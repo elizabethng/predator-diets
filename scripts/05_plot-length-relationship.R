@@ -32,19 +32,22 @@ alldat <- left_join(lencoefs, lendat, by = c("season", "species")) %>%
   expand_grid(z_score = seq(-2, 2, length.out = 30)) %>%
   mutate(
     length = sd*z_score + mean,
-    pred_z = pdlenz*z_score,
-    pred_z2 = pdlenz2*(z_score^2),
-    pred_len = (sd*pred_z + mean),
-    pred_len2 = (sd*pred_z2 + mean),
-    effect = pred_len + pred_len2
+    # pred_z = pdlenz*z_score,
+    # pred_z2 = pdlenz2*(z_score^2),
+    # pred_len = (sd*pred_z + mean),
+    # pred_len2 = (sd*pred_z2 + mean),
+    # effect = pred_len + pred_len2,
+    effect = pdlenz*z_score + pdlenz2*(z_score^2)
   ) %>%
   mutate(predictor = ifelse(predictor == "pred1", "presence", "amount"))
 
+
+
 ggplot(alldat, aes(x = length, y = effect, group = paste(season, species, predictor), color = season)) +
   geom_line() +
-  facet_grid(predictor ~ species, scales = "free") +
+  facet_grid(predictor ~ species) +
   theme_bw()
-
+ggsave(here("output", "plots", "length-effects.pdf"), width = 6, height = 3.5, units = "in")
 
   
 
