@@ -18,16 +18,7 @@ lencoefs <- topdiet %>%
   mutate(estimates = purrr::map(output, "estimates")) %>%
   select(season, species, covars, estimates) %>%
   unnest(cols = c(estimates)) %>% 
-  # filter(covars != "int, sizecat") %>%
   filter(covariate )
   
 
   
-  
-  
-# Get length data from data
-catcoefs <- topdiet %>%
-  mutate(estimates = purrr::map(output, "estimates")) %>%
-  select(season, species, covars, estimates) %>%
-  unnest(cols = c(estimates)) %>% 
-  filter(covars == "int, sizecat")
