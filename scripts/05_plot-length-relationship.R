@@ -8,9 +8,6 @@ library("here")
 
 
 # Raw data for length information
-# rawdiet <- readr::read_rds(here("data", "processed", "dat_preds_all.rds")) %>%
-#   dplyr::filter(pdcomnam %in% c("ATLANTIC COD", "SILVER HAKE", "SPINY DOGFISH", "GOOSEFISH"))
-
 topdiet <- readr::read_rds(here("output", "top_diet.rds"))
 
 # Get length covariates
@@ -19,7 +16,7 @@ lencoefs <- topdiet %>%
   select(season, species, estimates) %>%
   unnest(cols = c(estimates)) %>% 
   filter(covariate %in% c("pdlenz", "pdlenz2")) %>%
-  pivot_wider(names_from = c(covariate, predictor), values_from = estimate)
+  pivot_wider(names_from = c(covariate), values_from = estimate)
   
 # Get length data
 lendat <- topdiet %>%
@@ -34,23 +31,52 @@ preddat <- lendat %>%
     mean_len = mean(pdlen),
     sd_len = sd(pdlen),
     z_calc = (pdlen - mean_len)/sd_len,
-    z_check = scale(pdlen)[,1]
-  )
+    pred_val = pdlenz*z_calc,
+    pred_val2 = pdlenz2*(z_calc^2)
+  ) %>%
+  mutate(
+    len_effect = pred_val*sd_len + mean_len,
+    len_effect2 = pred_val2*sd_len + mean_len
+  ) %>%
+  na.omit() %>%
+  select(species, season, year, pdlen, len_effect, len_effect2, predictor) %>%
+  pivot_longer(cols = c(len_effect, len_effect2), names_to = "length", values_to = "predicted_value")
 
+ggplot(preddat, aes(x = pdlen, y = predicted_value, color = length)) +
+  geom_point() +
+  facet_grid(species~predictor)
 
+ggplot(preddat, aes(x = pdlen, y = predicted_value, color = length)) +
+  geom_point() +
+  facet_grid(species~predictor)
 
-
-
-# Check: looks good
-filter(lendat, species == "silver hake", season == "spring") %>%
-  pull(pdlen) %>%
-  scale()
   
-filter(preddat, species == "silver hake", season == "spring") %>%
-  select(mean_len, sd_len)
-  
-  
-  
+
+preddat %>% 
+  sample_n(100) %>%
+  ggplot(aes(x = z_calc, y = pred_val)) +
+  geom_point()
+
+preddat %>% 
+  sample_n(100) %>%
+  ggplot(aes(x = z_calc, y = pred_val2)) +
+  geom_point()
+
+
+
+preddat %>% 
+  sample_n(100) %>%
+  ggplot(aes(x = pdlen, y = len_effect)) +
+  geom_point()
+
+preddat %>% 
+  sample_n(100) %>%
+  ggplot(aes(x = pdlen, y = len_effect2)) +
+  geom_point()
+
+
+
+
 
 # Quick map of length distribution
   
