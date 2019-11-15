@@ -21,7 +21,28 @@ lencoefs <- topdiet %>%
 # Get length data
 lendat <- topdiet %>%
   select(data) %>%
-  unnest()
+  unnest() %>%
+  select(species, season, pdlen) %>%
+  summarize(
+    mean = mean(pdlen),
+    sd = sd(pdlen)
+  )
+  
+alldat <- left_join(lencoefs, lendat, by = c("season", "species"))
+
+
+
+
+  
+
+ggplot(alldat) +
+  geom_abline()
+
+# If I do equations, I only need the means and sds
+
+
+
+
 
 # Join in covariates for calculation
 preddat <- lendat %>%
