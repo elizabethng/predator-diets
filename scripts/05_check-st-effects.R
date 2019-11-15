@@ -19,7 +19,7 @@ toptrawl %>%
 # Check magnitude of random effects
 topdiet$model
 
-dietst <- topdiet %>%
+topdiet %>%
   select(season, species, output) %>%
   transmute(hatval = purrr::map(output, "estimates")) %>%
   unnest(cols = c(hatval)) %>%
@@ -27,7 +27,32 @@ dietst <- topdiet %>%
   filter(covariate == "epsilon") %>%
   mutate(
     estimate = abs(estimate),
-    check = estimate > 0.01) %>%
-  filter(estimate == 1)  # default value = 1, only dogfish should have pred2
+    check = estimate > 0.001) %>%
+  filter(estimate != 1)  # default value = 1, only dogfish should have pred2
 
 
+# Likely related to the amount of data
+topdiet %>%
+  select(-output, -aic) %>%
+  mutate(
+    n_tows = purrr::map_int(data, nrow),
+    p_pos = purrr::map(data, "pypres"),
+    p_pos = purrr::map_dbl(p_pos, mean)) %>%
+  select(-data) %>%
+  arrange(desc(n_tows)) %>%
+  write_csv(here("output","aic", "diet-table.csv"))
+  
+
+
+# Check magnitude of random effects
+toptrawl$model
+
+toptrawl %>%
+  select(season, species, output) %>%
+  transmute(hatval = purrr::map(output, "estimates")) %>%
+  unnest(cols = c(hatval)) %>%
+  ungroup() %>%
+  filter(covariate == "epsilon") %>%
+  mutate(
+    estimate = abs(estimate),
+    check = estimate > 0.001)
