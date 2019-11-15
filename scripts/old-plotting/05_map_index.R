@@ -83,8 +83,27 @@ avg_map_dat <- map_dat %>%
   right_join(map_dat, by = c("species", "season", "knot")) %>%
   select(species, season, knot, density_log_mean, Lat, Lon) %>%
   distinct()
-  
 
+avgdiet <- avg_map_dat %>%
+  ggplot(aes(x = Lon, y = Lat, color = density_log_mean)) +
+  geom_point() +
+  scale_color_viridis_c(
+    option = "inferno", 
+    name = "log(Density)" # ,limits = c(-10.060097, 5.052691) # range(dat$density_log)
+  ) + 
+  borders("world", fill = "grey", colour = "white") +
+  coord_quickmap(xlim = c(-77, -63), ylim = c(34, 47)) +
+  theme(panel.grid.major = element_line(color = "white"),
+        panel.background = element_blank(),
+        axis.title.x = element_blank(),
+        axis.text.x = element_blank(),
+        axis.ticks.x = element_blank(),
+        axis.title.y = element_blank(),
+        axis.text.y = element_blank(),
+        axis.ticks.y = element_blank()) +
+  facet_grid(species ~ season) 
+ggsave(avgdiet, here("output", "plots", "diet-map-avg.pdf"), 
+       width = 7, height = 10, units = "in")
 
 
 mymaps <- map_dat %>%
