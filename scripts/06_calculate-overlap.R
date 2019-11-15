@@ -96,3 +96,53 @@ ggsave(here::here("output", "plots", "overlap-comparison.pdf"),
        width = 9, height = 5, units = "in")
 
 write_rds(overlapindex, here::here("output", "index_overlap.rds"))
+
+# Average accross years and look at space
+# Have knot-specific values
+# 1. average by year
+# 2. join back to all spatial data (need to pull out of trawlmods)
+#    - can keep predator/prey densities too and facet by those if I want
+avg_overlap <- bhatdat %>%
+  ungroup() %>%
+  select(-p_pred, -p_prey, -prey) %>%
+  pivot_longer(cols = c(pred_dens, prey_dens, bhat), names_to = "metric", values_to = "value") %>%
+  group_by(season, pred, knot, metric) %>%
+  summarize(mean_value = mean(value))
+
+# get lat lon to join back in
+avg_overlap <- trawlmods %>%
+  dplyr::select(season, species, output) %>%
+  dplyr::transmute(knotdat = purrr::map(output, "knot_density")) %>%
+  tidyr::unnest(cols = c(knotdat)) %>%
+  dplyr::ungroup() %>%
+  dplyr::select(knot, Lat, Lon) %>%
+  distinct() %>%
+  right_join(avg_overlap, by = "knot")
+
+
+
+avg_overlap %>%
+  rename(predator = pred) %>%
+  filter(metric == "bhat") %>%
+  sample_n(100) %>%
+  ggplot(aes(x = Lon, y = Lat, color = mean_value)) +
+  geom_point() +
+  scale_color_viridis_c(
+    option = "inferno", 
+    name = "overlap metric"
+  ) + 
+  borders("world", fill = "grey", colour = "white") +
+  coord_quickmap(xlim = c(-77, -63), ylim = c(34, 47)) +
+  theme(panel.grid.major = element_line(color = "white"),
+        panel.background = element_blank(),
+        axis.title.x = element_blank(),
+        axis.text.x = element_blank(),
+        axis.ticks.x = element_blank(),
+        axis.title.y = element_blank(),
+        axis.text.y = element_blank(),
+        axis.ticks.y = element_blank()) +
+  facet_grid(predator ~ season) 
+ggsave(plot = avgdiet, 
+       filename = here("output", "plots", "diet-map-avg.pdf"), 
+       width = 7, height = 10, units = "in")
+
