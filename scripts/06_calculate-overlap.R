@@ -1,6 +1,7 @@
 # Collecting info to do overlap calculations
 
-library(tidyverse)
+library("tidyverse")
+library("here")
 
 trawlmods <- readr::read_rds(here::here("output", "top_trawl.rds"))
 
@@ -107,7 +108,8 @@ avg_overlap <- bhatdat %>%
   select(-p_pred, -p_prey, -prey) %>%
   pivot_longer(cols = c(pred_dens, prey_dens, bhat), names_to = "metric", values_to = "value") %>%
   group_by(season, pred, knot, metric) %>%
-  summarize(mean_value = mean(value))
+  summarize(mean_value = mean(value)) %>%
+  filter(metric == "bhat") # reduce sice for quicker compuations during dev
 
 # get lat lon to join back in
 avg_overlap <- trawlmods %>%
@@ -117,15 +119,18 @@ avg_overlap <- trawlmods %>%
   dplyr::ungroup() %>%
   dplyr::select(knot, Lat, Lon) %>%
   distinct() %>%
-  right_join(avg_overlap, by = "knot")
+  right_join(avg_overlap, by = "knot") %>%
+  group_by(Lat, Lon, season, pred, metric) %>%
+  summarize(mean_mean_value = mean(mean_value)) # gimicky way to get one value per location to reduce overplotting issue (better way is to pipe through lat/lon maybe)
+            
 
 
 
-avg_overlap %>%
+avgoverlap <- avg_overlap %>%
+  ungroup() %>%
   rename(predator = pred) %>%
-  filter(metric == "bhat") %>%
-  sample_n(100) %>%
-  ggplot(aes(x = Lon, y = Lat, color = mean_value)) +
+#  sample_n(100) %>%
+  ggplot(aes(x = Lon, y = Lat, color = mean_mean_value)) +
   geom_point() +
   scale_color_viridis_c(
     option = "inferno", 
@@ -142,7 +147,7 @@ avg_overlap %>%
         axis.text.y = element_blank(),
         axis.ticks.y = element_blank()) +
   facet_grid(predator ~ season) 
-ggsave(plot = avgdiet, 
-       filename = here("output", "plots", "diet-map-avg.pdf"), 
+ggsave(plot = avgoverlap, 
+       filename = here("output", "plots", "overlap-map-avg.pdf"), 
        width = 7, height = 10, units = "in")
 
