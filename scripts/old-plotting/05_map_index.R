@@ -102,7 +102,8 @@ avgdiet <- avg_map_dat %>%
         axis.text.y = element_blank(),
         axis.ticks.y = element_blank()) +
   facet_grid(species ~ season) 
-ggsave(avgdiet, here("output", "plots", "diet-map-avg.pdf"), 
+ggsave(plot = avgdiet, 
+       filename = here("output", "plots", "diet-map-avg.pdf"), 
        width = 7, height = 10, units = "in")
 
 
