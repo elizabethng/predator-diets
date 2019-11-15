@@ -11,7 +11,8 @@ map_dat <- topmods %>%
   transmute(knot_density = purrr::map(output, "knot_density")) %>%
   ungroup() %>%
   tidyr::unnest(knot_density) %>%
-  mutate(ifelse(is.na(exclude_reason), density, NA)) %>%
+  filter(is.na(exclude_reason)) %>%
+  # mutate(density = ifelse(is.na(exclude_reason), density, NA)) %>%
   filter(Include == TRUE) %>%
   mutate(Year = year)
 
@@ -63,6 +64,28 @@ map_dat %>%
          season == "spring",
          year == 2015) %>%
   map_fun()
+
+
+# check data structure
+map_dat %>%
+  filter(species == "atlantic cod",
+         season == "spring",
+         year == 2015,
+         knot == 1)
+  
+
+# Plot average stomach contents
+avg_map_dat <- map_dat %>%
+  group_by(species, season, knot) %>%
+  summarize(
+    density_log_mean = mean(density_log)
+  ) %>%
+  right_join(map_dat, by = c("species", "season", "knot")) %>%
+  select(species, season, knot, density_log_mean, Lat, Lon) %>%
+  distinct()
+  
+
+
 
 mymaps <- map_dat %>%
   # filter(year %in% 1999:2000) %>%
