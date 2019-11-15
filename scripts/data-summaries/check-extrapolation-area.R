@@ -8,7 +8,7 @@ Species = c("SILVER HAKE", "RED HAKE", "FOURSPOT FLOUNDER", "ATLANTIC COD",
             "POLLOCK", "WHITE HAKE", "WINTER SKATE", "SPINY DOGFISH", "SUMMER FLOUNDER", 
             "GOOSEFISH", "THORNY SKATE", "SEA RAVEN", "BLUEFISH", "WEAKFISH")[8]
 
-dat = read_rds(here("output", "data_formatted", "dat_tows_all.rds")) %>%
+dat = read_rds(here("data", "processed", "dat_tows_all.rds")) %>%
   filter(pdcomnam == Species)
 
 Data_Geostat = data.frame(
@@ -69,9 +69,18 @@ Data_Geostat$knot_i = Spatial_List$knot_i
 
 # Check the knot locations (sparse southern region)
 plot(Extrapolation_List$Data_Extrap$E_km, Extrapolation_List$Data_Extrap$N_km, 
-     pch = ".", xlab = "Easting (km)", ylab = "Northing (km)")
+     pch = ".", xlab = "Easting (km)", ylab = "Northing (km)",
+     col = "#80808040")
 points(Spatial_List$loc_x[,1], Spatial_List$loc_x[,2], 
        col = "yellow", pch = 19)
+
+# Save strata plot area
+pdf(here("output", "plots", "extrapolation-grid.pdf"))
+plot(Extrapolation_List$Data_Extrap$E_km, Extrapolation_List$Data_Extrap$N_km, 
+     pch = ".", xlab = "Easting (km)", ylab = "Northing (km)",
+     col = "#80808040")
+dev.off()
+
 
 no_knot_region = filter(Extrapolation_List$Data_Extrap, N_km < 3900)
 points(no_knot_region$E_km, no_knot_region$N_km, pch = ".", col = "blue")
