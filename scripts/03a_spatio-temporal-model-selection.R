@@ -84,6 +84,10 @@ topmods <- aictabs %>%
   mutate(ranef_ok = all(ranef_ok)) %>%
   nest(hatval = c(covariate, predictor, estimate))
   
+# Next steps:
+# 1. write aic tables to file
+# 2. how to choose "simpler model" in non hard-coded way?
+# 3. write the species/season/model config file names to use in covariate selection process
 
   
   
