@@ -14,15 +14,18 @@ Version <- FishStatsUtils::get_latest_version() # [ ] move into config_file ??
 safe_run_mod <- purrr::safely(run_mod_fast)     # [ ] move into run_mod function?
 
 # Set VAST output location
-diagnostic_folder <- file.path("D:", "Dropbox", "Predator_Diets", "output", "VAST",)
+diagnostic_folder <- file.path("D:", "Dropbox", "Predator_Diets", "output", "VAST")
 
 
 # Diet Data ---------------------------------------------------------------
 # Filter and process data
 dietsetup <- readr::read_rds(here("data", "processed", "dat_preds_all.rds")) %>%
-  dplyr::filter(year %in% 1990:1995) %>%
-  dplyr::filter(pdcomnam == "SPINY DOGFISH", myseason == "SPRING") %>%
-  group_by(pdcomnam, myseason) %>%
+  # dplyr::filter(year %in% 1990:1995) %>%
+  # dplyr::filter(pdcomnam == "SPINY DOGFISH", myseason == "SPRING") %>%
+  dplyr::select(-season) %>%
+  dplyr::filter(pdcomnam %in% c("ATLANTIC COD", "SILVER HAKE", "SPINY DOGFISH", "GOOSEFISH")) %>%
+  rename(species = pdcomnam, season = myseason) %>% # should push this change all the way to processign stage
+  group_by(species, season) %>%
   nest() %>%
   mutate(processed_data = purrr::map(data, process_diet_data))
 
@@ -35,14 +38,14 @@ config_file_loc <- map2_chr("configuration-files",
                               "gamma_ind-yrs_st-none.R"), 
                             here)
 
-dietrun <- tidyr::expand_grid(dietsetup, covar_columns, config_file_loc)[1, ]
+dietrun <- tidyr::expand_grid(dietsetup, covar_columns, config_file_loc)
 
 # Make file run name and save file location
 dietrun <- dietrun %>%
   dplyr::mutate(run_name = purrr::pmap_chr(
     list("diet",
-         pdcomnam,
-         myseason, 
+         species,
+         season, 
          covar_columns, 
          config_file_loc),
     make_run_name
@@ -57,10 +60,10 @@ dietrun <- dietrun %>%
        strata_file_loc = here("configuration-files", "strata_limits_subset.R"), 
        processed_data, 
        output_file_loc,
-       check_identifiable = TRUE),
+       check_identifiable = FALSE),
   safe_run_mod))
 
-readr::write_rds(dietrun, path = here("output", "raw_diet.rds"))
+readr::write_rds(dietrun, path = here("output", "st_sel_diet.rds"))
 
 
 
