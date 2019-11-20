@@ -14,7 +14,7 @@ Version <- FishStatsUtils::get_latest_version() # [ ] move into config_file ??
 safe_run_mod <- purrr::safely(run_mod_fast)     # [ ] move into run_mod function?
 
 # Set VAST output location
-diagnostic_folder <- file.path("D:", "Dropbox", "Predator_Diets", "output", "VAST")
+diagnostic_folder <- file.path("D:", "Dropbox", "Predator_Diets", "output", "VAST",)
 
 
 # Diet Data ---------------------------------------------------------------
@@ -27,17 +27,12 @@ dietsetup <- readr::read_rds(here("data", "processed", "dat_preds_all.rds")) %>%
   mutate(processed_data = purrr::map(data, process_diet_data))
 
 # Add model options (covariates, config_files)
-covar_columns <- c(NA,
-                   "int sizecat",
-                   "int pdlenz",
-                   "int pdlenz pdlenz2")[2]
+covar_columns <- c("int sizecat pdlenz pdlenz2")
 config_file_loc <- map2_chr("configuration-files", 
                             c("gamma_ind-yrs_st-full.R", 
-                              "gamma_ind-yrs_st-pres.R", 
-                              "gamma_ind-yrs_st-none.R", 
-                              "lognm_ind-yrs_st-full.R", 
-                              "lognm_ind-yrs_st-pres.R", 
-                              "lognm_ind-yrs_st-none.R"), 
+                              "gamma_ind-yrs_st-pres.R",
+                              "gamma_ind-yrs_s0-pres.R",
+                              "gamma_ind-yrs_st-none.R"), 
                             here)
 
 dietrun <- tidyr::expand_grid(dietsetup, covar_columns, config_file_loc)[1, ]
