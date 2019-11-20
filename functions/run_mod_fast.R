@@ -1,4 +1,4 @@
-#' Run VAST using custom wrapper fucntions
+#' Run VAST using custom wrapper fucntions without extra junk
 #'
 #' @description Function to run VAST using helper functions, configuration file, and external strata file.
 #' Pared down to run more quickly by removing plots and returning only parameter estiamtes.
@@ -11,7 +11,7 @@
 #' @param check_identifiable if TRUE, runs TMBhelper::Check_Identifiable() and saves ouput (takes additional time)
 #'
 #' @return No explicit return. Saves output to output_file_loc destination
-run_mod <- function(covar_columns = NA,
+run_mod_fast <- function(covar_columns = NA,
                     config_file_loc,
                     strata_file_loc,
                     processed_data,
