@@ -89,6 +89,9 @@ topmods <- aictabs %>%
 # 2. how to choose "simpler model" in non hard-coded way?
 # 3. write the species/season/model config file names to use in covariate selection process
 
+# Actually, I may not need to write the aic tables to file,
+# since I probably won't present them in the manuscript. 
+# Instead I can just discuss the top models from maybe one print out. 
   
   
   
