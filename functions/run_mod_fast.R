@@ -118,7 +118,8 @@ run_mod_fast <- function(covar_columns = NA,
     "Version" = Version,
     "RhoConfig" = RhoConfig,
     "loc_x" = Spatial_List$loc_x,
-    "Method" = Spatial_List$Method)
+    "Method" = Spatial_List$Method,
+    "Use_REML" = TRUE)
   
   Obj = TmbList[["Obj"]]
   
@@ -148,18 +149,13 @@ run_mod_fast <- function(covar_columns = NA,
   safe_get_parhat <- purrr::safely(get_parhat)  # Wrap troublesome part in a function
   Save$ParHat = safe_get_parhat(Obj)
   
-  # Write AIC
-  write.csv(Opt$AIC, file.path(DateFile, "AIC.txt"))
-
-  
-  
   converged <- try(all(abs(Opt$diagnostics$final_gradient)<1e-6 ))
   
   if(is.null(Save$ParHat$error)){
     estimates <- tibble(
-      covariate = "epsilon",
-      pred1 = Save$ParHat$result$L_epsilon1_z,
-      pred2 = Save$ParHat$result$L_epsilon2_z
+      covariate = c("epsilon", "omega"),
+      pred1 = c(Save$ParHat$result$L_epsilon1_z, Save$ParHat$result$L_omega1_z),
+      pred2 = c(Save$ParHat$result$L_epsilon2_z, Save$ParHat$result$L_omega2_z)
     )
     
     if(!is.na(covar_columns)){
@@ -183,9 +179,13 @@ run_mod_fast <- function(covar_columns = NA,
     estimates <- Save$ParHat$error 
   }
   
-  return(list(
+  return_list <- list(
     aic = Opt$AIC[1],
     estimates = estimates,
     converged = converged
-  ))
+  )
+  
+  write_rds(return_list, file.path(DateFile, "results.rds"))
+  
+  return(return_list)
 }
