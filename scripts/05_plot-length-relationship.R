@@ -46,8 +46,13 @@ ggsave(here("output", "plots", "length-effects.pdf"), width = 6, height = 3.5, u
 
   
 
-
-  
+# Try to plot on probability scale
+alldat <- alldat %>%
+  mutate(probability = 1-exp(-exp(effect)))
+ggplot(alldat, aes(x = length, y = probability, group = paste(season, species, predictor), color = season)) +
+  geom_line() +
+  facet_grid(predictor ~ species, scales = "free_x") +
+  theme_bw()
 
 
 # ISSUE--come back to this with more time
