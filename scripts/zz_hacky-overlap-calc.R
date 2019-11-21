@@ -22,6 +22,7 @@ smalldat <- trawlmods %>%
   tidyr::unnest(cols = c(knotdat)) %>%
   dplyr::ungroup()
   
+set.seed(2)
 points <- select(smalldat, E_km, N_km) %>%
   stats::kmeans(centers = 100)
 
@@ -42,10 +43,10 @@ smalldat$cluster <- points$cluster
 
 smallerdat <- smalldat %>%
   select(species, season, year, Lat, Lon, density, cluster) %>%
-  group_by(species, season, year, cluster) %>%
+  # group_by(species, season, year, cluster) %>%
   mutate(
-    new_density = mean(density),
-    density_scaled = new_density/sum(new_density)
+    new_density = density, # mean(density),
+    density_scaled = density # new_density/sum(new_density)
     ) %>%
   select(-density, -new_density)
   
@@ -100,8 +101,33 @@ ggplot(overlapindex, aes(x = year, y = bhat, group = name, color = season)) +
 test <- smallerdat %>% 
   filter(species == "spiny dogfish") %>%
   ungroup() %>%
-  left_join(bhatsubset, by = c("year", "season", "cluster"))
+  left_join(bhatsubset, by = c("year", "season", "cluster")) %>%
+  mutate(bhat_scaled = scale(bhat)[,1])
 
 test %>% 
   group_by(year) %>%
-  summarize(tot_bhat = sum(bhat, na.rm = TRUE))
+  summarize(tot_bhat = sum(bhat, na.rm = TRUE)) %>%
+  ggplot(aes(year, tot_bhat)) +
+  geom_line()
+
+test %>%
+  rename(predator = pred) %>%
+  sample_frac(0.5) %>%
+  filter(!is.na(predator)) %>%
+  ggplot(aes(x = Lon, y = Lat, color = bhat)) +
+  geom_point() +
+  scale_color_viridis_c(
+    option = "inferno", 
+    name = "overlap metric"
+  ) + 
+  borders("world", fill = "grey", colour = "white") +
+  coord_quickmap(xlim = c(-77, -63), ylim = c(34, 47)) +
+  theme(panel.grid.major = element_line(color = "white"),
+        panel.background = element_blank(),
+        axis.title.x = element_blank(),
+        axis.text.x = element_blank(),
+        axis.ticks.x = element_blank(),
+        axis.title.y = element_blank(),
+        axis.text.y = element_blank(),
+        axis.ticks.y = element_blank()) +
+  facet_wrap(predator ~ season)
