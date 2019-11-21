@@ -57,7 +57,7 @@ pred <- filter(smallerdat, species != "atlantic herring")%>%
   select(-Lat, -Lon) %>%
   distinct()
 
-bhatdat <- left_join(pred, prey, by = c("season", "year", "cluster")) %>%
+bhatdat <- full_join(pred, prey, by = c("season", "year", "cluster")) %>%
   rename(
     pred = species.x,
     pred_dens = density_scaled.x,
@@ -66,4 +66,30 @@ bhatdat <- left_join(pred, prey, by = c("season", "year", "cluster")) %>%
   ) %>%
   mutate(bhat = sqrt(pred_dens*prey_dens))
 
+# Check missing-ness
+badobs <- dplyr::filter(bhatdat, is.na(bhat))
+bhatsubset <- filter(bhatdat, !is.na(bhat))
+unique(badobs$cluster)
+unique(bhatsubset$cluster)
 
+
+
+# Aggregate the index (non area-weghted)
+overlapindex <- bhatdat %>%
+  group_by(season, pred, year) %>%
+  summarize(
+    bhat = sum(bhat)
+  ) %>%
+  ungroup() %>%
+  mutate(pred = gsub("_", " ", pred)) %>%
+  mutate(name = paste0(pred, ", ", season))
+
+# Plot the indices
+ggplot(overlapindex, aes(x = year, y = bhat, group = name, color = season)) +
+  geom_line() +
+  facet_wrap(~pred) + 
+  theme_bw()
+ggsave(here::here("output", "plots", "overlap-comparison.pdf"),
+       width = 9, height = 5, units = "in")
+
+write_rds(overlapindex, here::here("output", "index_overlap.rds"))
