@@ -75,7 +75,8 @@ unique(bhatsubset$cluster)
 
 
 # Aggregate the index (non area-weghted)
-overlapindex <- bhatdat %>%
+overlapindex <- bhatsubset %>%
+  ungroup() %>%
   group_by(season, pred, year) %>%
   summarize(
     bhat = sum(bhat)
@@ -84,12 +85,23 @@ overlapindex <- bhatdat %>%
   mutate(pred = gsub("_", " ", pred)) %>%
   mutate(name = paste0(pred, ", ", season))
 
+
 # Plot the indices
 ggplot(overlapindex, aes(x = year, y = bhat, group = name, color = season)) +
   geom_line() +
   facet_wrap(~pred) + 
   theme_bw()
-ggsave(here::here("output", "plots", "overlap-comparison.pdf"),
-       width = 9, height = 5, units = "in")
+# ggsave(here::here("output", "plots", "overlap-comparison.pdf"),
+#        width = 9, height = 5, units = "in")
+# 
+# write_rds(overlapindex, here::here("output", "index_overlap.rds"))
 
-write_rds(overlapindex, here::here("output", "index_overlap.rds"))
+# Try spatial plot
+test <- smallerdat %>% 
+  filter(species == "spiny dogfish") %>%
+  ungroup() %>%
+  left_join(bhatsubset, by = c("year", "season", "cluster"))
+
+test %>% 
+  group_by(year) %>%
+  summarize(tot_bhat = sum(bhat, na.rm = TRUE))
