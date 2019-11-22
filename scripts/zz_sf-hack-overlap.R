@@ -85,6 +85,29 @@ grid <- filter(grid, !(id %in% empty_cells))
 # Then I need to aggregate by polygon ids within years to get the average
 # density for each cell. 
 
+# UTMs have all locs, but some Lat Lon don't
+# Could be for the excluded regions?
+# exclude these for now.
+filter(knotdat, is.na(Lat))
+
+alldat <- knotdat %>%
+  filter(!is.na(Lat)) %>%
+  select(-c(knot, E_km, N_km, Include, density_log, exclude_reason)) %>%
+  st_as_sf(coords = c("Lat", "Lon"), crs = 4326)
+
+
+grid_dat <- st_join(grid, alldat, join = st_contains)
+write_rds(grid_dat, here("output", "grid_dat.rds"))
+
+
+
+agg_dat <- grid_dat %>%
+  distinct()
+
+  group_by(id, species, season, year) %>%
+  summarize(mean_density = mean(density))
+
+
 
 
 
