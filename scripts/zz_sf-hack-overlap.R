@@ -14,6 +14,9 @@ knotdat <- trawlmods %>%
   tidyr::unnest(cols = c(knotdat)) %>%
   dplyr::ungroup()
 
+
+
+# Make a grid and check the calculations ----------------------------------
 # Small example
 smalldat <- trawlmods %>%
   filter(season == "spring") %>%
@@ -34,6 +37,7 @@ prey <- filter(smalldat, species == "atlantic herring") %>%
     !is.na(Lon),
     year == 2000
   ) %>%
+  select(-c(knot, E_km, N_km, Include, density_log, exclude_reason)) %>%
   st_as_sf(coords = c("Lat", "Lon"), crs = 4326)
 
 
@@ -43,17 +47,30 @@ grid <- prey %>%
   st_make_grid(n = c(30, 30), square = FALSE)
 
 plot(grid)
-
-df <- st_sf(id = 1:length(grid), geometry = grid)
-
-
 ggplot() +
   geom_sf(data = grid) +
   geom_sf(data = prey)
 
+df <- st_sf(id = 1:length(grid), geometry = grid)
+
+# Get the prey values that correspond to new polygons 
+test2 <- st_join(df, prey, join = st_contains) 
+
+# Missing values are ones that I don't care about, I can drop them
+mutate(test2, missing = is.na(density)) %>%
+  ggplot() +
+  geom_sf(aes(fill = missing))
+
+test2 %>%
+  filter(!is.na(density)) %>%
+  group_by(id) %>%
+  summarize(mean_density = mean(density)) %>%
+  ggplot() +
+  geom_sf(aes(fill = mean_density))
+
+
 
 test <- st_intersection(prey, grid)
-
 test2 <- st_join(grid, prey, join = st_intersects)
 
 
