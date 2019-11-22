@@ -46,15 +46,15 @@ grid <- prey %>%
   st_convex_hull() %>%
   st_make_grid(n = c(30, 30), square = FALSE)
 
-plot(grid)
-ggplot() +
-  geom_sf(data = grid) +
-  geom_sf(data = prey)
+# plot(grid)
+# ggplot() +
+#   geom_sf(data = grid) +
+#   geom_sf(data = prey)
 
-df <- st_sf(id = 1:length(grid), geometry = grid)
+grid <- st_sf(id = 1:length(grid), geometry = grid)
 
 # Get the prey values that correspond to new polygons 
-test2 <- st_join(df, prey, join = st_contains) 
+test2 <- st_join(grid, prey, join = st_contains) 
 
 # Missing values are ones that I don't care about, I can drop them
 mutate(test2, missing = is.na(density)) %>%
@@ -67,6 +67,33 @@ test2 %>%
   summarize(mean_density = mean(density)) %>%
   ggplot() +
   geom_sf(aes(fill = mean_density))
+
+# Can drop the unneded hexagons
+empty_cells <- test2 %>%
+  filter(is.na(density)) %>%
+  pull(id)
+
+grid <- filter(grid, !(id %in% empty_cells))
+# plot(st_geometry(grid))
+  
+# so now `grid` is the df with only the polygons that I want. 
+
+
+# Get data into grid form -------------------------------------------------
+# So now I basically need to take data for each species (maybe by season?)
+# and join it to grid to match up the points
+# Then I need to aggregate by polygon ids within years to get the average
+# density for each cell. 
+
+
+
+
+
+
+
+
+
+
 
 
 
