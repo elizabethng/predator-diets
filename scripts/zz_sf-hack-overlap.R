@@ -145,6 +145,31 @@ preddat <- filter(scaledat, species != "atlantic herring") %>%
          pred_dens = scale_density)
 
 
+jj1 <- filter(preydat, year == 1988, season == "fall")
+jj2 <- filter(preddat, year == 1988, season == "fall", pred == "spiny dogfish")
+
+
+jjoin <- st_join(jj2, jj1, join = st_equals, left = FALSE)
+nrow(jj1)
+nrow(jj2)
+nrow(jjoin)
+
+
+
+matched <- jj1[jj1$id %in% jj2$id,]
+matched0 <- jj2[jj2$id %in% jj1$id,]
+# 132 that actually match based on ID, but why don't the geometries match?
+plot(matched)
+plot(matched0)
+
+matched$id
+st_equals(matched[1,], matched0[1,])
+st_equals(matched, matched0)
+st_equals(jj1, jj2)
+
+
+
+
 bhatdat <- full_join(preddat, preydat, by = c("season", "year", "id")) %>%
   rename(
     pred = species.x,
