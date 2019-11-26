@@ -101,7 +101,7 @@ grid_dat <- st_join(grid, alldat, join = st_contains)
 # agg_dat <- grid_dat %>%
 #   group_by(id, species, season, year) %>%
 #   summarize(mean_density = mean(density))
-# 
+
 
 
 nonspat <- as.data.frame(grid_dat) %>%
@@ -110,9 +110,38 @@ nonspat <- as.data.frame(grid_dat) %>%
   summarize(mean_density = mean(density))
 
 # Join back to spatial
-agg_dat <- left_join(nonspat, grid_dat, by = "id")
+agg_dat <- left_join(grid, nonspat, by = "id")
 
-add_spat <- st_as_sf(agg_dat)
+# check dims
+nrow(nonspat)
+nrow(agg_dat)
+
+# check for missing years
+group_by(nonspat, species, season, year) %>%
+  summarize(n = n()) %>%
+  pivot_wider(names_from = species, values_from = n) %>%
+  View("year_check")
+# Bunch of NAs need to be investigated/dropped
+agg_dat %>% drop_na() # just one row
+filter(agg_dat, is.na(species))
+filter(agg_dat, id == 3) # southern area cell that probably had no obs
+plot(grid)
+plot(filter(grid, id != 3))
+
+
+# Separate out herring and join back to predators
+# or can I juse a pivot to do this?
+agg_dat <- na.omit(agg_dat)
+preydat <- filter(agg_dat, species == "atlantic herring")
+preddat <- filter(agg_dat, species != "atlantic herring")
+
+
+
+
+
+
+
+
 
 
 
