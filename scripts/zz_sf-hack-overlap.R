@@ -131,13 +131,28 @@ plot(filter(grid, id != 3))
 
 # Separate out herring and join back to predators
 # or can I juse a pivot to do this?
-agg_dat <- na.omit(agg_dat)
-preydat <- filter(agg_dat, species == "atlantic herring")
-preddat <- filter(agg_dat, species != "atlantic herring")
+scaledat <- na.omit(agg_dat) %>%
+  group_by(species, season, year) %>%
+  mutate(scale_density = mean_density/sum(mean_density)) %>%
+  select(-mean_density)
 
 
+preydat <- filter(scaledat, species == "atlantic herring") %>%
+  rename(prey = species,
+         prey_dens = scale_density)
+preddat <- filter(scaledat, species != "atlantic herring") %>%
+  rename(pred = species,
+         pred_dens = scale_density)
 
 
+bhatdat <- full_join(preddat, preydat, by = c("season", "year", "id")) %>%
+  rename(
+    pred = species.x,
+    pred_dens = density_scaled.x,
+    prey = species.y,
+    prey_dens = density_scaled.y
+  ) %>%
+  mutate(bhat = sqrt(pred_dens*prey_dens))
 
 
 
