@@ -79,6 +79,48 @@ grid <- filter(grid, !(id %in% empty_cells))
 # so now `grid` is the df with only the polygons that I want. 
 
 
+
+# Reduce data size --------------------------------------------------------
+# To make calculations faster
+# randomly take a subsample of knot values
+alldat <- knotdat %>%
+  filter(!is.na(Lat)) %>%
+  select(-c(E_km, N_km, Include, density_log, exclude_reason)) %>%
+  group_by(species, season, year, knot) %>%
+  sample_n(3)
+
+alldat <- alldat %>% 
+  ungroup() %>%
+  select(-knot) %>%
+  st_as_sf(coords = c("Lat", "Lon"), crs = 4326)
+
+grid_dat <- st_join(grid, alldat, join = st_contains)
+
+
+# Geometry makes is sooo slow?
+# agg_dat <- grid_dat %>%
+#   group_by(id, species, season, year) %>%
+#   summarize(mean_density = mean(density))
+# 
+
+
+nonspat <- as.data.frame(grid_dat) %>%
+  select(-geometry) %>%
+  group_by(id, species, season, year) %>%
+  summarize(mean_density = mean(density))
+
+# Join back to spatial
+agg_dat <- left_join(nonspat, grid_dat, by = "id")
+
+add_spat <- st_as_sf(agg_dat)
+
+
+
+
+
+
+
+
 # Get data into grid form -------------------------------------------------
 # So now I basically need to take data for each species (maybe by season?)
 # and join it to grid to match up the points
@@ -93,23 +135,20 @@ filter(knotdat, is.na(Lat))
 alldat <- knotdat %>%
   filter(!is.na(Lat)) %>%
   select(-c(knot, E_km, N_km, Include, density_log, exclude_reason)) %>%
-  st_as_sf(coords = c("Lat", "Lon"), crs = 4326)
+  st_as_sf(coords = c("Lat", "Lon"), crs = 4326) 
+
 
 
 grid_dat <- st_join(grid, alldat, join = st_contains)
-write_rds(grid_dat, here("output", "grid_dat.rds"))
-
-
+# write_rds(grid_dat, here("output", "grid_dat.rds"))
 
 agg_dat <- grid_dat %>%
-  distinct()
-
-  group_by(id, species, season, year) %>%
+  group_by(id, myid) %>%
   summarize(mean_density = mean(density))
 
 
 
-
+# could also try this without the geometry, but I think it's just a big object
 
 
 
