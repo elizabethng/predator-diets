@@ -1,9 +1,24 @@
 # Get a rough estiamte of overlap by re-aligning knot locations
 # using post hoc knn
+# Steps
+# 1. Generate a grid for aggregated
+# 2. Assign each observation to a grid cell
+# 3. Using grid cell index only,
+#    a. Average density within cells (for each year/season/species)
+#    b. Normalize density (fro each year/season/species)
+#    c. Filter out prey data
+#    d. Join prey data to predator data by cell/year/season/species
+#    e. Calculate overlap metric
+# 4. Join back in spatial references for plotting
+
 
 library("tidyverse")
 library("here")
 library("sf")
+
+
+# 0. Load data ------------------------------------------------------------
+
 
 trawlmods <- readr::read_rds(here::here("output", "top_trawl.rds"))
 
@@ -16,7 +31,7 @@ knotdat <- trawlmods %>%
 
 
 
-# Make a grid and check the calculations ----------------------------------
+# 1. Generate grid ----------------------------------
 # Small example
 smalldat <- trawlmods %>%
   filter(season == "spring") %>%
@@ -80,7 +95,7 @@ grid <- filter(grid, !(id %in% empty_cells))
 
 
 
-# Reduce data size --------------------------------------------------------
+# 2. Assign each observation to grid cell --------------------------------------------------------
 # To make calculations faster
 # randomly take a subsample of knot values
 alldat <- knotdat %>%
@@ -89,53 +104,38 @@ alldat <- knotdat %>%
   group_by(species, season, year, knot) %>%
   sample_n(3)
 
+# Make the data spatial
 alldat <- alldat %>% 
   ungroup() %>%
   select(-knot) %>%
   st_as_sf(coords = c("Lat", "Lon"), crs = 4326)
 
+# Join to grid cells
 grid_dat <- st_join(grid, alldat, join = st_contains)
 
 
-# Geometry makes is sooo slow?
-# agg_dat <- grid_dat %>%
-#   group_by(id, species, season, year) %>%
-#   summarize(mean_density = mean(density))
 
+# 3a. Average density within cells ----------------------------------------
+# Average density within cells (for each year/season/species)
 
-
+# Using grid cell data only
 nonspat <- as.data.frame(grid_dat) %>%
   select(-geometry) %>%
   group_by(id, species, season, year) %>%
   summarize(mean_density = mean(density))
 
-# Join back to spatial
-agg_dat <- left_join(grid, nonspat, by = "id")
-
-# check dims
-nrow(nonspat)
-nrow(agg_dat)
-
-# check for missing years
-group_by(nonspat, species, season, year) %>%
-  summarize(n = n()) %>%
-  pivot_wider(names_from = species, values_from = n) %>%
-  View("year_check")
-# Bunch of NAs need to be investigated/dropped
-agg_dat %>% drop_na() # just one row
-filter(agg_dat, is.na(species))
-filter(agg_dat, id == 3) # southern area cell that probably had no obs
-plot(grid)
-plot(filter(grid, id != 3))
 
 
-# Separate out herring and join back to predators
-# or can I juse a pivot to do this?
-scaledat <- na.omit(agg_dat) %>%
+# 3b. Normalize density ---------------------------------------------------
+# Normalize density (for each year/season/species)
+
+scaledat <- ungroup(nonspat) %>%
   group_by(species, season, year) %>%
   mutate(scale_density = mean_density/sum(mean_density)) %>%
   select(-mean_density)
 
+
+# 3c. Split out prey data ------------------------------------------------
 
 preydat <- filter(scaledat, species == "atlantic herring") %>%
   rename(prey = species,
@@ -143,6 +143,41 @@ preydat <- filter(scaledat, species == "atlantic herring") %>%
 preddat <- filter(scaledat, species != "atlantic herring") %>%
   rename(pred = species,
          pred_dens = scale_density)
+
+
+# 3d. Join prey data to predator data -------------------------------------
+# Join prey data to predator data by cell/year/season/species
+
+predpreydat <- inner_join(preydat, preddat, by = c("id", "season", "year"))
+# Should check this, returns 3 million rows...
+
+
+#    d. 
+#    e. Calculate overlap metric
+
+
+# Join back to spatial
+# agg_dat <- left_join(grid, nonspat, by = "id")
+
+# check dims
+# nrow(nonspat)
+# nrow(agg_dat)
+
+# check for missing years
+# group_by(nonspat, species, season, year) %>%
+#   summarize(n = n()) %>%
+#   pivot_wider(names_from = species, values_from = n) %>%
+#   View("year_check")
+# # Bunch of NAs need to be investigated/dropped
+# agg_dat %>% drop_na() # just one row
+# filter(agg_dat, is.na(species))
+# filter(agg_dat, id == 3) # southern area cell that probably had no obs
+# plot(grid)
+# plot(filter(grid, id != 3))
+
+
+
+
 
 
 jj1 <- filter(preydat, year == 1988, season == "fall")
