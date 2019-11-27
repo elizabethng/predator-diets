@@ -9,7 +9,9 @@
 #    c. Filter out prey data
 #    d. Join prey data to predator data by cell/year/season/species
 #    e. Calculate overlap metric
-# 4. Join back in spatial references for plotting
+# 4. Calculate annual index of overlap
+# 5. Calcualte annualy average spatial
+# 6. Join back in spatial references for plotting
 
 
 library("tidyverse")
@@ -172,7 +174,35 @@ ggplot(annualindex, aes(x = year, y = tot_bhat, color = season)) +
 
 
 
-# 5. Join back to spatial -------------------------------------------------
+# 5. Calculate anually averaged spatial -----------------------------------
+
+annualmap <- bhat %>%
+  group_by(id, pred, season, year) %>%
+  summarize(tot_bhat = sum(bhat))
+
+annualmap <- left_join(grid, annualmap, by = "id") %>%
+  drop_na()
+
+ggplot() +
+  geom_sf(data = annualmap, aes(fill = tot_bhat), lwd = 0) +
+  facet_grid(season ~ pred) +
+  scale_fill_viridis_c(
+    option = "inferno", 
+    name = "overlap metric"
+  ) + 
+  # borders("world", fill = "grey", colour = "white") +
+  # coord_sf(xlim = c(-77, -63), ylim = c(34, 47)) +
+  theme(panel.grid.major = element_line(color = "white"),
+        panel.background = element_blank(),
+        axis.title.x = element_blank(),
+        axis.text.x = element_blank(),
+        axis.ticks.x = element_blank(),
+        axis.title.y = element_blank(),
+        axis.text.y = element_blank(),
+        axis.ticks.y = element_blank())
+
+
+# 6. Join back to spatial -------------------------------------------------
 
 bhat_spat <- left_join(grid, bhat, by = "id")
 
