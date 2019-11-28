@@ -1,5 +1,6 @@
 # Get a rough estiamte of overlap by re-aligning knot locations
-# using post hoc knn
+# using post hoc spatial grid
+
 # Steps
 # 1. Generate a grid for aggregated
 # 2. Assign each observation to a grid cell
@@ -24,7 +25,7 @@ library("sf")
 
 trawlmods <- readr::read_rds(here::here("output", "top_trawl.rds"))
 
-# Extract and consolidate knot-level data (only need for each knot)
+# Extract knot-level data
 knotdat <- trawlmods %>%
   dplyr::select(season, species, output) %>%
   dplyr::transmute(knotdat = purrr::map(output, "knot_density")) %>%
@@ -34,87 +35,26 @@ knotdat <- trawlmods %>%
 
 
 # 1. Generate grid ----------------------------------
-# Small example
-smalldat <- trawlmods %>%
-  filter(season == "spring") %>%
-  filter(species %in% c("atlantic herring", "spiny dogfish")) %>%
-  dplyr::select(season, species, output) %>%
-  dplyr::transmute(knotdat = purrr::map(output, "knot_density")) %>%
-  tidyr::unnest(cols = c(knotdat)) %>%
-  dplyr::ungroup()
-
-
-# Associate all locations to Atalntic herring locations
-# Should do for each species separately?
-
-
-prey <- filter(smalldat, species == "atlantic herring") %>%
+spatialdat <- knotdat %>%
   filter(
     !is.na(Lat),
-    !is.na(Lon),
-    year == 2000
+    !is.na(Lon)
   ) %>%
   select(-c(knot, E_km, N_km, Include, density_log, exclude_reason)) %>%
-  st_as_sf(coords = c("Lat", "Lon"), crs = 4326)
+  st_as_sf(coords = c("Lat", "Lon"), crs = 4326) 
 
-
-grid <- prey %>%
+grid <- spatialdat %>%
   st_combine() %>%
   st_convex_hull() %>%
   st_make_grid(n = c(30, 30), square = FALSE)
 
-# plot(grid)
-# ggplot() +
-#   geom_sf(data = grid) +
-#   geom_sf(data = prey)
-
 grid <- st_sf(id = 1:length(grid), geometry = grid)
-
-# Get the prey values that correspond to new polygons 
-test2 <- st_join(grid, prey, join = st_contains) 
-
-# Missing values are ones that I don't care about, I can drop them
-mutate(test2, missing = is.na(density)) %>%
-  ggplot() +
-  geom_sf(aes(fill = missing))
-
-test2 %>%
-  filter(!is.na(density)) %>%
-  group_by(id) %>%
-  summarize(mean_density = mean(density)) %>%
-  ggplot() +
-  geom_sf(aes(fill = mean_density))
-
-# Can drop the unneded hexagons
-empty_cells <- test2 %>%
-  filter(is.na(density)) %>%
-  pull(id)
-
-grid <- filter(grid, !(id %in% empty_cells))
-# plot(st_geometry(grid))
-  
-# so now `grid` is the df with only the polygons that I want. 
 
 
 
 # 2. Assign each observation to grid cell --------------------------------------------------------
-# To make calculations faster
-# randomly take a subsample of knot values
-alldat <- knotdat %>%
-  filter(!is.na(Lat)) %>%
-  select(-c(E_km, N_km, Include, density_log, exclude_reason)) %>%
-  group_by(species, season, year, knot) %>%
-  sample_n(3)
 
-# Make the data spatial
-alldat <- alldat %>% 
-  ungroup() %>%
-  select(-knot) %>%
-  st_as_sf(coords = c("Lat", "Lon"), crs = 4326)
-
-# Join to grid cells
 grid_dat <- st_join(grid, alldat, join = st_contains)
-
 
 
 # 3a. Average density within cells ----------------------------------------
@@ -176,22 +116,29 @@ ggplot(annualindex, aes(x = year, y = tot_bhat, color = season)) +
 
 # 5. Calculate anually averaged spatial -----------------------------------
 
+library("rnaturalearth")
+library("rnaturalearthdata")
+
+northamerica <- ne_countries(continent = "north america",
+                      scale = "medium", 
+                      returnclass = "sf")
+
 annualmap <- bhat %>%
   group_by(id, pred, season, year) %>%
-  summarize(tot_bhat = sum(bhat))
+  summarize(tot_bhat = mean(bhat))
 
-annualmap <- left_join(grid, annualmap, by = "id") %>%
+annualmap <- left_join(grid, annualmap, by = "id") %>% 
   drop_na()
 
 ggplot() +
-  geom_sf(data = annualmap, aes(fill = tot_bhat), lwd = 0) +
-  facet_grid(season ~ pred) +
-  scale_fill_viridis_c(
-    option = "inferno", 
-    name = "overlap metric"
-  ) + 
-  # borders("world", fill = "grey", colour = "white") +
-  # coord_sf(xlim = c(-77, -63), ylim = c(34, 47)) +
+  # geom_sf(data = annualmap, aes(fill = tot_bhat), lwd = 0) +
+  # facet_grid(season ~ pred) +
+  # scale_fill_viridis_c(
+  #   option = "inferno", 
+  #   name = "overlap metric"
+  # ) + 
+  geom_sf(data = northamerica) +
+  coord_sf(xlim = c(32.5, 45.5), ylim = c(-79.5, -65.5)) +
   theme(panel.grid.major = element_line(color = "white"),
         panel.background = element_blank(),
         axis.title.x = element_blank(),
