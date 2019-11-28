@@ -101,10 +101,35 @@ avgdiet <- avg_map_dat %>%
         axis.title.y = element_blank(),
         axis.text.y = element_blank(),
         axis.ticks.y = element_blank()) +
-  facet_grid(species ~ season) 
+  facet_grid(season ~ species) 
 ggsave(plot = avgdiet, 
-       filename = here("output", "plots", "diet-map-avg.pdf"), 
+       filename = here("output", "plots", "diet-map-avg-horizontal.pdf"), 
        width = 7, height = 10, units = "in")
+
+# Year comparison plot
+yearcomp <- map_dat %>%
+  filter(year %in% c(1979, 2010)) %>%
+  filter(season == "spring") %>%
+  ggplot(aes(x = Lon, y = Lat, color = density_log)) +
+  geom_point() +
+  scale_color_viridis_c(
+    option = "inferno", 
+    name = "log(Density)" # ,limits = c(-10.060097, 5.052691) # range(dat$density_log)
+  ) + 
+  borders("world", fill = "grey", colour = "white") +
+  coord_quickmap(xlim = c(-77, -63), ylim = c(34, 47)) +
+  theme(panel.grid.major = element_line(color = "white"),
+        panel.background = element_blank(),
+        axis.title.x = element_blank(),
+        axis.text.x = element_blank(),
+        axis.ticks.x = element_blank(),
+        axis.title.y = element_blank(),
+        axis.text.y = element_blank(),
+        axis.ticks.y = element_blank()) +
+  facet_grid(year ~ species) 
+ggsave(plot = yearcomp, 
+       filename = here("output", "plots", "diet-map-year-comp.pdf"), 
+       width = 10, height = 7, units = "in")
 
 
 mymaps <- map_dat %>%

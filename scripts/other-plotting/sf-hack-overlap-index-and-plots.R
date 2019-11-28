@@ -1,0 +1,163 @@
+# Get a rough estiamte of overlap by re-aligning knot locations
+# using post hoc spatial grid
+
+# Steps
+# 1. Generate a grid for aggregated
+# 2. Assign each observation to a grid cell
+# 3. Using grid cell index only,
+#    a. Average density within cells (for each year/season/species)
+#    b. Normalize density (fro each year/season/species)
+#    c. Filter out prey data
+#    d. Join prey data to predator data by cell/year/season/species
+#    e. Calculate overlap metric
+# 4. Calculate annual index of overlap
+# 5. Calcualte annualy average spatial
+# 6. Join back in spatial references for plotting
+
+
+library("tidyverse")
+library("here")
+library("sf")
+
+
+# 0. Load data ------------------------------------------------------------
+
+
+trawlmods <- readr::read_rds(here::here("output", "top_trawl.rds"))
+
+# Extract knot-level data
+knotdat <- trawlmods %>%
+  dplyr::select(season, species, output) %>%
+  dplyr::transmute(knotdat = purrr::map(output, "knot_density")) %>%
+  tidyr::unnest(cols = c(knotdat)) %>%
+  dplyr::ungroup()
+
+
+
+# 1. Generate grid ----------------------------------
+spatialdat <- knotdat %>%
+  filter(
+    !is.na(Lat),
+    !is.na(Lon)
+  ) %>%
+  select(-c(knot, E_km, N_km, Include, density_log, exclude_reason)) %>%
+  st_as_sf(coords = c("Lat", "Lon"), crs = 4326) 
+
+grid <- spatialdat %>%
+  st_combine() %>%
+  st_convex_hull() %>%
+  st_make_grid(n = c(30, 30), square = FALSE)
+
+grid <- st_sf(id = 1:length(grid), geometry = grid)
+
+
+
+# 2. Assign each observation to grid cell --------------------------------------------------------
+
+grid_dat <- st_join(grid, alldat, join = st_contains)
+
+
+# 3a. Average density within cells ----------------------------------------
+# Average density within cells (for each year/season/species)
+
+# Using grid cell data only
+nonspat <- as.data.frame(grid_dat) %>%
+  select(-geometry) %>%
+  group_by(id, species, season, year) %>%
+  summarize(mean_density = mean(density))
+
+
+
+# 3b. Normalize density ---------------------------------------------------
+# Normalize density (for each year/season/species)
+
+scaledat <- ungroup(nonspat) %>%
+  group_by(species, season, year) %>%
+  mutate(scale_density = mean_density/sum(mean_density)) %>%
+  select(-mean_density)
+
+
+# 3c. Split out prey data ------------------------------------------------
+
+preydat <- filter(scaledat, species == "atlantic herring") %>%
+  rename(prey = species,
+         prey_dens = scale_density)
+preddat <- filter(scaledat, species != "atlantic herring") %>%
+  rename(pred = species,
+         pred_dens = scale_density)
+
+
+# 3d. Join prey data to predator data -------------------------------------
+# Join prey data to predator data by cell/year/season/species
+
+predpreydat <- inner_join(preydat, preddat, by = c("id", "season", "year"))
+
+
+# 3e. Calculate overlap metric --------------------------------------------
+# Should just be able to go row wise
+
+bhat <- ungroup(predpreydat) %>%
+  mutate(bhat = sqrt(pred_dens*prey_dens))
+
+
+
+# 4. Calculate annual index -----------------------------------------------
+# Aggregate over years
+annualindex <- bhat %>%
+  group_by(pred, season, year) %>%
+  summarize(tot_bhat = sum(bhat))
+
+ggplot(annualindex, aes(x = year, y = tot_bhat, color = season)) +
+  geom_point() +
+  geom_line() +
+  facet_wrap(~pred)
+
+
+
+# 5. Calculate anually averaged spatial -----------------------------------
+
+library("rnaturalearth")
+library("rnaturalearthdata")
+
+northamerica <- ne_countries(continent = "north america",
+                      scale = "medium", 
+                      returnclass = "sf")
+
+annualmap <- bhat %>%
+  group_by(id, pred, season, year) %>%
+  summarize(tot_bhat = mean(bhat))
+
+annualmap <- left_join(grid, annualmap, by = "id") %>% 
+  drop_na()
+
+ggplot() +
+  # geom_sf(data = annualmap, aes(fill = tot_bhat), lwd = 0) +
+  # facet_grid(season ~ pred) +
+  # scale_fill_viridis_c(
+  #   option = "inferno", 
+  #   name = "overlap metric"
+  # ) + 
+  geom_sf(data = northamerica) +
+  coord_sf(xlim = c(32.5, 45.5), ylim = c(-79.5, -65.5)) +
+  theme(panel.grid.major = element_line(color = "white"),
+        panel.background = element_blank(),
+        axis.title.x = element_blank(),
+        axis.text.x = element_blank(),
+        axis.ticks.x = element_blank(),
+        axis.title.y = element_blank(),
+        axis.text.y = element_blank(),
+        axis.ticks.y = element_blank())
+
+
+# 6. Join back to spatial -------------------------------------------------
+
+bhat_spat <- left_join(grid, bhat, by = "id")
+
+bhat_spat %>%
+  filter(
+    pred == "atlantic cod",
+    year == 1978
+    ) %>%
+  ggplot() +
+  geom_sf(aes(fill = bhat)) +
+  facet_wrap(~season)

@@ -37,6 +37,29 @@ knotdat <- trawlmods %>%
   dplyr::select(season, species, year, knot, density) %>%
   dplyr::distinct()
   
+# check that knot density is same for all sepcies all years
+poop <- trawlmods %>%
+  dplyr::select(season, species, output) %>%
+  dplyr::transmute(knotdat = purrr::map(output, "knot_density")) %>%
+  tidyr::unnest(cols = c(knotdat)) %>%
+  dplyr::ungroup() %>%
+  group_by(season, species, year, knot) %>%
+  summarize(n_knots = n()) 
+
+poop %>%
+  pivot_wider(names_from = species, values_from = n_knots)
+
+jj <- trawlmods %>%
+  dplyr::select(season, species, output) %>%
+  dplyr::transmute(knotdat = purrr::map(output, "knot_density")) %>%
+  tidyr::unnest(cols = c(knotdat)) %>%
+  dplyr::ungroup()
+
+filter(jj, knot == 1, year == 1973) %>%
+  ggplot(aes(Lon, Lat)) +
+  geom_point(aes(color = paste(season, species)))
+
+# Plot a couple knot areas for reference
 
 # Bhattacharyya's Coefficient
 # sum_{i=1}^{n} sqrt{p_pred_i*p_prey_i}, 
