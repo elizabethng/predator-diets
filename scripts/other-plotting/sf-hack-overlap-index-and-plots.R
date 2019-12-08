@@ -10,9 +10,9 @@
 #    c. Filter out prey data
 #    d. Join prey data to predator data by cell/year/season/species
 #    e. Calculate overlap metric
-# 4. Calculate annual index of overlap
-# 5. Calcualte annualy average spatial
-# 6. Join back in spatial references for plotting
+# 4. Calculate annual index of overlap (average accross space)
+# 5. Calcualte annualy averaged spatial index (average accross years)
+# 6. Join back in spatial references for plotting (get raw space-time plots)
 
 
 library("tidyverse")
@@ -41,7 +41,7 @@ spatialdat <- knotdat %>%
     !is.na(Lon)
   ) %>%
   select(-c(knot, E_km, N_km, Include, density_log, exclude_reason)) %>%
-  st_as_sf(coords = c("Lat", "Lon"), crs = 4326) 
+  st_as_sf(coords = c("Lon", "Lat"), crs = 4326) 
 
 grid <- spatialdat %>%
   st_combine() %>%
@@ -121,22 +121,24 @@ write_rds(annualindex, path = here::here("output", "index_overlap.rds"))
 # 5. Calculate anually averaged spatial -----------------------------------
 
 library("rnaturalearth")
-# library("rnaturalearthdata")
-
 northamerica <- ne_countries(continent = "north america",
-                      scale = "medium", 
-                      returnclass = "sf")
+                      scale = "medium",
+                      returnclass = "sf") %>%
+  st_transform(crs = 3857)
 
-annualmap <- bhat %>%
-  group_by(id, pred, season, year) %>%
+annualavg <- bhat %>%
+  group_by(id, pred, season) %>%
   summarize(tot_bhat = mean(bhat))
 
-annualmap <- left_join(grid, annualmap, by = "id") %>% 
-  drop_na()
+overlapmap <- left_join(grid, annualavg, by = "id") %>% 
+  drop_na() %>%
+  st_transform(crs = 3857)
+
 
 ggplot() +
-  geom_sf(data = annualmap, aes(fill = tot_bhat, color = tot_bhat), lwd = 0) +
-  facet_grid(season ~ pred) +
+  geom_sf(data = filter(overlapmap, pred == "atlantic cod", season == "fall"),
+          aes(fill = tot_bhat, color = tot_bhat), lwd = 0) +
+  # facet_grid(season ~ pred) +
   scale_fill_viridis_c(
     option = "inferno",
     name = "overlap metric"
@@ -146,7 +148,7 @@ ggplot() +
     name = "overlap metric"
   ) +
   geom_sf(data = northamerica) +
-  coord_sf(xlim = c(32.5, 45.5), ylim = c(-79.5, -65.5)) +
+  # coord_sf(xlim = c(32.5, 45.5), ylim = c(-79.5, -65.5)) +
   theme(panel.grid.major = element_line(color = "white"),
         panel.background = element_blank(),
         axis.title.x = element_blank(),
