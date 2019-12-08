@@ -135,12 +135,16 @@ annualmap <- left_join(grid, annualmap, by = "id") %>%
   drop_na()
 
 ggplot() +
-  # geom_sf(data = annualmap, aes(fill = tot_bhat), lwd = 0) +
-  # facet_grid(season ~ pred) +
-  # scale_fill_viridis_c(
-  #   option = "inferno", 
-  #   name = "overlap metric"
-  # ) + 
+  geom_sf(data = annualmap, aes(fill = tot_bhat, color = tot_bhat), lwd = 0) +
+  facet_grid(season ~ pred) +
+  scale_fill_viridis_c(
+    option = "inferno",
+    name = "overlap metric"
+  ) +
+  scale_color_viridis_c(
+    option = "inferno",
+    name = "overlap metric"
+  ) +
   geom_sf(data = northamerica) +
   coord_sf(xlim = c(32.5, 45.5), ylim = c(-79.5, -65.5)) +
   theme(panel.grid.major = element_line(color = "white"),
