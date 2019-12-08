@@ -54,7 +54,7 @@ grid <- st_sf(id = 1:length(grid), geometry = grid)
 
 # 2. Assign each observation to grid cell --------------------------------------------------------
 
-grid_dat <- st_join(grid, alldat, join = st_contains)
+grid_dat <- st_join(grid, spatialdat, join = st_contains)
 
 
 # 3a. Average density within cells ----------------------------------------
@@ -105,19 +105,23 @@ bhat <- ungroup(predpreydat) %>%
 # Aggregate over years
 annualindex <- bhat %>%
   group_by(pred, season, year) %>%
-  summarize(tot_bhat = sum(bhat))
+  summarize(tot_bhat = sum(bhat)) %>%
+  rename("overlap metric" = tot_bhat)
 
-ggplot(annualindex, aes(x = year, y = tot_bhat, color = season)) +
+ggplot(annualindex, aes(x = year, y = `overlap metric`, color = season)) +
   geom_point() +
   geom_line() +
-  facet_wrap(~pred)
-
+  facet_wrap(~pred) +
+  theme_bw()
+ggsave(here("output", "plots", "overlap-index-ts.pdf"),
+       width = 9, height = 5, units = "in")
+write_rds(annualindex, path = here::here("output", "index_overlap.rds"))
 
 
 # 5. Calculate anually averaged spatial -----------------------------------
 
 library("rnaturalearth")
-library("rnaturalearthdata")
+# library("rnaturalearthdata")
 
 northamerica <- ne_countries(continent = "north america",
                       scale = "medium", 
