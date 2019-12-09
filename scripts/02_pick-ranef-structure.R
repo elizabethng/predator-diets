@@ -1,5 +1,9 @@
-# Check aic and random effects magnitude and compare REML vs non REML
-# Code cobbled together from process-vast-output and check-st-effects.
+# Script to check aic and random effects magnitude for 
+# random effect structure model selection. 
+# Not yet implemented for trawl output. 
+
+# [ ] Need to pass results to next script where I do model selction for 
+#     the covaraites, and ultimately, re-fit the top model. 
 
 library("tidyverse")
 library("here")
