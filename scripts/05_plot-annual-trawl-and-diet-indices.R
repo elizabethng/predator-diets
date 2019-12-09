@@ -1,11 +1,19 @@
+# This script processes VAST output to make the annual index 
+# for diet data and for trawl data that is used later. It also
+# makes plots time-series plots of those indices 
+# (diet-index-ts.pdf and trawl-index-ts.pdf)
+# Plots show +/- 1 SE
+
+
 library(tidyverse)
 
-# Plot Index
 
-topmods <- readr::read_rds(here::here("output", "top_diet.rds"))
+# Diet Index --------------------------------------------------------------
+topdiets <- readr::read_rds(here::here("output", "top_diet.rds"))
 
 # Index unfortuantely contains all years, need to fix that in run_mod
-dietindex <- topmods %>%
+# remove estimates where SE includes 0
+dietindex <- topdiets %>%
   dplyr::transmute(index = purrr::map(output, "index")) %>%
   dplyr::ungroup() %>%
   tidyr::unnest(index) %>%
@@ -13,7 +21,8 @@ dietindex <- topmods %>%
   dplyr::rename(
     density = Estimate_metric_tons,
     year = Year) %>%
-  dplyr::mutate(name = paste(species, season, sep = ", "))
+  dplyr::mutate(name = paste(species, season, sep = ", ")) %>%
+  dplyr::mutate(exclude_reason = ifelse(density - SD_mt < 0, "se_too_big", exclude_reason))
 
 
 dietindex %>%
@@ -22,7 +31,7 @@ dietindex %>%
     density = ifelse(is.na(exclude_reason), density, NA)) %>%
   ggplot(aes(x = year, y = density, group = name, color = season)) +
   geom_point() +
-  geom_line() +
+  geom_errorbar(aes(ymin = density - SD_mt, ymax = density + SD_mt), width = 0) +
   theme_bw() +
   facet_wrap(~species, scales = "free")
 
@@ -32,6 +41,7 @@ write_rds(dietindex, path = here::here("output", "index_diet.rds"))
 
 
 
+# Plot data and knots for diet data ---------------------------------------
 ### Currently won't work, need to organize VAST output files in D:\Dropbox\Predator_Diets\output\VAST
 ### and/or output these locations in a way that I can use them for plotting
 # # Plot data and knots
@@ -64,14 +74,12 @@ write_rds(dietindex, path = here::here("output", "index_diet.rds"))
 
 
 
-# Trawl version -----------------------------------------------------------
+# Trawl Index -----------------------------------------------------------
 
-# Plot Index
-
-topmods <- readr::read_rds(here::here("output", "top_trawl.rds"))
+toptrawls <- readr::read_rds(here::here("output", "top_trawl.rds"))
 
 # Index unfortuantely contains all years, need to fix that in run_mod
-trawlindex <- topmods %>%
+trawlindex <- toptrawls %>%
   dplyr::transmute(index = purrr::map(output, "index")) %>%
   dplyr::ungroup() %>%
   tidyr::unnest(index) %>%
@@ -82,7 +90,6 @@ trawlindex <- topmods %>%
   dplyr::mutate(name = paste(species, season, sep = ", "))
 
 
-
 trawlindex %>%
   dplyr::mutate(
     density_est = density, 
@@ -90,7 +97,8 @@ trawlindex %>%
     species = factor(species, levels = c("atlantic cod", "goosefish", "atlantic herring", "silver hake", "spiny dogfish"))) %>%
   ggplot(aes(x = year, y = density, group = name, color = season)) +
   geom_point() +
-  geom_line() +
+  # geom_line() +
+  geom_errorbar(aes(ymin = density - SD_mt, ymax = density + SD_mt), width = 0) +
   theme_bw() +
   facet_wrap(~species, scales = "free") +
   theme(legend.position = c(0.8, 0.25))
