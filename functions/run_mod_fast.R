@@ -16,7 +16,8 @@ run_mod_fast <- function(covar_columns = NA,
                     strata_file_loc,
                     processed_data,
                     output_file_loc,
-                    check_identifiable = FALSE)
+                    check_identifiable = FALSE,
+                    use_REML = TRUE)
   {
   DateFile <- output_file_loc
   dir.create(DateFile, recursive = TRUE) # can end in / or not
@@ -119,7 +120,7 @@ run_mod_fast <- function(covar_columns = NA,
     "RhoConfig" = RhoConfig,
     "loc_x" = Spatial_List$loc_x,
     "Method" = Spatial_List$Method,
-    "Use_REML" = TRUE)
+    "Use_REML" = use_REML)
   
   Obj = TmbList[["Obj"]]
   
