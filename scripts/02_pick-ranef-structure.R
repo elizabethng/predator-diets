@@ -3,7 +3,7 @@
 # Not yet implemented for trawl output. 
 
 # [ ] Need to pass results to next script where I do model selction for 
-#     the covaraites, and ultimately, re-fit the top model. 
+#     the covaraites, and ultimately, re-fit the top model. --> write to a data frame and use for fit.
 
 library("tidyverse")
 library("here")
@@ -76,7 +76,7 @@ filter(aictabs, delta_aic < 2) %>% View("topmods")
 # - goosefish spring, spatial in presence only, no temporal (1.9 delAIC, so choose simpler)
 
 # check if any hatvals are less than 0.001
-topmods <- aictabs %>%
+modchecks <- aictabs %>%
   filter(delta_aic < 2) %>%
   unnest(cols = c(hatval)) %>%
   ungroup() %>%
@@ -99,6 +99,18 @@ topmods <- aictabs %>%
 # Actually, I may not need to write the aic tables to file,
 # since I probably won't present them in the manuscript. 
 # Instead I can just discuss the top models from maybe one print out. 
-  
-  
+
+# Write output for next phase of model selection
+topmods <- modchecks %>%
+  filter(ranef_ok == TRUE) %>%
+  mutate(nparm = map_int(hatval, nrow)) %>%
+  ungroup() %>%
+  group_by(species, season) %>%
+  top_n(-1, wt = nparm) %>%
+  ungroup()
+
+# Get data, config file etc. from allruns
+topmod_data <- semi_join(allruns, topmods, by = c("species", "season", "model"))
+
+write_rds(topmod_data, here("output", "top_st_diet.rds"))
   
