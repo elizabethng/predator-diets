@@ -4,6 +4,9 @@
 library("tidyverse")
 library("here")
 
+# Trawl mods: trawlrun <- read_rds(here("output", "st_sel_trawl.rds"))
+
+dietrun <- read_rds(here("output", "st_sel_diet.rds"))
 
 # REML models
 allruns <- dietrun %>% 
