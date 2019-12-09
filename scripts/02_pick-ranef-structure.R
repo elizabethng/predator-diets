@@ -69,8 +69,6 @@ aictabs <- worked %>%
   dplyr::arrange(aic) %>%
   dplyr::mutate(delta_aic = round(aic - min(aic), 1))
 
-filter(aictabs, delta_aic < 2) %>% View("topmods")
-
 # Top models are st in presence only, except for
 # - spiny dogfish both seasons support for st in both components (also has the most data)
 # - goosefish spring, spatial in presence only, no temporal (1.9 delAIC, so choose simpler)
@@ -109,8 +107,13 @@ topmods <- modchecks %>%
   top_n(-1, wt = nparm) %>%
   ungroup()
 
-# Get data, config file etc. from allruns
-topmod_data <- semi_join(allruns, topmods, by = c("species", "season", "model"))
+# Get data, config file etc.
+topmod_data <- dietrun %>%
+  dplyr::mutate(
+    model = basename(config_file_loc), 
+    model = gsub(".R", "", model)
+  ) %>%
+  semi_join(topmods, by = c("species", "season", "model"))
 
 write_rds(topmod_data, here("output", "top_st_diet.rds"))
   

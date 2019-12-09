@@ -10,9 +10,6 @@ library("TMB")
 
 
 # Setup -------------------------------------------------------------------
-# Load top models
-top_st_mods <- read_rds(here("output", "top_st_diet.rds"))
-
 # Load helper functions
 functions <- list.files(here("functions"), full.names = TRUE)
 invisible(sapply(functions, source))
@@ -25,6 +22,11 @@ diagnostic_folder <- file.path("D:", "Dropbox", "Predator_Diets", "output", "VAS
 
 
 # Diet Data ---------------------------------------------------------------
+
+# Load top models (don't need to repeat data processing step)
+top_st_mods <- read_rds(here("output", "top_st_diet.rds"))
+
+
 # Filter and process data
 dietsetup <- readr::read_rds(here("data", "processed", "dat_preds_all.rds")) %>%
   # dplyr::filter(year %in% 1990:1995) %>%
