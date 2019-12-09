@@ -1,3 +1,7 @@
+# Using the selected random effect structure from last script,
+# fit all the different covariate effects for covariate selection. 
+# Only need for diet data since trawl mods don't have covs. 
+
 library("tidyverse")
 library("here")
 library("VAST")
@@ -6,12 +10,15 @@ library("TMB")
 
 
 # Setup -------------------------------------------------------------------
+# Load top models
+top_st_mods <- read_rds(here("output", "top_st_diet.rds"))
+
 # Load helper functions
 functions <- list.files(here("functions"), full.names = TRUE)
 invisible(sapply(functions, source))
 
-Version <- FishStatsUtils::get_latest_version() # [ ] move into config_file ??
-safe_run_mod <- purrr::safely(run_mod)          # [ ] move into run_mod function?
+Version <- FishStatsUtils::get_latest_version()
+safe_run_mod <- purrr::safely(run_mod_fast)
 
 # Set VAST output location
 diagnostic_folder <- file.path("D:", "Dropbox", "Predator_Diets", "output", "VAST")
