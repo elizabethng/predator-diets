@@ -161,7 +161,7 @@ ggsave(here("output", "plots", "overlap-map-avg.pdf"), width = 9, height = 5, un
 
 bhat_spat <- left_join(grid, bhat, by = "id")
 label_dat <- as.data.frame(bhat_spat) %>%
-  select(season, year, pred) %>%
+  select(year) %>%
   distinct() %>%
   na.omit()
 
@@ -195,3 +195,47 @@ bhat_spat %>%
         strip.text.y = element_blank(),
         strip.background = element_blank())
 ggsave(here("output", "plots", "overlap-map-ts-goosefish-spring.pdf"), width = 12, height = 10, units = "in")
+
+# Make for all species for reference
+predators <- c("atlantic cod", "goosefish", "silver hake", "spiny dogfish")
+seasons <- c("spring", "fall")
+
+
+for(preds in predators){
+  for(seas in seasons){
+    
+    p <- bhat_spat %>%
+      filter(
+        pred == preds,
+        season == seas) %>%
+      ggplot() +
+      geom_sf(aes(fill = bhat, color = bhat)) +
+      scale_fill_viridis_c(
+        option = "inferno",
+        name = "overlap metric"
+      ) +
+      scale_color_viridis_c(
+        option = "inferno",
+        name = "overlap metric"
+      ) +
+      facet_wrap(~year) +
+      geom_text(data = label_dat, aes(label = year), x = -69.5, y = 33, color = "grey", inherit.aes = FALSE) + 
+      geom_sf(data = northamerica, color = "white", fill = "grey", inherit.aes = FALSE) +
+      coord_sf(xlim = c(-79.5, -65.5), ylim = c(32.5, 45.5)) +
+      theme(panel.grid.major = element_line(color = "white"),
+            panel.background = element_blank(),
+            axis.title.x = element_blank(),
+            axis.text.x = element_blank(),
+            axis.ticks.x = element_blank(),
+            axis.title.y = element_blank(),
+            axis.text.y = element_blank(),
+            axis.ticks.y = element_blank(),
+            strip.text.x = element_blank(), # controls facets
+            strip.text.y = element_blank(),
+            strip.background = element_blank())
+    ggsave(plot = p, 
+           filename = here("output", "plots", "overlap-ts",
+                           paste0(gsub(" ", "-", paste(preds, seas)), ".pdf")),
+           width = 12, height = 10, units = "in")
+  }
+}
