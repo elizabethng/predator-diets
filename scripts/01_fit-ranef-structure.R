@@ -1,3 +1,6 @@
+# Fit models for spatio-temporal random effect model selection
+# [ ] REML may be hardcoded in run_mod right now
+
 library("tidyverse")
 library("here")
 library("VAST")
@@ -60,7 +63,8 @@ dietrun <- dietrun %>%
        strata_file_loc = here("configuration-files", "strata_limits_subset.R"), 
        processed_data, 
        output_file_loc,
-       check_identifiable = FALSE),
+       check_identifiable = FALSE,
+       use_REML = TRUE),
   safe_run_mod))
 
 readr::write_rds(dietrun, path = here("output", "st_sel_diet.rds"))
@@ -111,7 +115,8 @@ trawlrun <- trawlrun %>%
          strata_file_loc = here("configuration-files", "strata_limits_subset.R"), 
          processed_data, 
          output_file_loc,
-         check_identifiable = TRUE),
+         check_identifiable = FALSE,
+         use_REML = TRUE),
     safe_run_mod))
 
 
