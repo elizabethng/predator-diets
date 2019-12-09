@@ -15,6 +15,7 @@
 # 6. Join back in spatial references for plotting (get raw space-time plots)
 
 
+library("rnaturalearth")
 library("tidyverse")
 library("here")
 library("sf")
@@ -120,25 +121,22 @@ write_rds(annualindex, path = here::here("output", "index_overlap.rds"))
 
 # 5. Calculate anually averaged spatial -----------------------------------
 
-library("rnaturalearth")
 northamerica <- ne_countries(continent = "north america",
                       scale = "medium",
-                      returnclass = "sf") %>%
-  st_transform(crs = 3857)
+                      returnclass = "sf")
+# states <- ne_states(country = "united states of america", returnclass = "sf")
 
 annualavg <- bhat %>%
   group_by(id, pred, season) %>%
   summarize(tot_bhat = mean(bhat))
 
 overlapmap <- left_join(grid, annualavg, by = "id") %>% 
-  drop_na() %>%
-  st_transform(crs = 3857)
+  drop_na() 
 
 
 ggplot() +
-  geom_sf(data = filter(overlapmap, pred == "atlantic cod", season == "fall"),
-          aes(fill = tot_bhat, color = tot_bhat), lwd = 0) +
-  # facet_grid(season ~ pred) +
+  geom_sf(data = overlapmap, aes(fill = tot_bhat, color = tot_bhat), lwd = 0) +
+  facet_grid(season ~ pred) +
   scale_fill_viridis_c(
     option = "inferno",
     name = "overlap metric"
@@ -147,8 +145,8 @@ ggplot() +
     option = "inferno",
     name = "overlap metric"
   ) +
-  geom_sf(data = northamerica) +
-  # coord_sf(xlim = c(32.5, 45.5), ylim = c(-79.5, -65.5)) +
+  geom_sf(data = northamerica, color = "white", fill = "grey", inherit.aes = FALSE) +
+  coord_sf(xlim = c(-79.5, -65.5), ylim = c(32.5, 45.5)) +
   theme(panel.grid.major = element_line(color = "white"),
         panel.background = element_blank(),
         axis.title.x = element_blank(),
@@ -157,17 +155,43 @@ ggplot() +
         axis.title.y = element_blank(),
         axis.text.y = element_blank(),
         axis.ticks.y = element_blank())
-
+ggsave(here("output", "plots", "overlap-map-avg.pdf"), width = 9, height = 5, units = "in")
 
 # 6. Join back to spatial -------------------------------------------------
 
 bhat_spat <- left_join(grid, bhat, by = "id")
+label_dat <- as.data.frame(bhat_spat) %>%
+  select(season, year, pred) %>%
+  distinct() %>%
+  na.omit()
 
 bhat_spat %>%
   filter(
-    pred == "atlantic cod",
-    year == 1978
-    ) %>%
+    pred == "goosefish",
+    season == "spring") %>%
   ggplot() +
-  geom_sf(aes(fill = bhat)) +
-  facet_wrap(~season)
+  geom_sf(aes(fill = bhat, color = bhat)) +
+  scale_fill_viridis_c(
+    option = "inferno",
+    name = "overlap metric"
+  ) +
+  scale_color_viridis_c(
+    option = "inferno",
+    name = "overlap metric"
+  ) +
+  facet_wrap(~year) +
+  geom_text(data = label_dat, aes(label = year), x = -69.5, y = 33, color = "grey", inherit.aes = FALSE) + 
+  geom_sf(data = northamerica, color = "white", fill = "grey", inherit.aes = FALSE) +
+  coord_sf(xlim = c(-79.5, -65.5), ylim = c(32.5, 45.5)) +
+  theme(panel.grid.major = element_line(color = "white"),
+        panel.background = element_blank(),
+        axis.title.x = element_blank(),
+        axis.text.x = element_blank(),
+        axis.ticks.x = element_blank(),
+        axis.title.y = element_blank(),
+        axis.text.y = element_blank(),
+        axis.ticks.y = element_blank(),
+        strip.text.x = element_blank(), # controls facets
+        strip.text.y = element_blank(),
+        strip.background = element_blank())
+ggsave(here("output", "plots", "overlap-map-ts-goosefish-spring.pdf"), width = 12, height = 10, units = "in")
