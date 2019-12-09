@@ -93,7 +93,7 @@ write_rds(topmod_data, here("output", "top_st_diet.rds"))
 
 
 # Trawl data --------------------------------------------------------------
-
+# Not tested, need to run new 01_fit-ranef-structure
 trawlrun <- read_rds(here("output", "st_sel_trawl.rds"))
 
 allruns <- trawlrun %>% 
