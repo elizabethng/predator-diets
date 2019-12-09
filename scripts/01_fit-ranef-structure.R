@@ -120,4 +120,4 @@ trawlrun <- trawlrun %>%
     safe_run_mod))
 
 
-readr::write_rds(trawlrun, path = here::here("output", "raw_trawl.rds"))
+readr::write_rds(trawlrun, path = here::here("output", "st_sel_trawl.rds")) # previously raw_trawl.rds
