@@ -54,9 +54,36 @@ dietrun <- dietrun %>%
          strata_file_loc = here("configuration-files", "strata_limits_subset.R"), 
          processed_data, 
          output_file_loc,
-         check_identifiable = FALSE,
+         check_identifiable = TRUE,
          use_REML = TRUE),
     safe_run_mod))
 
 readr::write_rds(dietrun, path = here("output", "top_final_diet.rds"))
 
+# Trawl Data --------------------------------------------------------------
+# [ ] Need to run through
+
+trawlrun <- read_rds(here("output", "top_st_trawl.rds")) %>%
+  rename(pdcomnam = species, myseason = season) %>%
+  select(pdcomnam, 
+         myseason, 
+         data, 
+         processed_data, 
+         config_file_loc, 
+         covar_columns, 
+         run_name,
+         output_file_loc) # may want to modify in future?
+
+# Run the model
+trawlrun <- trawlrun %>%
+  dplyr::mutate(output = purrr::pmap(
+    list(covar_columns, 
+         config_file_loc, 
+         strata_file_loc = here("configuration-files", "strata_limits_subset.R"), 
+         processed_data, 
+         output_file_loc,
+         check_identifiable = TRUE,
+         use_REML = TRUE),
+    safe_run_mod))
+
+readr::write_rds(dietrun, path = here("output", "top_final_trawl.rds"))
