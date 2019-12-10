@@ -81,9 +81,6 @@ topmods <- modchecks %>%
 
 # Get data, config file etc.
 topmod_data <- dietrun %>%
-  dplyr::mutate(
-    model = basename(config_file_loc), 
-    model = gsub(".R", "", model)
-  ) %>%
-  semi_join(topmods, by = c("predator", "season", "model"))
+  mutate(covars = purrr::map_chr(covar_columns, ~ gsub(" ", ", ", .x))) %>%
+  semi_join(topmods, by = c("predator", "season", "covars"))
 write_rds(topmod_data, here("output", "top_cov_diet.rds"))
