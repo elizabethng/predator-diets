@@ -139,6 +139,32 @@ dat_tows_all <- mutate(dat_tows_all, myseason = ifelse(season == "FALL"|season =
 ```
 
 
+# 4. Rename and reformat outputs
+```{r format-data}
+dat_preds_all <- dat_preds_all %>%
+  select(-season) %>%
+  rename(
+    season = myseason,
+    predator = pdcomnam
+  ) %>%
+  mutate(
+    season = tolower(season),
+    predator = tolower(predator)
+  )
+
+dat_tows_all <- dat_tows_all %>%
+  select(-season) %>%
+  rename(
+    season = myseason,
+    predator = pdcomnam
+  ) %>%
+  mutate(
+    season = tolower(season),
+    predator = tolower(predator)
+  )
+```
+
+
 # 4. Save output
 ```{r save-output}
 if(save_data == TRUE){
