@@ -69,7 +69,7 @@ dietrun <- dietrun %>%
        use_REML = FALSE),
   safe_run_mod))
 
-readr::write_rds(dietrun, path = here("output", "cov_sel_diet.rds")) # was raw_diet.rds
+readr::write_rds(dietrun, path = here("output", "cov_sel_diet.rds"))
 
 
 
