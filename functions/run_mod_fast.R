@@ -10,7 +10,7 @@
 #' @param output_file_loc full filepath for output folder location where results are saved
 #' @param check_identifiable if TRUE, runs TMBhelper::Check_Identifiable() and saves ouput (takes additional time)
 #'
-#' @return No explicit return. Saves output to output_file_loc destination
+#' @return AIC, parameter estimates, and convergence check. Saves output to output_file_loc destination
 run_mod_fast <- function(covar_columns = NA,
                     config_file_loc,
                     strata_file_loc,
