@@ -97,11 +97,11 @@ dat <- fixdat %>%
 dat <- dat %>%
   rename(
     season = myseason,
-    predator = pdcomnam
+    species = pdcomnam
   ) %>%
   mutate(
     season = tolower(season),
-    predator = tolower(predator)
+    species = tolower(species)
   )
 
 
