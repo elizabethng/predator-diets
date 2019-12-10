@@ -75,9 +75,7 @@ dietrun <- dietrun %>%
        use_REML = TRUE),
   safe_run_mod))
 
-readr::write_rds(dietrun, path = here("output", "sel_st_diet.rds"))
-rm(c(dietrun, dietsetup))
-
+readr::write_rds(dietrun, path = here("output", "select_st_diet.rds"))
 
 
 # Trawl Data --------------------------------------------------------------
@@ -133,4 +131,4 @@ trawlrun <- trawlrun %>%
          check_identifiable = FALSE,
          use_REML = TRUE),
     safe_run_mod))
-readr::write_rds(trawlrun, path = here::here("output", "sel_st_trawl.rds"))
+readr::write_rds(trawlrun, path = here::here("output", "select_st_trawl.rds"))
