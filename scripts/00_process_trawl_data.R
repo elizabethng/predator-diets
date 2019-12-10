@@ -92,6 +92,19 @@ dat <- fixdat %>%
 
 
 
+# Reformat and rename output ----------------------------------------------
+
+dat <- dat %>%
+  rename(
+    season = myseason,
+    predator = pdcomnam
+  ) %>%
+  mutate(
+    season = tolower(season),
+    predator = tolower(predator)
+  )
+
+
 # Save output -------------------------------------------------------------
 if(save_data == TRUE){
   saveRDS(dat, file = here("data", "processed", "dat_trawl.rds"))
