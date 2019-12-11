@@ -1,5 +1,5 @@
 # Fit models for spatio-temporal random effect model selection
-# [ ] REML may be hardcoded in run_mod right now
+# using oversaturated covariates and REML.
 
 library("tidyverse")
 library("here")
@@ -7,13 +7,14 @@ library("VAST")
 library("TMB")
 
 
-
 # Setup -------------------------------------------------------------------
 test <- TRUE
 
 # Load helper functions
-functions <- list.files(here("functions"), full.names = TRUE)
-invisible(sapply(functions, source))
+source(here("functions", "process_diet_data.R"))
+source(here("functions", "process_trawl_data.R"))
+source(here("functions", "run_mod_fast.R"))
+source(here("functions", "make_run_name.R"))
 
 Version <- FishStatsUtils::get_latest_version() # [ ] move into config_file ??
 safe_run_mod <- purrr::safely(run_mod_fast)     # [ ] move into run_mod function?
@@ -84,13 +85,13 @@ readr::write_rds(dietrun, path = here("output", "select_st_diet.rds"))
 if(test == TRUE){
   trawlsetup <- readr::read_rds(here("data", "processed", "dat_trawl.rds")) %>%
     dplyr::filter(year %in% 1990:1995) %>%
-    filter(predator == "spiny dogfish", season == "spring") %>%
-    group_by(predator, season) %>%
+    filter(species %in% c("atlantic herring", "spiny dogfish"), season == "spring") %>%
+    group_by(species, season) %>%
     nest() %>%
     mutate(processed_data = purrr::map(data, process_trawl_data))
 }else if(test == FALSE){
   trawlsetup <- readr::read_rds(here("data", "processed", "dat_trawl.rds")) %>%
-    group_by(predator, season) %>%
+    group_by(species, season) %>%
     nest() %>%
     mutate(processed_data = purrr::map(data, process_trawl_data))
 }
@@ -111,7 +112,7 @@ trawlrun <- tidyr::expand_grid(trawlsetup, covar_columns, config_file_loc)
 trawlrun <- trawlrun %>%
   dplyr::mutate(run_name = purrr::pmap_chr(
     list("trawl", 
-         predator, 
+         species, 
          season, 
          covar_columns, 
          config_file_loc),
