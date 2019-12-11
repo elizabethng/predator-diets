@@ -89,7 +89,7 @@ write_rds(topmod_data, here("output", "top_st_diet.rds"))
 
 
 
-# Trawl data --------------------------------------------------------------
+# Trawl Models --------------------------------------------------------------
 
 trawlrun <- read_rds(here("output", "select_st_trawl.rds"))
 
@@ -127,7 +127,7 @@ worked <- allruns %>%
   filter(converged == TRUE) %>%
   mutate(hatval = purrr::map(output, "estimates")) %>%
   select(-output, -data) %>%
-  dplyr::group_by(predator, season) %>%
+  dplyr::group_by(species, season) %>%
   dplyr::mutate(delta_aic = aic - min(aic))
 
 
@@ -143,7 +143,7 @@ modchecks <- worked %>%
                       yes = abs(estimate) > 0.001,
                       no = NA)
   ) %>%
-  group_by(predator, season, model, covars, aic, delta_aic) %>%
+  group_by(species, season, model, covars, aic, delta_aic) %>%
   summarize(
     ranef_ok = all(ranef_ok, na.rm = TRUE),
     ranef_n = sum(ranef)
@@ -154,17 +154,17 @@ modchecks <- worked %>%
 topmods <- modchecks %>%
   filter(delta_aic < 2,
          ranef_ok == TRUE) %>%
-  group_by(predator, season) %>%
+  group_by(species, season) %>%
   top_n(-1, wt = ranef_n) %>%
   ungroup()
 
 # Get data, config file etc.
-topmod_data <- dietrun %>%
+topmod_data <- trawlrun %>%
   dplyr::mutate(
     model = basename(config_file_loc), 
     model = gsub(".R", "", model)
   ) %>%
-  semi_join(topmods, by = c("predator", "season", "model"))
+  semi_join(topmods, by = c("species", "season", "model"))
 write_rds(topmod_data, here("output", "top_st_trawl.rds"))
 
   
