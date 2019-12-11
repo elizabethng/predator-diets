@@ -61,7 +61,7 @@ trawlrun <- read_rds(here("output", "top_st_trawl.rds")) %>%
 
 
 # Run the model
-dietrun <- trawlrun %>%
+trawlrun <- trawlrun %>%
   dplyr::mutate(output = purrr::pmap(
     list(covar_columns, 
          config_file_loc, 
@@ -72,4 +72,4 @@ dietrun <- trawlrun %>%
          use_REML = TRUE),
     safe_run_mod))
 
-readr::write_rds(dietrun, path = here("output", "top_final_trawl.rds"))
+readr::write_rds(trawlrun, path = here("output", "top_final_trawl.rds"))
