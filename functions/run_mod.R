@@ -15,7 +15,9 @@ run_mod <- function(covar_columns = NA,
                     strata_file_loc,
                     processed_data,
                     output_file_loc,
-                    check_identifiable = FALSE)
+                    check_identifiable = FALSE,
+                    use_REML = TRUE,
+                    use_fine_scale = FALSE)
   {
   DateFile <- output_file_loc
   dir.create(DateFile, recursive = TRUE) # can end in / or not
@@ -25,19 +27,6 @@ run_mod <- function(covar_columns = NA,
 
   Data_Geostat <- processed_data %>%
     dplyr::filter(!is.na(Catch_KG))
-  
-  # Record output
-  Record <- list("Version" = Version,"Method"=Method,
-                 "grid_size_km"=grid_size_km,"n_x"=n_x,
-                 "FieldConfig"=FieldConfig,"RhoConfig"=RhoConfig,
-                 "OverdispersionConfig"=OverdispersionConfig,
-                 "ObsModel"=ObsModel,"Kmeans_Config"=Kmeans_Config,
-                 "Region"="northwest_atlantic",
-                 "Species_set"= tools::file_path_sans_ext(basename(output_file_loc)),
-                 "Model_name" = tools::file_path_sans_ext(basename(config_file_loc)),
-                 "strata.limits" = strata.limits)
-  save(Record, file = file.path(DateFile,"Record.RData"))
-  capture.output(Record, file = file.path(DateFile,"Record.txt"))
   
   Extrapolation_List <- FishStatsUtils::make_extrapolation_info(
     Region = "northwest_atlantic",
@@ -51,7 +40,7 @@ run_mod <- function(covar_columns = NA,
     Lon = Data_Geostat$Lon,
     Lat = Data_Geostat$Lat,
     Extrapolation_List = Extrapolation_List,
-    fine_scale = FALSE,
+    fine_scale = use_fine_scale,
     DirPath = DateFile,
     Save_Results = TRUE
   )
@@ -112,7 +101,7 @@ run_mod <- function(covar_columns = NA,
   }
  
   # Save model settings
-  save(FieldConfig, # [ ] change to saveRDS for each component
+  save(FieldConfig, 
        RhoConfig, 
        ObsModel, 
        Data_Geostat, 
@@ -122,7 +111,7 @@ run_mod <- function(covar_columns = NA,
        Version, 
        Method,
        file = file.path(DateFile, "model-settings.RData"))
-  saveRDS(Spatial_List, file = file.path(DateFile, "Spatial_List"))
+  # saveRDS(Spatial_List, file = file.path(DateFile, "Spatial_List"))
   
   TmbList <- VAST::make_model(
     "TmbData" = TmbData, 
@@ -130,18 +119,23 @@ run_mod <- function(covar_columns = NA,
     "Version" = Version,
     "RhoConfig" = RhoConfig,
     "loc_x" = Spatial_List$loc_x,
-    "Method" = Spatial_List$Method)
+    "Method" = Spatial_List$Method,
+    "Use_REML" = use_REML,
+    "Random" = c("Epsiloninput1_sft", "Omegainput1_sf", "eta1_vf", "Epsiloninput2_sft", 
+                                          "Omegainput2_sf", "eta2_vf", "delta_i", "beta1_ft", "gamma1_ctp", 
+                                          "beta2_ft", "gamma2_ctp", "Xiinput1_scp", 
+                                          "Xiinput2_scp"))
   
-  Obj = TmbList[["Obj"]]
+  Obj <- TmbList[["Obj"]]
   
-  Opt = TMBhelper::fit_tmb(
+  Opt <- TMBhelper::fit_tmb(
     startpar = Obj$par, # Opt$opt$par
     obj = Obj,
     lower = TmbList[["Lower"]],
     upper = TmbList[["Upper"]],
     getsd = TRUE, 
     savedir = DateFile,
-    bias.correct = FALSE,
+    bias.correct = TRUE,
     newtonsteps = 1,
     bias.correct.control = list(
       sd=FALSE, split=NULL, nsplit=1, vars_to_correct = "Index_cyl"))
@@ -160,9 +154,6 @@ run_mod <- function(covar_columns = NA,
   safe_get_parhat <- purrr::safely(get_parhat)  # Wrap troublesome part in a function
   Save$ParHat = safe_get_parhat(Obj)
   
-  save(Save, file = file.path(DateFile, "Save.RData"))
-  write.csv(Opt$AIC, file.path(DateFile, "AIC.txt"))
-
   # Diagnostics and plots
   # Data
   FishStatsUtils::plot_data(
@@ -172,13 +163,13 @@ run_mod <- function(covar_columns = NA,
     PlotDir = paste0(DateFile, "/"))
   
   # Presence model
-  Enc_prob = FishStatsUtils::plot_encounter_diagnostic(
+  Enc_prob <- FishStatsUtils::plot_encounter_diagnostic(
     Report = Report,
     Data_Geostat = Data_Geostat,
     DirName = DateFile)
   
   # Positive model
-  Q = FishStatsUtils::plot_quantile_diagnostic(
+  Q <- FishStatsUtils::plot_quantile_diagnostic(
     TmbData = TmbData,
     Report = Report,
     FileName_PP = "Posterior_Predictive",
@@ -188,7 +179,7 @@ run_mod <- function(covar_columns = NA,
     DateFile = DateFile)
   
   # Get region-specific settings for plots
-  MapDetails_List = FishStatsUtils::make_map_info(
+  MapDetails_List <- FishStatsUtils::make_map_info(
     Region = "northwest_atlantic",
     Extrapolation_List = Extrapolation_List,
     spatial_list = Spatial_List,
@@ -204,7 +195,7 @@ run_mod <- function(covar_columns = NA,
   # Map of residuals # can't use, TmbData no longer has n_x
   TmbData$n_x <- n_x
   TmbData$s_i <- (Data_Geostat$knot_i - 1)
-  FishStatsUtils::plot_residuals(
+  residual <- FishStatsUtils::plot_residuals( # could be useful to make residuals plots [ ] Look up Q1_xy and Q2_xy
     Lat_i = Data_Geostat[,'Lat'],
     Lon_i = Data_Geostat[,'Lon'],
     TmbData = TmbData,
@@ -234,7 +225,7 @@ run_mod <- function(covar_columns = NA,
     TmbData = TmbData)
   
   # Abundance index
-  Index = FishStatsUtils::plot_biomass_index(
+  Index <- FishStatsUtils::plot_biomass_index(
     DirName = DateFile,
     TmbData = TmbData,
     Sdreport = Opt[["SD"]],
@@ -244,15 +235,15 @@ run_mod <- function(covar_columns = NA,
   
   # Make maps
   my_plots = FishStatsUtils::plot_maps(
-    plot_set = c(3, 6, 7), 
+    plot_set = c(3),
     MappingDetails = MapDetails_List[["MappingDetails"]],
     Report = Report,
     Sdreport = Opt$SD,
-    PlotDF = MapDetails_List[["PlotDF"]], 
+    PlotDF = MapDetails_List[["PlotDF"]],
     MapSizeRatio = MapDetails_List[["MapSizeRatio"]],
     Xlim = MapDetails_List[["Xlim"]],
     Ylim = MapDetails_List[["Ylim"]],
-    TmbData = TmbData, 
+    TmbData = TmbData,
     FileName = paste0(DateFile, "/"),
     Year_Set = Year_Set,
     Years2Include = Years2Include,
@@ -264,7 +255,7 @@ run_mod <- function(covar_columns = NA,
     oma = c(3.5,3.5,0,0),
     cex = 1.8,
     plot_legend_fig = FALSE)
-  
+    
 
   # Pull out and format knot-level values (may change with fine scale)
   est_dens = as.vector(Save$Report$D_gcy) # D_xcy) # stacked 1:100 knot value for each year, appears to include predictions for missing years
@@ -282,6 +273,8 @@ run_mod <- function(covar_columns = NA,
     dplyr::distinct()
     
   # Expand for continuous plotting
+  # [] this is where it might be useful to get spatial so I don't store these repeated values,
+  #    may change with fine-scale = TRUE
   map_dat <- dplyr::left_join(all_dens, MapDetails_List$PlotDF, by = "x2i") %>%
     dplyr::mutate(density_log = log(density)) %>%
     dplyr::rename(
@@ -329,6 +322,7 @@ run_mod <- function(covar_columns = NA,
     aic = Opt$AIC[1],
     index = my_index,
     knot_density = map_dat,
+    knot_centers = Spatial_List$loc_x, # MapDetails_List$PlotDF knot locs and ids
     estimates = estimates,
     converged = converged
   ))

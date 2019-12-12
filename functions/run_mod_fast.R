@@ -120,7 +120,11 @@ run_mod_fast <- function(covar_columns = NA,
     "RhoConfig" = RhoConfig,
     "loc_x" = Spatial_List$loc_x,
     "Method" = Spatial_List$Method,
-    "Use_REML" = use_REML)
+    "Use_REML" = use_REML,
+    "Random" = c("Epsiloninput1_sft", "Omegainput1_sf", "eta1_vf", "Epsiloninput2_sft", 
+                 "Omegainput2_sf", "eta2_vf", "delta_i", "beta1_ft", "gamma1_ctp", 
+                 "beta2_ft", "gamma2_ctp", "Xiinput1_scp", 
+                 "Xiinput2_scp"))
   
   Obj = TmbList[["Obj"]]
   
@@ -143,9 +147,9 @@ run_mod_fast <- function(covar_columns = NA,
   }
   
   
-  Save = list("Opt" = Opt, "Report" = Report, "TmbData" = TmbData)
+  # Save = list("Opt" = Opt, "Report" = Report, "TmbData" = TmbData)
   get_parhat <- function(Obj){
-    Obj$env$parList(Opt$par) # Obj$env$parList(b) # Opt$par
+    Obj$env$parList(Opt$par)
   }  
   safe_get_parhat <- purrr::safely(get_parhat)  # Wrap troublesome part in a function
   Save$ParHat = safe_get_parhat(Obj)
