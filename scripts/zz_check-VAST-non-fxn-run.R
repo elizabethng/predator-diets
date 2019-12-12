@@ -252,31 +252,4 @@ my_plots <- FishStatsUtils::plot_maps(
   Year_Set = Year_Set,
   Years2Include = Years2Include,
   working_dir = paste0(DateFile, "/"))
-
-my_plots <- FishStatsUtils::plot_maps(
-  plot_set = c(3),
-  Report = Report,
-  PlotDF = MapDetails_List[["PlotDF"]],
-  Sdreport = Opt$SD,
-  TmbData = TmbData,
-  Year_Set = Year_Set,
-  Years2Include = Years2Include,
-  working_dir = paste0(DateFile, "/"))
-
-
-for(i in 1:14){
-  print(i)
-  if(i %in% c(4, 5, 8, 9, 10)){
-    
-  }else{
-    FishStatsUtils::plot_maps(
-      plot_set = i,
-      Report = Report,
-      PlotDF = MapDetails_List[["PlotDF"]],
-      Sdreport = Opt$SD,
-      TmbData = TmbData,
-      Year_Set = Year_Set,
-      Years2Include = Years2Include,
-      working_dir = paste0(DateFile, "/"))
-  }
-}
+# Last output is matrix of density values
