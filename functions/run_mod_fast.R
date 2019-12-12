@@ -29,15 +29,15 @@ run_mod_fast <- function(covar_columns = NA,
     dplyr::filter(!is.na(Catch_KG))
   
   # Record output
-  Record <- list("Version" = Version,"Method"=Method,
-                 "grid_size_km"=grid_size_km,"n_x"=n_x,
-                 "FieldConfig"=FieldConfig,"RhoConfig"=RhoConfig,
-                 "OverdispersionConfig"=OverdispersionConfig,
-                 "ObsModel"=ObsModel,"Kmeans_Config"=Kmeans_Config,
-                 "Region"="northwest_atlantic",
-                 "Species_set"= tools::file_path_sans_ext(basename(output_file_loc)),
-                 "Model_name" = tools::file_path_sans_ext(basename(config_file_loc)),
-                 "strata.limits" = strata.limits)
+  # Record <- list("Version" = Version,"Method"=Method,
+  #                "grid_size_km"=grid_size_km,"n_x"=n_x,
+  #                "FieldConfig"=FieldConfig,"RhoConfig"=RhoConfig,
+  #                "OverdispersionConfig"=OverdispersionConfig,
+  #                "ObsModel"=ObsModel,"Kmeans_Config"=Kmeans_Config,
+  #                "Region"="northwest_atlantic",
+  #                "Species_set"= tools::file_path_sans_ext(basename(output_file_loc)),
+  #                "Model_name" = tools::file_path_sans_ext(basename(config_file_loc)),
+  #                "strata.limits" = strata.limits)
   # save(Record, file = file.path(DateFile,"Record.RData"))
   # capture.output(Record, file = file.path(DateFile,"Record.txt"))
   
