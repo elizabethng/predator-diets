@@ -213,19 +213,7 @@ residual <- FishStatsUtils::plot_residuals( # could be useful to make residuals 
   extrapolation_list = Extrapolation_List,
   Year_Set = Year_Set,
   Years2Include = Years2Include)
-  # MappingDetails = MapDetails_List[["MappingDetails"]],
-  # PlotDF = MapDetails_List[["PlotDF"]],
-  # MapSizeRatio = MapDetails_List[["MapSizeRatio"]],
-  # Xlim = MapDetails_List[["Xlim"]],
-  # Ylim = MapDetails_List[["Ylim"]],
-  # FileName = DateFile,
-  # Rotate = MapDetails_List[["Rotate"]],
-  # Cex = MapDetails_List[["Cex"]],
-  # Legend = MapDetails_List[["Legend"]],
-  # zone = MapDetails_List[["Zone"]],
-  # mar = c(0,0,2,0),
-  # oma = c(3.5,3.5,0,0),
-  # cex = 1.8)
+
 
 # Anisotropy
 FishStatsUtils::plot_anisotropy(
@@ -252,4 +240,5 @@ my_plots <- FishStatsUtils::plot_maps(
   Year_Set = Year_Set,
   Years2Include = Years2Include,
   working_dir = paste0(DateFile, "/"))
-# Last output is matrix of density values
+# Last output is matrix of density values 
+# with smooth interpolation
