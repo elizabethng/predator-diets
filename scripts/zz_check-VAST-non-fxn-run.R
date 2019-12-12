@@ -27,9 +27,9 @@ strata_file_loc <- here("configuration-files", "strata_limits_subset.R")
 processed_data <- dietrun$processed_data[[1]]
 output_file_loc <- diagnostic_folder # dietrun$output_file_loc
 check_identifiable = FALSE
-use_REML = TRUE
-use_fine_scale = TRUE
-use_bias_correct = TRUE
+use_REML = FALSE # TRUE
+use_fine_scale = FALSE # TRUE
+use_bias_correct = FALSE # TRUE
 
 DateFile <- output_file_loc
 dir.create(DateFile, recursive = TRUE) # can end in / or not
@@ -115,11 +115,12 @@ TmbList <- VAST::make_model(
   "RhoConfig" = RhoConfig,
   "loc_x" = Spatial_List$loc_x,
   "Method" = Spatial_List$Method,
-  "Use_REML" = use_REML,
-  "Random" = c("Epsiloninput1_sft", "Omegainput1_sf", "eta1_vf", "Epsiloninput2_sft", 
-               "Omegainput2_sf", "eta2_vf", "delta_i", "beta1_ft", "gamma1_ctp", 
-               "beta2_ft", "gamma2_ctp", "Xiinput1_scp", 
-               "Xiinput2_scp"))
+  "Use_REML" = use_REML)
+  # ,
+  # "Random" = c("Epsiloninput1_sft", "Omegainput1_sf", "eta1_vf", "Epsiloninput2_sft", 
+  #              "Omegainput2_sf", "eta2_vf", "delta_i", "beta1_ft", "gamma1_ctp", 
+  #              "beta2_ft", "gamma2_ctp", "Xiinput1_scp", 
+  #              "Xiinput2_scp"))
 
 Obj <- TmbList[["Obj"]]
 
