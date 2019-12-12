@@ -29,6 +29,7 @@ output_file_loc <- diagnostic_folder # dietrun$output_file_loc
 check_identifiable = FALSE
 use_REML = TRUE
 use_fine_scale = TRUE
+use_bias_correct = TRUE
 
 DateFile <- output_file_loc
 dir.create(DateFile, recursive = TRUE) # can end in / or not
@@ -92,37 +93,20 @@ if(all(is.na(covar_columns))){
   TmbData <- VAST::make_data(
     "b_i" = Data_Geostat$Catch_KG,
     "a_i" = Data_Geostat$AreaSwept_km2,
-    "c_iz" = rep(0, nrow(Data_Geostat)),
     "t_iz" = Data_Geostat$Year,
+    "c_iz" = rep(0, nrow(Data_Geostat)),
     "FieldConfig" = FieldConfig,
-    "OverdispersionConfig" = OverdispersionConfig,
-    "ObsModel_ez" = ObsModel,
-    "RhoConfig" = RhoConfig,
     "spatial_list" = Spatial_List,
+    "ObsModel_ez" = ObsModel,
+    "OverdispersionConfig" = OverdispersionConfig,
+    "RhoConfig" = RhoConfig,
     "Aniso" = 1,
     "Q_ik" = Q_ik, 
     "Options" = Options,
-    "Version" =  Version, 
-    "s_i" = Data_Geostat$knot_i - 1,
-    "a_xl" = Spatial_List$a_xl,
-    "MeshList" = Spatial_List$MeshList,
-    "GridList" = Spatial_List$GridList, 
-    "Method" = Spatial_List$Method
+    "Version" =  Version
   )
 }
 
-# Save model settings
-save(FieldConfig, 
-     RhoConfig, 
-     ObsModel, 
-     Data_Geostat, 
-     Spatial_List, 
-     Options, 
-     DateFile, 
-     Version, 
-     Method,
-     file = file.path(DateFile, "model-settings.RData"))
-saveRDS(Spatial_List, file = file.path(DateFile, "Spatial_List.rds"))
 
 TmbList <- VAST::make_model(
   "TmbData" = TmbData, 
@@ -146,12 +130,12 @@ Opt <- TMBhelper::fit_tmb(
   upper = TmbList[["Upper"]],
   getsd = TRUE, 
   savedir = DateFile,
-  bias.correct = TRUE,
+  bias.correct = use_bias_correct,
   newtonsteps = 1,
   bias.correct.control = list(
     sd=FALSE, split=NULL, nsplit=1, vars_to_correct = "Index_cyl"))
 
-Report = Obj$report()
+Report <- Obj$report()
 
 if(check_identifiable){
   Opt$identifiable <- TMBhelper::Check_Identifiable(Obj)  
@@ -189,7 +173,7 @@ if(is.null(parhat$error)){
     )
     
     indices <- colnames(Opt$SD$cov.fixed) %>% str_starts("lambda")
-    covar_vcov <- Opt$SD$cov.fixed[inds, inds]
+    covar_vcov <- Opt$SD$cov.fixed[indices, indices]
   }
   
   estimates <- pivot_longer(estimates,
@@ -282,34 +266,26 @@ my_plots <- FishStatsUtils::plot_maps(
 
 
 # My custom plotting stuff ------------------------------------------------
-## Need to fix this [ ]
-# Pull out and format knot-level values (may change with fine scale)
-est_dens = as.vector(Report$D_gcy) # D_xcy) # stacked 1:100 knot value for each year, appears to include predictions for missing years
-all_dens = tidyr::tibble(
-  year = sort(rep(Year_Set, n_x)), 
-  x2i = rep(seq(n_x), max(Years2Include)),
-  density = est_dens,
-  E_km = rep(Spatial_List$MeshList$loc_x[, "E_km"], max(Years2Include)),
-  N_km = rep(Spatial_List$MeshList$loc_x[, "N_km"], max(Years2Include))
-)
-
 # Exclusion table
 exclude_years <- processed_data %>%
   dplyr::select(Year, exclude_reason) %>% 
   dplyr::distinct()
 
-# Expand for continuous plotting
-# [] this is where it might be useful to get spatial so I don't store these repeated values,
-#    may change with fine-scale = TRUE
-map_dat <- dplyr::left_join(all_dens, MapDetails_List$PlotDF, by = "x2i") %>%
-  dplyr::mutate(density_log = log(density)) %>%
-  dplyr::rename(
-    knot = x2i,
-    Year = year) %>%
-  dplyr::full_join(exclude_years, by = "Year") %>%
-  dplyr::rename(year = Year)
+obs <- matrix(NA, nrow = dim(Report$D_gcy)[1], ncol = dim(Report$D_gcy)[3])
+for(i in 1:length(Year_Set)){
+  obs[, i] <- Report$D_gcy[ , 1, i]
+}
+colnames(obs) <- paste0("y_", Year_Set)
+obs_dat <- as_tibble(obs)
+
+# Locations
+locs <- as_tibble(MapDetails_List$PlotDF)
+
+# Wide data
+widedat <- bind_cols(locs, obs_dat)
 readr::write_csv(map_dat, file.path(DateFile, "my_map_dat.csv"))
 
+# Index for plotting (rename SE? and fix downstream)
 my_index <- Index$Table %>%
   dplyr::full_join(exclude_years, by = "Year") %>%
   dplyr::as_tibble()
@@ -333,3 +309,12 @@ return_list <- list(
   covar_vcov = covar_vcov
 )
 
+# actual full_run
+return(list(
+  aic = Opt$AIC[1],
+  index = my_index,
+  knot_density = map_dat,
+  knot_centers = Spatial_List$loc_x, # MapDetails_List$PlotDF knot locs and ids
+  estimates = estimates,
+  converged = converged
+))
