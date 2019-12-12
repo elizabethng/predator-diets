@@ -158,14 +158,53 @@ if(check_identifiable){
 }
 
 
-Save = list("Opt" = Opt, "Report" = Report, "TmbData" = TmbData)
+
+# My output ---------------------------------------------------------------
+
 get_parhat <- function(Obj){
-  Obj$env$parList(Opt$par) # Obj$env$parList(b) # Opt$par
+  Obj$env$parList(Opt$par)
 }  
 safe_get_parhat <- purrr::safely(get_parhat)  # Wrap troublesome part in a function
-Save$ParHat <- safe_get_parhat(Obj)
+parhat <- safe_get_parhat(Obj)
 
-# Diagnostics and plots
+converged <- try(all(abs(Opt$diagnostics$final_gradient)<1e-6 ))
+
+if(is.null(parhat$error)){
+  estimates <- tibble(
+    covariate = c("epsilon", "omega"),
+    pred1 = c(parhat$result$L_epsilon1_z, parhat$result$L_omega1_z),
+    pred2 = c(parhat$result$L_epsilon2_z, parhat$result$L_omega2_z)
+  )
+  
+  if(!is.na(covar_columns)){
+    estimates <- bind_rows(
+      list(
+        estimates,
+        tibble(
+          covariate = covar_columns_vec[-1],
+          pred1 = Opt$SD$par.fixed[names(Opt$SD$par.fixed) == "lambda1_k"], 
+          pred2 = Opt$SD$par.fixed[names(Opt$SD$par.fixed) == "lambda2_k"]
+        )
+      )
+    )
+    
+    indices <- colnames(Opt$SD$cov.fixed) %>% str_starts("lambda")
+    covar_vcov <- Opt$SD$cov.fixed[inds, inds]
+  }
+  
+  estimates <- pivot_longer(estimates,
+                            cols = c(pred1, pred2), 
+                            names_to = "predictor", 
+                            values_to = "estimate")
+}else{
+  estimates <- parhat$error 
+  covar_vcov <- parhat$error
+}
+
+
+# Built-in Diagnostics and Plots ------------------------------------------
+
+
 # Data
 FishStatsUtils::plot_data(
   Extrapolation_List = Extrapolation_List,
@@ -199,10 +238,8 @@ MapDetails_List <- FishStatsUtils::make_map_info(
 Year_Set <- seq(min(Data_Geostat[,'Year']),max(Data_Geostat[,'Year']))
 Years2Include <- which(Year_Set %in% sort(unique(Data_Geostat[,'Year'])))
 
-# Map of residuals # can't use, TmbData no longer has n_x
-# TmbData$n_x <- n_x
-# TmbData$s_i <- (Data_Geostat$knot_i - 1)
-residual <- FishStatsUtils::plot_residuals( # could be useful to make residuals plots [ ] Look up Q1_xy and Q2_xy
+# Map of residuals
+residual <- FishStatsUtils::plot_residuals(
   Lat_i = Data_Geostat[,'Lat'],
   Lon_i = Data_Geostat[,'Lon'],
   TmbData = TmbData,
@@ -242,3 +279,57 @@ my_plots <- FishStatsUtils::plot_maps(
   working_dir = paste0(DateFile, "/"))
 # Last output is matrix of density values 
 # with smooth interpolation
+
+
+# My custom plotting stuff ------------------------------------------------
+## Need to fix this [ ]
+# Pull out and format knot-level values (may change with fine scale)
+est_dens = as.vector(Report$D_gcy) # D_xcy) # stacked 1:100 knot value for each year, appears to include predictions for missing years
+all_dens = tidyr::tibble(
+  year = sort(rep(Year_Set, n_x)), 
+  x2i = rep(seq(n_x), max(Years2Include)),
+  density = est_dens,
+  E_km = rep(Spatial_List$MeshList$loc_x[, "E_km"], max(Years2Include)),
+  N_km = rep(Spatial_List$MeshList$loc_x[, "N_km"], max(Years2Include))
+)
+
+# Exclusion table
+exclude_years <- processed_data %>%
+  dplyr::select(Year, exclude_reason) %>% 
+  dplyr::distinct()
+
+# Expand for continuous plotting
+# [] this is where it might be useful to get spatial so I don't store these repeated values,
+#    may change with fine-scale = TRUE
+map_dat <- dplyr::left_join(all_dens, MapDetails_List$PlotDF, by = "x2i") %>%
+  dplyr::mutate(density_log = log(density)) %>%
+  dplyr::rename(
+    knot = x2i,
+    Year = year) %>%
+  dplyr::full_join(exclude_years, by = "Year") %>%
+  dplyr::rename(year = Year)
+readr::write_csv(map_dat, file.path(DateFile, "my_map_dat.csv"))
+
+my_index <- Index$Table %>%
+  dplyr::full_join(exclude_years, by = "Year") %>%
+  dplyr::as_tibble()
+
+
+
+# Stuff to Return ---------------------------------------------------------
+
+# Quick run
+return_list <- list(
+  converged = converged,
+  aic = Opt$AIC[1],
+  estimates = estimates
+)
+
+# Full run
+return_list <- list(
+  converged = converged,
+  aic = Opt$AIC[1],
+  estimates = estimates,
+  covar_vcov = covar_vcov
+)
+
