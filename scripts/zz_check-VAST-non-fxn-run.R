@@ -272,7 +272,7 @@ exclude_years <- processed_data %>%
   dplyr::select(Year, exclude_reason) %>% 
   dplyr::distinct()
 
-obs <- matrix(NA, nrow = dim(Report$D_gcy)[1], ncol = dim(Report$D_gcy)[3])
+obs <- matrix(NA, nrow = dim(Report$D_gcy)[1], ncol = dim(Report$D_gcy)[3]) # regular is 1 value per knot, finescale is ~31000 obs
 for(i in 1:length(Year_Set)){
   obs[, i] <- Report$D_gcy[ , 1, i]
 }
@@ -280,11 +280,19 @@ colnames(obs) <- paste0("y_", Year_Set)
 obs_dat <- as_tibble(obs)
 
 # Locations
-locs <- as_tibble(MapDetails_List$PlotDF)
+# (but will probably only output this at the end when finescale = TRUE)
+if(use_fine_scale == TRUE){
+  locs <- as_tibble(MapDetails_List$PlotDF) # this is always every point loc  
+}else{
+  locs <- as_tibble(Spatial_List$MeshList$loc_x) # note these are UTM (zone 19 I think)
+}
+
 
 # Wide data
-widedat <- bind_cols(locs, obs_dat)
+map_dat <- bind_cols(locs, obs_dat)
 readr::write_csv(map_dat, file.path(DateFile, "my_map_dat.csv"))
+
+# Get SE for mapping
 
 # Index for plotting (rename SE? and fix downstream)
 my_index <- Index$Table %>%
