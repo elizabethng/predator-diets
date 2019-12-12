@@ -122,9 +122,9 @@ run_mod <- function(covar_columns = NA,
     "Method" = Spatial_List$Method,
     "Use_REML" = use_REML,
     "Random" = c("Epsiloninput1_sft", "Omegainput1_sf", "eta1_vf", "Epsiloninput2_sft", 
-                                          "Omegainput2_sf", "eta2_vf", "delta_i", "beta1_ft", "gamma1_ctp", 
-                                          "beta2_ft", "gamma2_ctp", "Xiinput1_scp", 
-                                          "Xiinput2_scp"))
+                 "Omegainput2_sf", "eta2_vf", "delta_i", "beta1_ft", "gamma1_ctp", 
+                 "beta2_ft", "gamma2_ctp", "Xiinput1_scp", 
+                 "Xiinput2_scp"))
   
   Obj <- TmbList[["Obj"]]
   
