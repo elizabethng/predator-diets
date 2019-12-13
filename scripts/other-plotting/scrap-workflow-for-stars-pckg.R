@@ -44,3 +44,35 @@ filter(poop, year == 1990) %>%
   geom_point(size = 3) +
   scale_color_viridis_c() +
   theme_bw()
+
+
+## Approach if I have SD report for D_gcy
+denstiy_table <- summary(Opt$SD) %>%
+  data.frame() %>%
+  rownames_to_column() %>%
+  rename(parameter = rowname, estimate = Estimate, std_error = `Std..Error`) %>%
+  as_tibble() %>%
+  filter(str_starts(parameter, "D_gcy"))
+
+density_dat <- matrix(denstiy_table$estimate, nrow = dim(Report$D_gcy)[1], ncol = dim(Report$D_gcy)[3], byrow = FALSE)
+density_dat_se <- matrix(denstiy_table$std_error, nrow = dim(Report$D_gcy)[1], ncol = dim(Report$D_gcy)[3], byrow = FALSE)
+
+colnames(density_dat) <- paste0("density_", Year_Set)
+colnames(density_dat_se) <- paste0("stderror_", Year_Set)
+
+density <- as_tibble(density_dat)
+density_se <- as_tibble(density_dat_se)
+
+# Locations
+# (but will probably only output this at the end when finescale = TRUE)
+if(use_fine_scale == TRUE){
+  locs <- as_tibble(MapDetails_List$PlotDF) # this is always every point loc  
+}else{
+  locs <- as_tibble(Spatial_List$MeshList$loc_x) # note these are UTM (zone 19 I think)
+}
+
+# Wide data
+# Sacrifice tidiness for efficiency with obs
+map_dat <- bind_cols(locs, density, density_se)
+readr::write_csv(map_dat, file.path(DateFile, "my_map_dat.csv"))
+

@@ -268,21 +268,9 @@ if(run_fast == FALSE){
   
   # Get locations and standard errors for spatial density
   # Will automatically account for different dimensions of D_gcy depending on whether finescale is true
-  denstiy_table <- summary(Opt$SD) %>%
-    data.frame() %>%
-    rownames_to_column() %>%
-    rename(parameter = rowname, estimate = Estimate, std_error = `Std..Error`) %>%
-    as_tibble() %>%
-    filter(str_starts(parameter, "D_gcy"))
-  
-  density_dat <- matrix(denstiy_table$estimate, nrow = dim(Report$D_gcy)[1], ncol = dim(Report$D_gcy)[3], byrow = FALSE)
-  density_dat_se <- matrix(denstiy_table$std_error, nrow = dim(Report$D_gcy)[1], ncol = dim(Report$D_gcy)[3], byrow = FALSE)
-  
+  density_dat <- matrix(as.vector(Report$D_gcy), nrow = dim(Report$D_gcy)[1], ncol = dim(Report$D_gcy)[3], byrow = FALSE)
   colnames(density_dat) <- paste0("density_", Year_Set)
-  colnames(density_dat_se) <- paste0("stderror_", Year_Set)
-  
   density <- as_tibble(density_dat)
-  density_se <- as_tibble(density_dat_se)
   
   # Locations
   # (but will probably only output this at the end when finescale = TRUE)
@@ -294,7 +282,7 @@ if(run_fast == FALSE){
   
   # Wide data
   # Sacrifice tidiness for efficiency with obs
-  map_dat <- bind_cols(locs, density, density_se)
+  map_dat <- bind_cols(locs, density)
   readr::write_csv(map_dat, file.path(DateFile, "my_map_dat.csv"))
   
   
