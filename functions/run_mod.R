@@ -1,13 +1,15 @@
-#' Run VAST using custom wrapper fucntions
+#' Run VAST using custom wrapper fucntion
 #'
 #' @description Function to run VAST using helper functions, configuration file, and external strata file.
 #'
-#' @param covar_columns Character element of column names (separated by spaces)
+#' @param covar_columns character element of column names (separated by spaces)
 #' @param config_file_loc filepath to configuration file with model set up information
 #' @param strata_file_loc filepath to file with strata
 #' @param processed_data a filtered data frame of processed data 
 #' @param output_file_loc full filepath for output folder location where results are saved
 #' @param check_identifiable if TRUE, runs TMBhelper::Check_Identifiable() and saves ouput (takes additional time)
+#' @param use_REML should REML be used for estimation
+#' @param run_fast if TRUE, does not do any plotting or save any extra ouptut
 #'
 #' @return No explicit return. Saves output to output_file_loc destination
 run_mod <- function(covar_columns = NA,
@@ -134,7 +136,7 @@ run_mod <- function(covar_columns = NA,
   
   
   
-  # Run fast output ---------------------------------------------------------------
+  # Minimal Output ---------------------------------------------------------------
   
   converged <- try(all(abs(Opt$diagnostics$final_gradient)<1e-6 ))
   
@@ -180,7 +182,7 @@ run_mod <- function(covar_columns = NA,
   }
   
   
-  # Get all the outputs ------------------------------------------
+  # Full Output ------------------------------------------
   
   if(run_fast == FALSE){
     # Get region-specific settings for plots
@@ -291,7 +293,7 @@ run_mod <- function(covar_columns = NA,
   
   
   
-  # Stuff to Return ---------------------------------------------------------
+  # Return ---------------------------------------------------------
   
   if(run_fast == TRUE){
     return_list <- list(
@@ -308,7 +310,6 @@ run_mod <- function(covar_columns = NA,
       covar_vcov = covar_vcov,
       index = my_index,
       knot_density = map_dat
-      # knot_centers = Spatial_List$loc_x, # MapDetails_List$PlotDF knot locs and ids
     )
   }
   
