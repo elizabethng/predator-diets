@@ -27,7 +27,7 @@ strata_file_loc <- here("configuration-files", "strata_limits_subset.R")
 processed_data <- dietrun$processed_data[[1]]
 output_file_loc <- diagnostic_folder # dietrun$output_file_loc
 check_identifiable = FALSE
-use_REML = FALSE # TRUE
+use_REML = TRUE # TRUE
 use_fine_scale = FALSE # TRUE
 use_bias_correct = FALSE # TRUE
 run_fast = FALSE
@@ -110,7 +110,12 @@ TmbList <- VAST::make_model(
   "RhoConfig" = RhoConfig,
   "loc_x" = Spatial_List$loc_x,
   "Method" = Spatial_List$Method,
-  "Use_REML" = use_REML)
+  "Use_REML" = use_REML,
+  "Random" = c("Epsiloninput1_sft", "Omegainput1_sf", "eta1_vf", "Epsiloninput2_sft", 
+               "Omegainput2_sf", "eta2_vf", "delta_i", "beta1_ft", "gamma1_ctp", 
+               "beta2_ft", "gamma2_ctp", "Xiinput1_scp", 
+               "Xiinput2_scp"))
+  # "Random" = c("Epsiloninput1_sft", "Omegainput1_sf"))
   # Probably what I need: "Random" = c("Epsiloninput1_sft", "Omegainput1_sf")
 
 Obj <- TmbList[["Obj"]]
@@ -159,8 +164,10 @@ if(is.null(parhat$error)){
         estimates,
         tibble(
           covariate = covar_columns_vec[-1],
-          pred1 = Opt$SD$par.fixed[names(Opt$SD$par.fixed) == "lambda1_k"], 
-          pred2 = Opt$SD$par.fixed[names(Opt$SD$par.fixed) == "lambda2_k"]
+          # pred1 = Opt$SD$par.fixed[names(Opt$SD$par.fixed) == "lambda1_k"], 
+          # pred2 = Opt$SD$par.fixed[names(Opt$SD$par.fixed) == "lambda2_k"] # Doen't work with use_REML == TRUE because it treats lambdas as random 
+          pred1 = parhat$result$lambda1_k[-1], 
+          pred2 = parhat$result$lambda2_k[-1] # works when use_REML == TRUE
         )
       )
     )
@@ -183,7 +190,7 @@ if(run_fast == FALSE){
   if(is.null(parhat$error)){
     if(!is.na(covar_columns)){
       indices <- colnames(Opt$SD$cov.fixed) %>% str_starts("lambda")
-      covar_vcov <- Opt$SD$cov.fixed[indices, indices]
+      covar_vcov <- Opt$SD$cov.fixed[indices, indices] # Doen't work with use_REML == TRUE because it treats lambdas as random 
     }
   }else{
     covar_vcov <- parhat$error
