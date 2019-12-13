@@ -12,7 +12,7 @@ library("TMB")
 Version <- FishStatsUtils::get_latest_version() # now at VAST_v8_3_0
 
 # Set VAST output location
-diagnostic_folder <- file.path("D:", "Dropbox", "Predator_Diets", "output", "VAST-test-new2-version")
+diagnostic_folder <- file.path("D:", "Dropbox", "Predator_Diets", "output", "VAST-test-version")
 
 
 # Diet Data ---------------------------------------------------------------
@@ -21,16 +21,24 @@ diagnostic_folder <- file.path("D:", "Dropbox", "Predator_Diets", "output", "VAS
 dietrun <- read_rds(here("output", "top_cov_diet.rds")) %>%
   select(-output, -covars) # create separate output folder?
 
-covar_columns <- dietrun$covar_columns
-config_file_loc <- dietrun$config_file_loc
-strata_file_loc <- here("configuration-files", "strata_limits_subset.R")
-processed_data <- dietrun$processed_data[[1]]
-output_file_loc <- diagnostic_folder # dietrun$output_file_loc
+# Function Options
+covar_columns = "int sizecat" # dietrun$covar_columns
+config_file_loc = dietrun$config_file_loc
+strata_file_loc = here("configuration-files", "strata_limits_subset.R")
+processed_data = dietrun$processed_data[[1]]
+output_file_loc = diagnostic_folder # dietrun$output_file_loc
 check_identifiable = FALSE
-use_REML = TRUE # TRUE
-use_fine_scale = FALSE # TRUE
-use_bias_correct = FALSE # TRUE
-run_fast = FALSE
+run_fast = TRUE
+use_REML = TRUE
+
+# Body of Function
+if(run_fast == TRUE){
+  use_fine_scale <- FALSE
+  use_bias_correct <- FALSE
+}else{
+  use_fine_scale <- TRUE
+  use_bias_correct <- TRUE
+}
 
 DateFile <- output_file_loc
 dir.create(DateFile, recursive = TRUE) # can end in / or not
@@ -110,18 +118,17 @@ TmbList <- VAST::make_model(
   "RhoConfig" = RhoConfig,
   "loc_x" = Spatial_List$loc_x,
   "Method" = Spatial_List$Method,
-  "Use_REML" = use_REML,
-  "Random" = c("Epsiloninput1_sft", "Omegainput1_sf", "eta1_vf", "Epsiloninput2_sft", 
-               "Omegainput2_sf", "eta2_vf", "delta_i", "beta1_ft", "gamma1_ctp", 
-               "beta2_ft", "gamma2_ctp", "Xiinput1_scp", 
-               "Xiinput2_scp"))
+  "Use_REML" = use_REML)
+  # "Random" = c("Epsiloninput1_sft", "Omegainput1_sf", "eta1_vf", "Epsiloninput2_sft", 
+               # "Omegainput2_sf", "eta2_vf", "delta_i", "beta1_ft", "gamma1_ctp", 
+               # "beta2_ft", "gamma2_ctp", "Xiinput1_scp", 
+               # "Xiinput2_scp"))
   # "Random" = c("Epsiloninput1_sft", "Omegainput1_sf"))
-  # Probably what I need: "Random" = c("Epsiloninput1_sft", "Omegainput1_sf")
 
 Obj <- TmbList[["Obj"]]
 
 Opt <- TMBhelper::fit_tmb(
-  startpar = Obj$par, # Opt$opt$par
+  startpar = Obj$par,
   obj = Obj,
   lower = TmbList[["Lower"]],
   upper = TmbList[["Upper"]],
@@ -173,6 +180,7 @@ if(is.null(parhat$error)){
     )
     
     indices <- colnames(Opt$SD$cov.fixed) %>% str_starts("lambda")
+    covar_vcov <- Opt$SD$cov.fixed[indices, indices]
   }
   
   estimates <- pivot_longer(estimates,
@@ -181,22 +189,13 @@ if(is.null(parhat$error)){
                             values_to = "estimate")
 }else{
   estimates <- parhat$error 
+  covar_vcov <- parhat$error
 }
 
 
 # Get all the outputs ------------------------------------------
 
 if(run_fast == FALSE){
-  if(is.null(parhat$error)){
-    if(!is.na(covar_columns)){
-      indices <- colnames(Opt$SD$cov.fixed) %>% str_starts("lambda")
-      covar_vcov <- Opt$SD$cov.fixed[indices, indices] # Doen't work with use_REML == TRUE because it treats lambdas as random 
-    }
-  }else{
-    covar_vcov <- parhat$error
-  }
-  
-  
   # Get region-specific settings for plots
   MapDetails_List <- FishStatsUtils::make_map_info(
     Region = "northwest_atlantic",
@@ -311,7 +310,8 @@ if(run_fast == TRUE){
   return_list <- list(
     aic = Opt$AIC[1],
     converged = converged,
-    estimates = estimates
+    estimates = estimates,
+    covar_vcov = covar_vcov
   )
 }else{
   return_list <- list(
