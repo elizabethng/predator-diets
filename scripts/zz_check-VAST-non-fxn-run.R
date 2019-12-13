@@ -28,8 +28,9 @@ processed_data <- dietrun$processed_data[[1]]
 output_file_loc <- diagnostic_folder # dietrun$output_file_loc
 check_identifiable = FALSE
 use_REML = FALSE # TRUE
-use_fine_scale = FALSE # TRUE
+use_fine_scale = TRUE # TRUE
 use_bias_correct = FALSE # TRUE
+run_fast = TRUE
 
 DateFile <- output_file_loc
 dir.create(DateFile, recursive = TRUE) # can end in / or not
@@ -102,7 +103,6 @@ if(all(is.na(covar_columns))){
   )
 }
 
-
 TmbList <- VAST::make_model(
   "TmbData" = TmbData, 
   "RunDir" = DateFile,
@@ -110,12 +110,8 @@ TmbList <- VAST::make_model(
   "RhoConfig" = RhoConfig,
   "loc_x" = Spatial_List$loc_x,
   "Method" = Spatial_List$Method,
-  "Use_REML" = use_REML) # when use_REML is true lambdas and betas get put in here, need to check out more
-  # ,
-  # "Random" = c("Epsiloninput1_sft", "Omegainput1_sf", "eta1_vf", "Epsiloninput2_sft", 
-  #              "Omegainput2_sf", "eta2_vf", "delta_i", "beta1_ft", "gamma1_ctp", 
-  #              "beta2_ft", "gamma2_ctp", "Xiinput1_scp", 
-  #              "Xiinput2_scp"))
+  "Use_REML" = use_REML)
+  # Probably what I need: "Random" = c("Epsiloninput1_sft", "Omegainput1_sf")
 
 Obj <- TmbList[["Obj"]]
 
@@ -139,7 +135,9 @@ if(check_identifiable){
 
 
 
-# My output ---------------------------------------------------------------
+# Run fast output ---------------------------------------------------------------
+
+converged <- try(all(abs(Opt$diagnostics$final_gradient)<1e-6 ))
 
 get_parhat <- function(Obj){
   Obj$env$parList(Opt$par)
@@ -147,8 +145,7 @@ get_parhat <- function(Obj){
 safe_get_parhat <- purrr::safely(get_parhat)  # Wrap troublesome part in a function
 parhat <- safe_get_parhat(Obj)
 
-converged <- try(all(abs(Opt$diagnostics$final_gradient)<1e-6 ))
-
+# Get table of parameter estimates
 if(is.null(parhat$error)){
   estimates <- tibble(
     covariate = c("epsilon", "omega"),
@@ -182,153 +179,148 @@ if(is.null(parhat$error)){
 }
 
 
-# Built-in Diagnostics and Plots ------------------------------------------
+# Get all the outputs ------------------------------------------
 
-
-# Data
-FishStatsUtils::plot_data(
-  Extrapolation_List = Extrapolation_List,
-  Spatial_List = Spatial_List,
-  Data_Geostat = Data_Geostat,
-  PlotDir = paste0(DateFile, "/"))
-
-# Presence model
-Enc_prob <- FishStatsUtils::plot_encounter_diagnostic(
-  Report = Report,
-  Data_Geostat = Data_Geostat,
-  DirName = DateFile)
-
-# Positive model
-Q <- FishStatsUtils::plot_quantile_diagnostic(
-  TmbData = TmbData,
-  Report = Report,
-  DateFile = DateFile)
-
-# Get region-specific settings for plots
-MapDetails_List <- FishStatsUtils::make_map_info(
-  Region = "northwest_atlantic",
-  Extrapolation_List = Extrapolation_List,
-  spatial_list = Spatial_List,
-  NN_Extrap = Spatial_List$PolygonList$NN_Extrap,
-  fine_scale = Spatial_List$fine_scale,
-  Include = (Extrapolation_List[["Area_km2_x"]] > 0 &
-               Extrapolation_List[["a_el"]][, 1] > 0))
-
-# Decide which years to plot                                                   
-Year_Set <- seq(min(Data_Geostat[,'Year']),max(Data_Geostat[,'Year']))
-Years2Include <- which(Year_Set %in% sort(unique(Data_Geostat[,'Year'])))
-
-# Map of residuals
-residual <- FishStatsUtils::plot_residuals(
-  Lat_i = Data_Geostat[,'Lat'],
-  Lon_i = Data_Geostat[,'Lon'],
-  TmbData = TmbData,
-  Report = Report,
-  Q = Q,
-  working_dir = paste0(DateFile, "/"),
-  spatial_list = Spatial_List,
-  extrapolation_list = Extrapolation_List,
-  Year_Set = Year_Set,
-  Years2Include = Years2Include)
-
-
-# Anisotropy
-FishStatsUtils::plot_anisotropy(
-  FileName = file.path(DateFile, "Aniso.png"),
-  Report = Report,
-  TmbData = TmbData)
-
-# Abundance index (did this always include SE?)
-Index <- FishStatsUtils::plot_biomass_index(
-  TmbData = TmbData,
-  Sdreport = Opt[["SD"]],
-  Year_Set = Year_Set,
-  Years2Include = Years2Include,
-  DirName = paste0(DateFile, "/"),
-  use_biascorr = TRUE)
-
-
-my_plots <- FishStatsUtils::plot_maps(
-  plot_set = c(1:2, 6:7, 11:14, 3),
-  Report = Report,
-  PlotDF = MapDetails_List[["PlotDF"]],
-  Sdreport = Opt$SD,
-  TmbData = TmbData,
-  Year_Set = Year_Set,
-  Years2Include = Years2Include,
-  working_dir = paste0(DateFile, "/"))
-# Last output is matrix of density values 
-# with smooth interpolation
-
-
-# My custom plotting stuff ------------------------------------------------
-
-# Get locations and standard errors for spatial density
-# Will automatically account for different dimensions of D_gcy depending on whether finescale is true
-denstiy_table <- summary(Opt$SD) %>%
-  data.frame() %>%
-  rownames_to_column() %>%
-  rename(parameter = rowname, estimate = Estimate, std_error = `Std..Error`) %>%
-  as_tibble() %>%
-  filter(str_starts(parameter, "D_gcy"))
-
-density_dat <- matrix(denstiy_table$estimate, nrow = dim(Report$D_gcy)[1], ncol = dim(Report$D_gcy)[3], byrow = FALSE)
-density_dat_se <- matrix(denstiy_table$std_error, nrow = dim(Report$D_gcy)[1], ncol = dim(Report$D_gcy)[3], byrow = FALSE)
-
-colnames(density_dat) <- paste0("density_", Year_Set)
-colnames(density_dat_se) <- paste0("stderror_", Year_Set)
-
-density <- as_tibble(density_dat)
-density_se <- as_tibble(density_dat_se)
-
-# Locations
-# (but will probably only output this at the end when finescale = TRUE)
-if(use_fine_scale == TRUE){
-  locs <- as_tibble(MapDetails_List$PlotDF) # this is always every point loc  
-}else{
-  locs <- as_tibble(Spatial_List$MeshList$loc_x) # note these are UTM (zone 19 I think)
+if(run_fast == FALSE){
+  # Get region-specific settings for plots
+  MapDetails_List <- FishStatsUtils::make_map_info(
+    Region = "northwest_atlantic",
+    Extrapolation_List = Extrapolation_List,
+    spatial_list = Spatial_List,
+    NN_Extrap = Spatial_List$PolygonList$NN_Extrap,
+    fine_scale = Spatial_List$fine_scale,
+    Include = (Extrapolation_List[["Area_km2_x"]] > 0 &
+                 Extrapolation_List[["a_el"]][, 1] > 0))
+  
+  # Decide which years to plot                                                   
+  Year_Set <- seq(min(Data_Geostat[,'Year']),max(Data_Geostat[,'Year']))
+  Years2Include <- which(Year_Set %in% sort(unique(Data_Geostat[,'Year'])))
+  
+  # Abundance index (did this always include SE?)
+  Index <- FishStatsUtils::plot_biomass_index(
+    TmbData = TmbData,
+    Sdreport = Opt[["SD"]],
+    Year_Set = Year_Set,
+    Years2Include = Years2Include,
+    DirName = paste0(DateFile, "/"),
+    use_biascorr = TRUE)
+  
+  # Data
+  FishStatsUtils::plot_data(
+    Extrapolation_List = Extrapolation_List,
+    Spatial_List = Spatial_List,
+    Data_Geostat = Data_Geostat,
+    PlotDir = paste0(DateFile, "/"))
+  
+  # Presence model
+  Enc_prob <- FishStatsUtils::plot_encounter_diagnostic(
+    Report = Report,
+    Data_Geostat = Data_Geostat,
+    DirName = DateFile)
+  
+  # Positive model
+  Q <- FishStatsUtils::plot_quantile_diagnostic(
+    TmbData = TmbData,
+    Report = Report,
+    DateFile = DateFile)
+  
+  
+  # Map of residuals
+  residual <- FishStatsUtils::plot_residuals(
+    Lat_i = Data_Geostat[,'Lat'],
+    Lon_i = Data_Geostat[,'Lon'],
+    TmbData = TmbData,
+    Report = Report,
+    Q = Q,
+    working_dir = paste0(DateFile, "/"),
+    spatial_list = Spatial_List,
+    extrapolation_list = Extrapolation_List,
+    Year_Set = Year_Set,
+    Years2Include = Years2Include)
+  
+  
+  # Anisotropy
+  FishStatsUtils::plot_anisotropy(
+    FileName = file.path(DateFile, "Aniso.png"),
+    Report = Report,
+    TmbData = TmbData)
+  
+  
+  my_plots <- FishStatsUtils::plot_maps(
+    plot_set = c(1:2, 6:7, 11:14, 3),
+    Report = Report,
+    PlotDF = MapDetails_List[["PlotDF"]],
+    Sdreport = Opt$SD,
+    TmbData = TmbData,
+    Year_Set = Year_Set,
+    Years2Include = Years2Include,
+    working_dir = paste0(DateFile, "/"))
+  # Last output is matrix of density values 
+  # with smooth interpolation
+  
+  # Get locations and standard errors for spatial density
+  # Will automatically account for different dimensions of D_gcy depending on whether finescale is true
+  denstiy_table <- summary(Opt$SD) %>%
+    data.frame() %>%
+    rownames_to_column() %>%
+    rename(parameter = rowname, estimate = Estimate, std_error = `Std..Error`) %>%
+    as_tibble() %>%
+    filter(str_starts(parameter, "D_gcy"))
+  
+  density_dat <- matrix(denstiy_table$estimate, nrow = dim(Report$D_gcy)[1], ncol = dim(Report$D_gcy)[3], byrow = FALSE)
+  density_dat_se <- matrix(denstiy_table$std_error, nrow = dim(Report$D_gcy)[1], ncol = dim(Report$D_gcy)[3], byrow = FALSE)
+  
+  colnames(density_dat) <- paste0("density_", Year_Set)
+  colnames(density_dat_se) <- paste0("stderror_", Year_Set)
+  
+  density <- as_tibble(density_dat)
+  density_se <- as_tibble(density_dat_se)
+  
+  # Locations
+  # (but will probably only output this at the end when finescale = TRUE)
+  if(use_fine_scale == TRUE){
+    locs <- as_tibble(MapDetails_List$PlotDF) # this is always every point loc  
+  }else{
+    locs <- as_tibble(Spatial_List$MeshList$loc_x) # note these are UTM (zone 19 I think)
+  }
+  
+  # Wide data
+  # Sacrifice tidiness for efficiency with obs
+  map_dat <- bind_cols(locs, density, density_se)
+  readr::write_csv(map_dat, file.path(DateFile, "my_map_dat.csv"))
+  
+  
+  # Index for plotting (rename SE? and fix downstream)
+  exclude_years <- processed_data %>%
+    dplyr::select(Year, exclude_reason) %>% 
+    dplyr::distinct()
+  
+  my_index <- Index$Table %>%
+    dplyr::full_join(exclude_years, by = "Year") %>%
+    dplyr::as_tibble()
 }
-
-# Wide data
-# Sacrifice tidiness for efficiency with obs
-map_dat <- bind_cols(locs, density, density_se)
-readr::write_csv(map_dat, file.path(DateFile, "my_map_dat.csv"))
-
-
-# Index for plotting (rename SE? and fix downstream)
-exclude_years <- processed_data %>%
-  dplyr::select(Year, exclude_reason) %>% 
-  dplyr::distinct()
-
-my_index <- Index$Table %>%
-  dplyr::full_join(exclude_years, by = "Year") %>%
-  dplyr::as_tibble()
 
 
 
 # Stuff to Return ---------------------------------------------------------
 
-# Quick run
-return_list <- list(
-  converged = converged,
-  aic = Opt$AIC[1],
-  estimates = estimates
-)
+if(run_fast == TRUE){
+  return_list <- list(
+    aic = Opt$AIC[1],
+    converged = converged,
+    estimates = estimates
+  )
+}else{
+  return_list <- list(
+    aic = Opt$AIC[1],
+    converged = converged,
+    estimates = estimates,
+    covar_vcov = covar_vcov,
+    index = my_index,
+    knot_density = map_dat,
+    # knot_centers = Spatial_List$loc_x, # MapDetails_List$PlotDF knot locs and ids
+  )
+}
 
-# Full run
-return_list <- list(
-  converged = converged,
-  aic = Opt$AIC[1],
-  estimates = estimates,
-  covar_vcov = covar_vcov
-)
 
-# actual full_run
-return(list(
-  aic = Opt$AIC[1],
-  index = my_index,
-  knot_density = map_dat,
-  knot_centers = Spatial_List$loc_x, # MapDetails_List$PlotDF knot locs and ids
-  estimates = estimates,
-  converged = converged
-))
+
