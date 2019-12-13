@@ -66,21 +66,16 @@ if(all(is.na(covar_columns))){
   TmbData <- VAST::make_data(
     "b_i" = Data_Geostat$Catch_KG,
     "a_i" = Data_Geostat$AreaSwept_km2,
-    "c_iz" = rep(0, nrow(Data_Geostat)),
     "t_iz" = Data_Geostat$Year,
+    "c_iz" = rep(0, nrow(Data_Geostat)),
     "FieldConfig" = FieldConfig,
-    "OverdispersionConfig" = OverdispersionConfig,
-    "ObsModel_ez" = ObsModel,
-    "RhoConfig" = RhoConfig,
     "spatial_list" = Spatial_List,
+    "ObsModel_ez" = ObsModel,
+    "OverdispersionConfig" = OverdispersionConfig,
+    "RhoConfig" = RhoConfig,
     "Aniso" = 1,
     "Options" = Options,
-    "Version" =  Version, 
-    "s_i" = Data_Geostat$knot_i - 1,
-    "a_xl" = Spatial_List$a_xl,
-    "MeshList" = Spatial_List$MeshList,
-    "GridList" = Spatial_List$GridList, 
-    "Method" = Spatial_List$Method
+    "Version" =  Version
   )
 }else{
   # Make matrix of covariates
@@ -115,7 +110,7 @@ TmbList <- VAST::make_model(
   "RhoConfig" = RhoConfig,
   "loc_x" = Spatial_List$loc_x,
   "Method" = Spatial_List$Method,
-  "Use_REML" = use_REML)
+  "Use_REML" = use_REML) # when use_REML is true lambdas and betas get put in here, need to check out more
   # ,
   # "Random" = c("Epsiloninput1_sft", "Omegainput1_sf", "eta1_vf", "Epsiloninput2_sft", 
   #              "Omegainput2_sf", "eta2_vf", "delta_i", "beta1_ft", "gamma1_ctp", 
