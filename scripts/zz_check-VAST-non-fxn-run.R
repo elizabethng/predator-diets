@@ -28,9 +28,9 @@ processed_data <- dietrun$processed_data[[1]]
 output_file_loc <- diagnostic_folder # dietrun$output_file_loc
 check_identifiable = FALSE
 use_REML = FALSE # TRUE
-use_fine_scale = TRUE # TRUE
+use_fine_scale = FALSE # TRUE
 use_bias_correct = FALSE # TRUE
-run_fast = TRUE
+run_fast = FALSE
 
 DateFile <- output_file_loc
 dir.create(DateFile, recursive = TRUE) # can end in / or not
@@ -166,7 +166,6 @@ if(is.null(parhat$error)){
     )
     
     indices <- colnames(Opt$SD$cov.fixed) %>% str_starts("lambda")
-    covar_vcov <- Opt$SD$cov.fixed[indices, indices]
   }
   
   estimates <- pivot_longer(estimates,
@@ -175,13 +174,22 @@ if(is.null(parhat$error)){
                             values_to = "estimate")
 }else{
   estimates <- parhat$error 
-  covar_vcov <- parhat$error
 }
 
 
 # Get all the outputs ------------------------------------------
 
 if(run_fast == FALSE){
+  if(is.null(parhat$error)){
+    if(!is.na(covar_columns)){
+      indices <- colnames(Opt$SD$cov.fixed) %>% str_starts("lambda")
+      covar_vcov <- Opt$SD$cov.fixed[indices, indices]
+    }
+  }else{
+    covar_vcov <- parhat$error
+  }
+  
+  
   # Get region-specific settings for plots
   MapDetails_List <- FishStatsUtils::make_map_info(
     Region = "northwest_atlantic",
@@ -317,7 +325,7 @@ if(run_fast == TRUE){
     estimates = estimates,
     covar_vcov = covar_vcov,
     index = my_index,
-    knot_density = map_dat,
+    knot_density = map_dat
     # knot_centers = Spatial_List$loc_x, # MapDetails_List$PlotDF knot locs and ids
   )
 }
