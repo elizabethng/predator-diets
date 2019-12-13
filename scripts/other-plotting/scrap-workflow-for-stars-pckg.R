@@ -32,3 +32,15 @@ ggplot() +
 ggplot() +
   geom_sf(data = sample_n(spatdat, 20), aes(color = y_1990))
 # Just have to adjust the point size for output size (prevent overlap)
+
+# Plot SE effects when estimated (in check-VAST-non-fxn output)
+poop <- select(map_dat, E_km, N_km, starts_with("stderror")) %>%
+  pivot_longer(cols = starts_with("stderror"), names_to = "year", values_to = "density_se") %>%
+  mutate(year = gsub("stderror_", "", year)) %>%
+  mutate(year = as.numeric(year))
+
+filter(poop, year == 1990) %>%
+  ggplot(aes(E_km, N_km, color = density_se)) +
+  geom_point(size = 3) +
+  scale_color_viridis_c() +
+  theme_bw()
