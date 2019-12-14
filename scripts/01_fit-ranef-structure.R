@@ -11,13 +11,13 @@ library("TMB")
 test <- TRUE
 
 # Load helper functions
-source(here("functions", "process_diet_data.R"))
 source(here("functions", "process_trawl_data.R"))
-source(here("functions", "run_mod_fast.R"))
+source(here("functions", "process_diet_data.R"))
 source(here("functions", "make_run_name.R"))
+source(here("functions", "run_mod.R"))
 
 Version <- FishStatsUtils::get_latest_version() # [ ] move into config_file ??
-safe_run_mod <- purrr::safely(run_mod_fast)     # [ ] move into run_mod function?
+safe_run_mod <- purrr::safely(run_mod)     # [ ] move into run_mod function?
 
 # Set VAST output location
 diagnostic_folder <- file.path("D:", "Dropbox", "Predator_Diets", "output", "VAST")
@@ -73,7 +73,8 @@ dietrun <- dietrun %>%
        processed_data, 
        output_file_loc,
        check_identifiable = FALSE,
-       use_REML = TRUE),
+       use_REML = TRUE,
+       run_fast = TRUE),
   safe_run_mod))
 
 readr::write_rds(dietrun, path = here("output", "select_st_diet.rds"))
@@ -130,6 +131,7 @@ trawlrun <- trawlrun %>%
          processed_data, 
          output_file_loc,
          check_identifiable = FALSE,
-         use_REML = TRUE),
+         use_REML = TRUE,
+         run_fast = TRUE),
     safe_run_mod))
 readr::write_rds(trawlrun, path = here::here("output", "select_st_trawl.rds"))

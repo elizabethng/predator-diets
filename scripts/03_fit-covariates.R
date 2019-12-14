@@ -11,11 +11,11 @@ library("TMB")
 
 # Setup -------------------------------------------------------------------
 # Load helper functions
-source(here("functions", "run_mod_fast.R"))
+source(here("functions", "run_mod.R"))
 source(here("functions", "make_run_name.R"))
 
 Version <- FishStatsUtils::get_latest_version()
-safe_run_mod <- purrr::safely(run_mod_fast)
+safe_run_mod <- purrr::safely(run_mod)
 
 # Set VAST output location
 diagnostic_folder <- file.path("D:", "Dropbox", "Predator_Diets", "output", "VAST")
@@ -55,7 +55,8 @@ dietrun <- dietrun %>%
        processed_data, 
        output_file_loc,
        check_identifiable = FALSE,
-       use_REML = FALSE),
+       use_REML = FALSE,
+       run_fast = TRUE),
   safe_run_mod))
 
 readr::write_rds(dietrun, path = here("output", "select_cov_diet.rds"))
