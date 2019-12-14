@@ -18,11 +18,11 @@ diagnostic_folder <- file.path("D:", "Dropbox", "Predator_Diets", "output", "VAS
 # Diet Data ---------------------------------------------------------------
 
 # Load top models
-dietrun <- read_rds(here("output", "top_cov_diet.rds")) %>%
-  select(-output, -covars) # create separate output folder?
+dietrun <- read_rds(here("output", "top_st_diet.rds")) %>%
+  select(-output) # create separate output folder?
 
 # Function Options
-covar_columns = "int sizecat" # dietrun$covar_columns
+covar_columns = NA #"int sizecat" # dietrun$covar_columns
 config_file_loc = dietrun$config_file_loc
 strata_file_loc = here("configuration-files", "strata_limits_subset.R")
 processed_data = dietrun$processed_data[[1]]
@@ -158,6 +158,8 @@ safe_get_parhat <- purrr::safely(get_parhat)  # Wrap troublesome part in a funct
 parhat <- safe_get_parhat(Obj)
 
 # Get table of parameter estimates
+ # cond 1: did I get parameter estimates? if yes, then go to 2 else return the error
+# cond 2: given that I got parameter estimates, were there covariates? if yes, return them. else give NA?
 if(is.null(parhat$error)){
   estimates <- tibble(
     covariate = c("epsilon", "omega"),
@@ -178,10 +180,10 @@ if(is.null(parhat$error)){
         )
       )
     )
-    
-    indices <- colnames(Opt$SD$cov.fixed) %>% str_starts("lambda")
-    covar_vcov <- Opt$SD$cov.fixed[indices, indices]
   }
+  indices <- colnames(Opt$SD$cov.fixed) %>% str_starts("lambda")
+  covar_vcov <- Opt$SD$cov.fixed[indices, indices]
+  
   
   estimates <- pivot_longer(estimates,
                             cols = c(pred1, pred2), 

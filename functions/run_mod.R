@@ -20,7 +20,7 @@ run_mod <- function(covar_columns = NA,
                     check_identifiable = FALSE,
                     use_REML,
                     run_fast)
-  {
+{
   if(run_fast == TRUE){
     use_fine_scale <- FALSE
     use_bias_correct <- FALSE
@@ -167,10 +167,10 @@ run_mod <- function(covar_columns = NA,
           )
         )
       )
-      
-      indices <- colnames(Opt$SD$cov.fixed) %>% str_starts("lambda")
-      covar_vcov <- Opt$SD$cov.fixed[indices, indices]
     }
+    indices <- colnames(Opt$SD$cov.fixed) %>% str_starts("lambda")
+    covar_vcov <- Opt$SD$cov.fixed[indices, indices]
+    
     
     estimates <- pivot_longer(estimates,
                               cols = c(pred1, pred2), 
