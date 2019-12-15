@@ -28,7 +28,8 @@ diagnostic_folder <- file.path("D:", "Dropbox", "Predator_Diets", "output", "VAS
 if(test == TRUE){
   dietsetup <- readr::read_rds(here("data", "processed", "dat_preds_all.rds")) %>%
     dplyr::filter(year %in% 1990:1995) %>%
-    dplyr::filter(predator == "spiny dogfish", season == "spring") %>%
+    # dplyr::filter(predator == "spiny dogfish", season == "spring") %>%
+    dplyr::filter(predator %in% c("atlantic cod", "silver hake", "spiny dogfish", "goosefish")) %>%
         group_by(predator, season) %>%
     nest() %>%
     mutate(processed_data = purrr::map(data, process_diet_data))
@@ -86,7 +87,7 @@ readr::write_rds(dietrun, path = here("output", "select_st_diet.rds"))
 if(test == TRUE){
   trawlsetup <- readr::read_rds(here("data", "processed", "dat_trawl.rds")) %>%
     dplyr::filter(year %in% 1990:1995) %>%
-    filter(species %in% c("atlantic herring", "spiny dogfish"), season == "spring") %>%
+    # filter(species %in% c("atlantic herring", "spiny dogfish"), season == "spring") %>%
     group_by(species, season) %>%
     nest() %>%
     mutate(processed_data = purrr::map(data, process_trawl_data))
