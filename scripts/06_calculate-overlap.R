@@ -208,13 +208,7 @@ ggsave(here("output", "plots", "overlap-map-avg.pdf"), width = 9, height = 5, un
 # 2. join and calculate bhat
 # 3. store the annual index
 
-# Approach
-# A. mannually code 1 iteration
-# B. wrap in a function
-# C. run for ~1,000 iterations
-
 iters <- 1000
-
 permres <- NULL
  
 for(i in 1:iters){
@@ -248,7 +242,6 @@ for(i in 1:iters){
   permres <- bind_rows(permres, oneperm)
 }
 
-
 ggplot(permres, aes(x = year, y = `overlap metric`, color = season, group = paste(season, iter))) +
   geom_line(alpha = 0.1) +
   geom_point(data = annualindex, aes(x = year, y = `overlap metric`, color = season), inherit.aes = FALSE) +
@@ -273,28 +266,10 @@ ggplot(permres, aes(x = year, y = `overlap metric`, color = season, group = past
         panel.border = element_blank(),
         axis.line = element_line())
 
-# Check for a single year
+# Check distribution for a single year
 onepredyrperm <- filter(permres, season == "fall", predator == "goosefish", year == 1992)
 onepredyr <- filter(annualindex, season == "fall", predator == "goosefish", year == 1992)
 
 ggplot(onepredyrperm, aes(x = `overlap metric`)) +
   geom_histogram(bins = 60) +
   geom_vline(xintercept = onepredyr$`overlap metric`)
-
-
-if(FALSE){
-  # do for one:
-  poop <- as_tibble(list(col1 = 0:9, col2 = 10:19, col3 = 20:29))
-  map_df(poop, ~ sample(.x, replace = TRUE))
-  
-  normdat$density[[1]] %>% map_df(~ sample(.x, replace = TRUE))
-  map_df(normdat$density[[1]], ~ sample(.x, replace = TRUE))
-  
-  normdat$density %>% map(~ .x %>% map_df(~sample(.x, replace = TRUE)))
-  normdat$density %>% map(map_df, ~ sample(.x, replace = TRUE))
-  
-  
-  # Pull out atlantic herring data
-  preydat <- filter(normdat, species == "atlantic herring")
-  preddat <- filter(normdat, species != "atlantic herring")
-}
