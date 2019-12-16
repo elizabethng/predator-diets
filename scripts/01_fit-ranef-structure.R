@@ -8,7 +8,7 @@ library("TMB")
 
 
 # Setup -------------------------------------------------------------------
-test <- TRUE
+# test <- TRUE
 
 # Load helper functions
 source(here("functions", "process_trawl_data.R"))
