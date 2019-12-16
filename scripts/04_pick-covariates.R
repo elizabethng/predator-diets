@@ -69,8 +69,8 @@ modchecks <- worked %>%
 
 # Write output for next phase of model selection
 topmods <- modchecks %>%
-  filter(delta_aic < 2,
-         ranef_ok == TRUE) %>%
+  filter(delta_aic < 2) %>%
+  # filter(ranef_ok == TRUE) %>% # only 2 models pass this test
   mutate(
     fixef_n = str_count(covars, ","),
     fixef_n = replace_na(fixef_n, 0)
