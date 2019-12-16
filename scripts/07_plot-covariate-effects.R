@@ -1,7 +1,5 @@
-# Check and plot predator covariates
-# Did not keep size category coefficeints 
-# !! [ ] could change that
-# So just plot lengths for all
+# Plot covariate effects on linear predictors, including 95% CI a
+# and rug plot showing data density
 
 library("tidyverse")
 library("here")
@@ -26,7 +24,6 @@ obslen <- topdiet %>%
   select(predator, season, data) %>%
   unnest(cols = c(data)) %>%
   select(predator, season, year, pdlen)
-# ggplot(obslen, aes(x = pdlen)) + geom_histogram(bins = 30) + facet_grid(season ~ predator)
 
 lendat <- obslen %>%
   group_by(predator, season) %>%
@@ -66,36 +63,42 @@ lengthlimits <- obslen %>%
   summarize(min = min(pdlen), max = max(pdlen))
 
 plotdat <- left_join(alldat, lengthlimits, by = c("predator", "season")) %>%
-  filter(length > min & length < max)
+  filter(length > min & length < max) %>%
+  rename(
+    Season = season,
+    Effect = effect, 
+    "Length (cm)" = length
+  ) %>%
+  mutate(
+    predator = str_to_sentence(predator), 
+    predictor = ifelse(predictor == "presence", 1, 2)
+  )
 
-# ggplot(obslen, aes(x = pdlen)) + 
-#   geom_histogram(binwidth = 1) + 
-#   facet_grid(season ~ predator) +
-#   geom_rug()
+obslenplot <- obslen %>%
+  rename(Season = season) %>%
+  mutate(predator = str_to_sentence(predator))
 
-ggplot(plotdat, aes(x = length, y = effect, group = paste(season, predator, predictor), color = season)) +
+ggplot(obslen, aes(x = pdlen)) + 
+    geom_histogram(bins = 30) +
+    facet_grid(season ~ predator) +
+    geom_rug(size = 0.01, color = "#D3D3D399")
+
+p <- ggplot(plotdat, aes(x = `Length (cm)`, y = Effect, group = paste(Season, predator, predictor), color = Season)) +
   geom_line() +
-  geom_ribbon(aes(ymin = lcb, ymax = ucb, fill = season), alpha = 0.1, color = NA) +
-  geom_rug(data = obslen, aes(x = pdlen), inherit.aes = FALSE) +
-  facet_grid(predictor ~ predator, scales = "free_x") +
+  geom_ribbon(aes(ymin = lcb, ymax = ucb, fill = Season), alpha = 0.1, color = NA) +
+  geom_rug(data = obslenplot, 
+           aes(x = pdlen), 
+           inherit.aes = FALSE,
+           size = 0.1,
+           color = "#D3D3D388") +
+  facet_grid(predictor ~ predator, 
+             scales = "free_x",
+             labeller = label_bquote(italic(p[.(predictor)]))) +
   theme_bw() +
   theme(panel.grid.major = element_blank(),
         panel.grid.minor = element_blank(),
-        strip.background = element_blank())
-        # panel.border = element_blank())
-        # axis.line = element_line())
-ggsave(here("output", "plots", "length-effects.pdf"), width = 6, height = 3.5, units = "in")
+        strip.background = element_blank(),
+        panel.spacing.x = unit(0.8, "lines")) # handle label overlap
+ggsave(plot = p, filename = here("output", "plots", "length-effects.pdf"), width = 10, height = 4, units = "in")
 
-  
-
-# Try to plot on probability scale
-responsedat <- alldat %>%
-  mutate(probability = 1-exp(-exp(effect)),
-         prob_ucb = 1-exp(-exp(ucb)),
-         prob_lcb = 1-exp(-exp(lcb)))
-ggplot(responsedat, aes(x = length, y = probability, group = paste(season, predator, predictor), color = season)) +
-  geom_line() +
-  geom_ribbon(aes(ymin = prob_lcb, ymax = prob_ucb, fill = season), alpha = 0.1, color = NA) +
-  facet_grid(predictor ~ predator, scales = "free_x") +
-  theme_bw()
 
