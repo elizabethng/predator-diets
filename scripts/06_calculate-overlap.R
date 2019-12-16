@@ -199,3 +199,102 @@ ggplot() +
         axis.ticks.y = element_blank())
 ggsave(here("output", "plots", "overlap-map-avg.pdf"), width = 9, height = 5, units = "in")
 
+
+
+
+# 5. Permutation test for CIs ---------------------------------------------
+# Currently these are matched by row. To do the permutation test, 
+# 1. sample with replacement the rows for each data frame
+# 2. join and calculate bhat
+# 3. store the annual index
+
+# Approach
+# A. mannually code 1 iteration
+# B. wrap in a function
+# C. run for ~1,000 iterations
+
+iters <- 1000
+
+permres <- NULL
+ 
+for(i in 1:iters){
+  # 1. sample with replacement the rows for each data frame
+  #    resample within years
+  permdat <- mutate(normdat, density = map(density, map_df, ~ sample(.x, replace = TRUE)))
+  
+  # 2. join and calculate (treat just as I would for rest of analysis)
+  preydat <- filter(permdat, species == "atlantic herring")
+  preddat <- filter(permdat, species != "atlantic herring")
+  
+  oneperm <- left_join(preddat, preydat, by = "season") %>%
+    rename(predator = species.x,
+           preddens = density.x,
+           preydens = density.y) %>%
+    select(-species.y) %>%
+    mutate(bhat = pmap(list(preddens, preydens), `*`)) %>%
+    mutate(bhat = pmap(list(bhat), sqrt)) %>%
+    select(-preddens, -preydens) %>%
+    mutate(annual_index = pmap(list(bhat), colSums)) %>%
+    select(season, predator, annual_index) %>%
+    mutate(annual_index = pmap(list(annual_index), enframe)) %>%
+    unnest(cols = c(annual_index)) %>%
+    rename(year = name, bhat = value) %>%
+    mutate(year = gsub("density_", "", year),
+           year = as.numeric(year)) %>%
+    rename("overlap metric" = bhat)
+  
+  # 3. Store the index
+  oneperm$iter <- i
+  permres <- bind_rows(permres, oneperm)
+}
+
+
+ggplot(permres, aes(x = year, y = `overlap metric`, color = season, group = paste(season, iter))) +
+  geom_line(alpha = 0.1) +
+  geom_point(data = annualindex, aes(x = year, y = `overlap metric`, color = season), inherit.aes = FALSE) +
+  facet_wrap(~predator) +
+  theme_bw() +
+  theme(panel.grid.major = element_blank(),
+        panel.grid.minor = element_blank(),
+        strip.background = element_blank(),
+        panel.border = element_blank(),
+        axis.line = element_line())
+ggsave(here("output", "plots", "overlap-index-ts-permutation.pdf"),
+       width = 9, height = 5, units = "in")
+
+ggplot(permres, aes(x = year, y = `overlap metric`, color = season, group = paste(season, year))) +
+  geom_boxplot() +
+  geom_point(data = annualindex, aes(x = year, y = `overlap metric`, color = season)) +
+  facet_wrap(~predator) +
+  theme_bw() +
+  theme(panel.grid.major = element_blank(),
+        panel.grid.minor = element_blank(),
+        strip.background = element_blank(),
+        panel.border = element_blank(),
+        axis.line = element_line())
+
+# Check for a single year
+onepredyrperm <- filter(permres, season == "fall", predator == "goosefish", year == 1992)
+onepredyr <- filter(annualindex, season == "fall", predator == "goosefish", year == 1992)
+
+ggplot(onepredyrperm, aes(x = `overlap metric`)) +
+  geom_histogram(bins = 60) +
+  geom_vline(xintercept = onepredyr$`overlap metric`)
+
+
+if(FALSE){
+  # do for one:
+  poop <- as_tibble(list(col1 = 0:9, col2 = 10:19, col3 = 20:29))
+  map_df(poop, ~ sample(.x, replace = TRUE))
+  
+  normdat$density[[1]] %>% map_df(~ sample(.x, replace = TRUE))
+  map_df(normdat$density[[1]], ~ sample(.x, replace = TRUE))
+  
+  normdat$density %>% map(~ .x %>% map_df(~sample(.x, replace = TRUE)))
+  normdat$density %>% map(map_df, ~ sample(.x, replace = TRUE))
+  
+  
+  # Pull out atlantic herring data
+  preydat <- filter(normdat, species == "atlantic herring")
+  preddat <- filter(normdat, species != "atlantic herring")
+}
