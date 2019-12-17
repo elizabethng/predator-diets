@@ -107,7 +107,7 @@ if(TRUE){
         geom_sf(aes(fill = bhat, color = bhat)) +
         scale_fill_viridis_c(
           option = "inferno",
-          name = "overlap metric"
+          name = "Overlap metric"
         ) +
         scale_color_viridis_c(
           option = "inferno",
@@ -147,18 +147,20 @@ annualindex <- results %>%
   rename(year = name, bhat = value) %>%
   mutate(year = gsub("density_", "", year),
          year = as.numeric(year)) %>%
-  rename("overlap metric" = bhat)
+  rename("Overlap metric" = bhat) 
 
-ggplot(annualindex, aes(x = year, y = `overlap metric`, color = season)) +
+plot_annualindex <- annualindex %>%
+  rename(Season = season, Year = year) %>%
+  mutate(predator = str_to_sentence(predator))
+
+ggplot(plot_annualindex, aes(x = Year, y = `Overlap metric`, color = Season)) +
   geom_point() +
   geom_line() +
   facet_wrap(~predator) +
   theme_bw() +
   theme(panel.grid.major = element_blank(),
         panel.grid.minor = element_blank(),
-        strip.background = element_blank(),
-        panel.border = element_blank(),
-        axis.line = element_line())
+        strip.background = element_blank())
 ggsave(here("output", "plots", "overlap-index-ts.pdf"),
        width = 9, height = 5, units = "in")
 write_rds(annualindex, path = here::here("output", "index_overlap.rds"))
@@ -174,18 +176,20 @@ averagespatial <- results %>%
   rename(bhat = value) %>%
   select(-name)
 
-spatial_spatial <- st_as_sf(averagespatial, coords = c("lon", "lat"), crs = 4326)
+plot_averagespatial <- st_as_sf(averagespatial, coords = c("lon", "lat"), crs = 4326) %>%
+  mutate(predator = str_to_sentence(predator),
+         season = str_to_sentence(season))
 
 ggplot() +
-  geom_sf(data = spatial_spatial, aes(fill = bhat, color = bhat)) +
+  geom_sf(data = plot_averagespatial, aes(fill = bhat, color = bhat)) +
   facet_grid(season ~ predator) +
   scale_fill_viridis_c(
     option = "inferno",
-    name = "overlap metric"
+    name = "Overlap metric"
   ) +
   scale_color_viridis_c(
     option = "inferno",
-    name = "overlap metric"
+    name = "Overlap metric"
   ) +
   geom_sf(data = northamerica, color = "white", fill = "grey", inherit.aes = FALSE) +
   coord_sf(xlim = c(-79.5, -65.5), ylim = c(32.5, 45.5)) +
@@ -196,7 +200,8 @@ ggplot() +
         axis.ticks.x = element_blank(),
         axis.title.y = element_blank(),
         axis.text.y = element_blank(),
-        axis.ticks.y = element_blank())
+        axis.ticks.y = element_blank(),
+        strip.background = element_blank())
 ggsave(here("output", "plots", "overlap-map-avg.pdf"), width = 9, height = 5, units = "in")
 
 
@@ -235,16 +240,16 @@ for(i in 1:iters){
     rename(year = name, bhat = value) %>%
     mutate(year = gsub("density_", "", year),
            year = as.numeric(year)) %>%
-    rename("overlap metric" = bhat)
+    rename("Overlap metric" = bhat)
   
   # 3. Store the index
   oneperm$iter <- i
   permres <- bind_rows(permres, oneperm)
 }
 
-ggplot(permres, aes(x = year, y = `overlap metric`, color = season, group = paste(season, iter))) +
+ggplot(permres, aes(x = year, y = `Overlap metric`, color = season, group = paste(season, iter))) +
   geom_line(alpha = 0.1) +
-  geom_point(data = annualindex, aes(x = year, y = `overlap metric`, color = season), inherit.aes = FALSE) +
+  geom_point(data = annualindex, aes(x = year, y = `Overlap metric`, color = season), inherit.aes = FALSE) +
   facet_wrap(~predator) +
   theme_bw() +
   theme(panel.grid.major = element_blank(),
@@ -252,12 +257,13 @@ ggplot(permres, aes(x = year, y = `overlap metric`, color = season, group = past
         strip.background = element_blank(),
         panel.border = element_blank(),
         axis.line = element_line())
+
 ggsave(here("output", "plots", "overlap-index-ts-permutation.pdf"),
        width = 9, height = 5, units = "in")
 
-ggplot(permres, aes(x = year, y = `overlap metric`, color = season, group = paste(season, year))) +
+ggplot(permres, aes(x = year, y = `Overlap metric`, color = season, group = paste(season, year))) +
   geom_boxplot() +
-  geom_point(data = annualindex, aes(x = year, y = `overlap metric`, color = season)) +
+  geom_point(data = annualindex, aes(x = year, y = `Overlap metric`, color = season)) +
   facet_wrap(~predator) +
   theme_bw() +
   theme(panel.grid.major = element_blank(),
@@ -270,6 +276,6 @@ ggplot(permres, aes(x = year, y = `overlap metric`, color = season, group = past
 onepredyrperm <- filter(permres, season == "fall", predator == "goosefish", year == 1992)
 onepredyr <- filter(annualindex, season == "fall", predator == "goosefish", year == 1992)
 
-ggplot(onepredyrperm, aes(x = `overlap metric`)) +
+ggplot(onepredyrperm, aes(x = `Overlap metric`)) +
   geom_histogram(bins = 60) +
-  geom_vline(xintercept = onepredyr$`overlap metric`)
+  geom_vline(xintercept = onepredyr$`Overlap metric`)
