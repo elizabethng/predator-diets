@@ -180,7 +180,7 @@ plot_averagespatial <- st_as_sf(averagespatial, coords = c("lon", "lat"), crs = 
   mutate(predator = str_to_sentence(predator),
          season = str_to_sentence(season))
 
-ggplot() +
+p <- ggplot() +
   geom_sf(data = plot_averagespatial, aes(fill = bhat, color = bhat)) +
   facet_grid(season ~ predator) +
   scale_fill_viridis_c(
@@ -202,7 +202,7 @@ ggplot() +
         axis.text.y = element_blank(),
         axis.ticks.y = element_blank(),
         strip.background = element_blank())
-ggsave(here("output", "plots", "overlap-map-avg.pdf"), width = 9, height = 5, units = "in")
+ggsave(plot = p, filename = here("output", "plots", "overlap-map-avg.pdf"), width = 9, height = 5, units = "in")
 
 
 
@@ -248,7 +248,7 @@ for(i in 1:iters){
 }
 
 ggplot(permres, aes(x = year, y = `Overlap metric`, color = season, group = paste(season, iter))) +
-  geom_line(alpha = 0.1) +
+  geom_line(alpha = 0.01) +
   geom_point(data = annualindex, aes(x = year, y = `Overlap metric`, color = season), inherit.aes = FALSE) +
   facet_wrap(~predator) +
   theme_bw() +
@@ -257,12 +257,11 @@ ggplot(permres, aes(x = year, y = `Overlap metric`, color = season, group = past
         strip.background = element_blank(),
         panel.border = element_blank(),
         axis.line = element_line())
-
 ggsave(here("output", "plots", "overlap-index-ts-permutation.pdf"),
        width = 9, height = 5, units = "in")
 
-ggplot(permres, aes(x = year, y = `Overlap metric`, color = season, group = paste(season, year))) +
-  geom_boxplot() +
+ggplot(permres, aes(x = year, y = `Overlap metric`, fill = season, group = paste(season, year))) +
+  geom_violin() +
   geom_point(data = annualindex, aes(x = year, y = `Overlap metric`, color = season)) +
   facet_wrap(~predator) +
   theme_bw() +
