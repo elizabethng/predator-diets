@@ -31,12 +31,7 @@ allruns <- dietrun %>%
   dplyr::mutate(
     converged = purrr::map_chr(output, "converged"), # Some errors were passed (non numerical argument)
     converged = ifelse(converged %in% c("TRUE", "FALSE"), converged, NA) 
-    ) %>%
-  dplyr::mutate(
-    aic = purrr::map(output, "aic"),
-    aic = na_if(aic, "NULL")
-    ) %>%
-  unnest(cols = c("aic")) 
+    )  
 
 # Error messages get caught before going to output$error
 failed <- allruns %>%
@@ -44,7 +39,13 @@ failed <- allruns %>%
 
 # Process models without errors
 worked <- allruns %>%
-  filter(converged == TRUE) %>%
+  dplyr::mutate(
+    aic = purrr::map(output, "aic"),
+    aic = na_if(aic, "NULL")
+  ) %>%
+  unnest(cols = c("aic")) %>%
+  # filter(converged == TRUE) %>%
+  filter(!is.na(converged)) %>%
   mutate(hatval = purrr::map(output, "estimates")) %>%
   select(-output, -data) %>%
   dplyr::group_by(predator, season) %>%
@@ -63,7 +64,7 @@ modchecks <- worked %>%
                       yes = abs(estimate) > 0.001,
                       no = NA)
   ) %>%
-  group_by(predator, season, model, covars, aic, delta_aic) %>%
+  group_by(predator, season, model, covars, aic, delta_aic, converged) %>%
   summarize(
     ranef_ok = all(ranef_ok, na.rm = TRUE),
     ranef_n = sum(ranef)
@@ -86,6 +87,14 @@ topmod_data <- dietrun %>%
   ) %>%
   semi_join(topmods, by = c("predator", "season", "model"))
 write_rds(topmod_data, here("output", "top_st_diet.rds"))
+
+badmod_data <- dietrun %>%
+  dplyr::mutate(
+    model = basename(config_file_loc), 
+    model = gsub(".R", "", model)
+  ) %>%
+  semi_join(failed, by = c("predator", "season", "model"))
+write_rds(badmod_data, here("output", "bad_st_diet.rds"))
 
 
 
