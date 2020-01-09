@@ -103,3 +103,29 @@ ggplot(overlap_stock_dat, aes(x = `Assessment index`, y = `Overlap index`)) +
         strip.background = element_blank())
 ggsave(here("output", "plots", "assessment-overlap-comp-1to1.pdf"), width = 6, height = 8, units = "in")
 
+
+
+# Calculate correlations --------------------------------------------------
+
+docor <- diet_overlap_dat %>%
+  group_by(predator, season) %>%
+  summarize(correlation = cor(`Diet index`, `Overlap index`)) %>%
+  mutate(comparison = "diet, overlap")
+
+dacor <- diet_stock_dat %>%
+  group_by(predator, season) %>%
+  summarize(correlation = cor(`Diet index`, `Assessment index`)) %>%
+  mutate(comparison = "diet, assessment")
+
+oacor <- overlap_stock_dat %>%
+  group_by(predator, season) %>%
+  summarize(correlation = cor(`Overlap index`, `Assessment index`)) %>%
+  mutate(comparison = "overlap, assessment")
+
+all_cor <- bind_rows(list(docor, dacor, oacor)) %>%
+  group_by(predator) %>%
+  arrange(desc(correlation), .by_group = TRUE)
+  
+  
+
+
