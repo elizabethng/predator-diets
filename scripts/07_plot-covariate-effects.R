@@ -128,7 +128,8 @@ mean_vcov <- left_join(vcovs, means, by = c("season", "predator")) %>%
 #   select(-season, -predator) %>%
 #   slice(1) %>%
 #   unlist()
-hake_ex <- filter(mean_vcov, season == "spring", predator == "silver hake")
+
+# hake_ex <- filter(mean_vcov, season == "spring", predator == "silver hake")
 
 # 3. Simulate new parameter values
 # simcovs <- MASS::mvrnorm(n = 5, mu = hake_ex$mean_vec[[1]], Sigma = hake_ex$vcov[[1]]) %>%
@@ -139,9 +140,11 @@ hake_ex <- filter(mean_vcov, season == "spring", predator == "silver hake")
 #   pivot_wider(names_from = c(covariate, predictor), values_from = value)
 
 
-hake_ex <- hake_ex %>%
+# hake_ex <- hake_ex %>%
+
+simpreds <- mean_vcov %>%
   mutate(simcov = pmap(list(
-    n = 10,
+    n = 100,
     mu = mean_vec,
     Sigma = vcov),
     MASS::mvrnorm)) %>%
@@ -154,28 +157,43 @@ hake_ex <- hake_ex %>%
 
 # 4. Get predicted values for zscores
 
-poop <- expand_grid(hake_ex, z_score = seq(-5, 5, length.out = 50)) %>%
+plotdat <- expand_grid(simpreds, z_score = seq(-5, 5, length.out = 50)) %>%
   mutate(length = sd*z_score + mean,
          pred1 = pdlenz_pred1*z_score + pdlenz2_pred1*(z_score^2),
          pred2 = pdlenz_pred2*z_score + pdlenz2_pred2*(z_score^2)) %>%
   select(predator, season, sim_id, length, pred1, pred2) %>%
-  pivot_longer(cols = c(pred1, pred2), names_to = "predictor", values_to = "effect")
+  pivot_longer(cols = c(pred1, pred2), names_to = "predictor", values_to = "effect") %>%
+  left_join(lengthlimits, by = c("predator", "season")) %>%
+  filter(length > min & length < max) %>%
+  rename(
+    Season = season,
+    Effect = effect, 
+    "Length (cm)" = length
+  ) %>%
+  mutate(
+    predator = str_to_sentence(predator), 
+    predictor = ifelse(predictor == "pred1", 1, 2)
+  )
 
-ggplot(poop, aes(x = length, y = effect, color = predictor, group = paste(sim_id, predictor))) + 
-  geom_line()
+ggplot(plotdat, aes(x = `Length (cm)`, y = Effect, color = Season, group = paste(sim_id, Season, predator, predictor))) + 
+  geom_line() +
+  facet_grid(predictor ~ predator, scales = "free_x")
 
-
-
-
-# left_join(lencoefs, sedat, by = c("season", "predator", "predictor")) %>%
-#   left_join(lendat, by = c("season", "predator")) %>%
-#   expand_grid(z_score = seq(-5, 5, length.out = 50)) %>%
-#   mutate(
-#     length = sd*z_score + mean,
-#     effect = pdlenz*z_score + pdlenz2*(z_score^2),
-#     ucb =  effect + 1.96*(pdlenz_se + pdlenz2_se),
-#     lcb = effect - 1.96*(pdlenz_se + pdlenz2_se)
-#   ) %>%
-#   mutate(predictor = ifelse(predictor == "pred1", "presence", "amount"))
-
+p <- ggplot(plotdat, aes(x = `Length (cm)`, y = Effect, group = paste(sim_id, Season, predator, predictor), color = Season)) +
+  geom_line(alpha = 0.1) +
+  # geom_ribbon(aes(ymin = lcb, ymax = ucb, fill = Season), alpha = 0.1, color = NA) +
+  geom_rug(data = obslenplot,
+           aes(x = pdlen),
+           inherit.aes = FALSE,
+           size = 0.1,
+           color = "#D3D3D388") +
+  facet_grid(predictor ~ predator, 
+             scales = "free_x",
+             labeller = label_bquote(italic(p[.(predictor)]))) +
+  theme_bw() +
+  theme(panel.grid.major = element_blank(),
+        panel.grid.minor = element_blank(),
+        strip.background = element_blank(),
+        panel.spacing.x = unit(0.8, "lines"))
+p
 
