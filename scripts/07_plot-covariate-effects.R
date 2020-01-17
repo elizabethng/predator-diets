@@ -131,12 +131,12 @@ mean_vcov <- left_join(vcovs, means, by = c("season", "predator")) %>%
 hake_ex <- filter(mean_vcov, season == "spring", predator == "silver hake")
 
 # 3. Simulate new parameter values
-simcovs <- MASS::mvrnorm(n = 5, mu = hake_ex$mean_vec[[1]], Sigma = hake_ex$vcov[[1]]) %>%
-  as_tibble() %>%
-  mutate(sim_id = row_number()) %>%
-  pivot_longer(cols = -sim_id, names_to = "type", values_to = "value") %>%
-  separate(type, c("covariate", "predictor")) %>%
-  pivot_wider(names_from = c(covariate, predictor), values_from = value)
+# simcovs <- MASS::mvrnorm(n = 5, mu = hake_ex$mean_vec[[1]], Sigma = hake_ex$vcov[[1]]) %>%
+#   as_tibble() %>%
+#   mutate(sim_id = row_number()) %>%
+#   pivot_longer(cols = -sim_id, names_to = "type", values_to = "value") %>%
+#   separate(type, c("covariate", "predictor")) %>%
+#   pivot_wider(names_from = c(covariate, predictor), values_from = value)
 
 
 hake_ex <- hake_ex %>%
@@ -149,33 +149,33 @@ hake_ex <- hake_ex %>%
   mutate(simcov = map(simcov, ~ mutate(.x, sim_id = row_number()))) %>%
   mutate(simcov = map(simcov, ~ pivot_longer(.x, cols = -sim_id, names_to = "type", values_to = "value"))) %>%
   mutate(simcov = map(simcov, ~ separate(.x, type, c("covariate", "predictor")))) %>%
-  mutate(simcov = map(simcov, ~ pivot_wider(.x, names_from = c(covariate, predictor), values_from = value)))
+  mutate(simcov = map(simcov, ~ pivot_wider(.x, names_from = c(covariate, predictor), values_from = value))) %>%
+  unnest(cols = simcov)
 
 # 4. Get predicted values for zscores
-# hakelen <- filter(lendat, season == "spring", predator == "silver hake")
 
-
-poop <- expand_grid(hakelen, z_score = seq(-5, 5, length.out = 50)) %>%
+poop <- expand_grid(hake_ex, z_score = seq(-5, 5, length.out = 50)) %>%
   mutate(length = sd*z_score + mean,
-         pred1 = simcovs["pdlenz_pred1"]*z_score + simcovs["pdlenz2_pred1"]*(z_score^2),
-         pred2 = simcovs["pdlenz_pred2"]*z_score + simcovs["pdlenz2_pred2"]*(z_score^2))
+         pred1 = pdlenz_pred1*z_score + pdlenz2_pred1*(z_score^2),
+         pred2 = pdlenz_pred2*z_score + pdlenz2_pred2*(z_score^2)) %>%
+  select(predator, season, sim_id, length, pred1, pred2) %>%
+  pivot_longer(cols = c(pred1, pred2), names_to = "predictor", values_to = "effect")
 
-ggplot(poop, aes(x = length, y = pred1)) + geom_line()
-ggplot(poop, aes(x = length, y = pred2)) + geom_line()
+ggplot(poop, aes(x = length, y = effect, color = predictor, group = paste(sim_id, predictor))) + 
+  geom_line()
 
 
 
 
-left_join(lencoefs, sedat, by = c("season", "predator", "predictor")) %>%
-  left_join(lendat, by = c("season", "predator")) %>%
-  expand_grid(z_score = seq(-5, 5, length.out = 50)) %>%
-  mutate(
-    length = sd*z_score + mean,
-    effect = pdlenz*z_score + pdlenz2*(z_score^2),
-    ucb =  effect + 1.96*(pdlenz_se + pdlenz2_se),
-    lcb = effect - 1.96*(pdlenz_se + pdlenz2_se)
-  ) %>%
-  mutate(predictor = ifelse(predictor == "pred1", "presence", "amount"))
-
+# left_join(lencoefs, sedat, by = c("season", "predator", "predictor")) %>%
+#   left_join(lendat, by = c("season", "predator")) %>%
+#   expand_grid(z_score = seq(-5, 5, length.out = 50)) %>%
+#   mutate(
+#     length = sd*z_score + mean,
+#     effect = pdlenz*z_score + pdlenz2*(z_score^2),
+#     ucb =  effect + 1.96*(pdlenz_se + pdlenz2_se),
+#     lcb = effect - 1.96*(pdlenz_se + pdlenz2_se)
+#   ) %>%
+#   mutate(predictor = ifelse(predictor == "pred1", "presence", "amount"))
 
 
