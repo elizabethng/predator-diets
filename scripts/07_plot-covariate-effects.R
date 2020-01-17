@@ -146,10 +146,10 @@ hake_ex <- hake_ex %>%
     Sigma = vcov),
     MASS::mvrnorm)) %>%
   mutate(simcov = map(simcov, as_tibble)) %>%
-  mutate(simcov = map(simcov, function(x) mutate(x, sim_id = row_number()))) %>%
-  mutate(simcov = map(simcov, function(x) pivot_longer(x, cols = -sim_id, names_to = "type", values_to = "value"))) %>%
-  mutate(simcov = map(simcov, function(x) separate(x, type, c("covariate", "predictor")))) %>%
-  mutate(simcov = map(simcov, function(x) pivot_wider(x, names_from = c(covariate, predictor), values_from = value)))
+  mutate(simcov = map(simcov, ~ mutate(.x, sim_id = row_number()))) %>%
+  mutate(simcov = map(simcov, ~ pivot_longer(.x, cols = -sim_id, names_to = "type", values_to = "value"))) %>%
+  mutate(simcov = map(simcov, ~ separate(.x, type, c("covariate", "predictor")))) %>%
+  mutate(simcov = map(simcov, ~ pivot_wider(.x, names_from = c(covariate, predictor), values_from = value)))
 
 # 4. Get predicted values for zscores
 # hakelen <- filter(lendat, season == "spring", predator == "silver hake")
