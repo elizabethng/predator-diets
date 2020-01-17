@@ -102,3 +102,56 @@ p <- ggplot(plotdat, aes(x = `Length (cm)`, y = Effect, group = paste(Season, pr
 ggsave(plot = p, filename = here("output", "plots", "length-effects.pdf"), width = 10, height = 4, units = "in")
 
 
+# Monte Carlo prediction bounds -------------------------------------------
+
+# Ideally want to generate coefficients from vcov of pdlenz_se and pdlenz2_se
+# Then use all of those to transform a set of zscores back to the correct scale
+
+
+# 1. Get estimated varaince-covariance matrices and mean vectors
+vcovs <- topdiet %>%
+  mutate(output = purrr::map(output, "result")) %>%
+  mutate(vcov = purrr::map(output, "covar_vcov")) %>%
+  select(predator, season, vcov)
+
+means <- lencoefs %>%
+  pivot_wider(names_from = predictor, values_from = c(pdlenz, pdlenz2))
+  
+# 2. For first pass, isolate silver hake in spring
+hakevcov <- vcovs$vcov[[1]]
+hakemean <- filter(means, season == "spring", predator == "silver hake") %>%
+  select(-season, -predator) %>%
+  slice(1) %>%
+  unlist()
+
+# 3. Simulate new parameter values
+simcovs <- MASS::mvrnorm(n = 1, mu = hakemean, Sigma = hakevcov)
+
+# 4. Get predicted values for zscores
+hakelen <- filter(lendat, season == "spring", predator == "silver hake")
+simcovs
+
+poop <- expand_grid(hakelen, z_score = seq(-5, 5, length.out = 50)) %>%
+  mutate(length = sd*z_score + mean,
+         pred1 = simcovs["pdlenz_pred1"]*z_score + simcovs["pdlenz2_pred1"]*(z_score^2),
+         pred2 = simcovs["pdlenz_pred2"]*z_score + simcovs["pdlenz2_pred2"]*(z_score^2))
+
+ggplot(poop, aes(x = length, y = pred1)) + geom_line()
+ggplot(poop, aes(x = length, y = pred2)) + geom_line()
+
+
+
+
+left_join(lencoefs, sedat, by = c("season", "predator", "predictor")) %>%
+  left_join(lendat, by = c("season", "predator")) %>%
+  expand_grid(z_score = seq(-5, 5, length.out = 50)) %>%
+  mutate(
+    length = sd*z_score + mean,
+    effect = pdlenz*z_score + pdlenz2*(z_score^2),
+    ucb =  effect + 1.96*(pdlenz_se + pdlenz2_se),
+    lcb = effect - 1.96*(pdlenz_se + pdlenz2_se)
+  ) %>%
+  mutate(predictor = ifelse(predictor == "pred1", "presence", "amount"))
+
+
+

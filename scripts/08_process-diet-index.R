@@ -94,7 +94,10 @@ average_diet <- knot_diets %>%
   mutate(average_spatial = pmap(list(average_spatial), function(x) bind_cols(locations, x))) %>%
   unnest(cols = c(average_spatial)) %>%
   rename(density_avg = value) %>%
-  select(-name, -density)
+  select(-name, -density) %>%
+  group_by(season, predator) %>%
+  mutate(density_avg_z = scale(density_avg)[,1]) %>%
+  ungroup()
 
 plot_average_diet <- st_as_sf(average_diet, coords = c("lon", "lat"), crs = 4326) %>%
   mutate(predator = str_to_sentence(predator),
@@ -150,7 +153,30 @@ p2 <- plot_average_diet %>%
         strip.background = element_blank())
 ggsave(plot = p2, filename = here("output", "plots", "diet-map-avg-log.pdf"), width = 9, height = 5, units = "in")
 
-
+p3 <- ggplot() +
+  geom_sf(data = northamerica, color = "white", fill = "grey", inherit.aes = FALSE) +
+  geom_sf(data = filter(plot_average_diet, predator == "Goosefish", season == "Fall"),
+                        aes(fill = density_avg_z, color = density_avg_z)) +
+  facet_grid(season ~ predator) +
+  scale_fill_viridis_c(
+    # option = "inferno",
+    name = "Scaled density"
+  ) +
+  scale_color_viridis_c(
+    # option = "inferno",
+    name = "Scaled density"
+  ) +
+  coord_sf(xlim = c(-79.5, -65.5), ylim = c(32.5, 45.5)) +
+  theme(panel.grid.major = element_line(color = "white"),
+        panel.background = element_blank(),
+        axis.title.x = element_blank(),
+        axis.text.x = element_blank(),
+        axis.ticks.x = element_blank(),
+        axis.title.y = element_blank(),
+        axis.text.y = element_blank(),
+        axis.ticks.y = element_blank(),
+        strip.background = element_blank())
+ggsave(plot = p2, filename = here("output", "plots", "diet-map-avg-z.pdf"), width = 9, height = 5, units = "in")
 
 # Diet index timeseries plots ---------------------------------------------
 
