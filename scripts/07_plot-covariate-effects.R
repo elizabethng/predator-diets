@@ -115,21 +115,45 @@ vcovs <- topdiet %>%
   select(predator, season, vcov)
 
 means <- lencoefs %>%
-  pivot_wider(names_from = predictor, values_from = c(pdlenz, pdlenz2))
-  
+  pivot_wider(names_from = predictor, values_from = c(pdlenz, pdlenz2)) %>%
+  nest(mean_vec = starts_with("pdlenz")) %>%
+  mutate(mean_vec = map(mean_vec, unlist))
+
+mean_vcov <- left_join(vcovs, means, by = c("season", "predator")) %>%
+  left_join(lendat, by = c("season", "predator"))
+
 # 2. For first pass, isolate silver hake in spring
-hakevcov <- vcovs$vcov[[1]]
-hakemean <- filter(means, season == "spring", predator == "silver hake") %>%
-  select(-season, -predator) %>%
-  slice(1) %>%
-  unlist()
+# hakevcov <- vcovs$vcov[[1]]
+# hakemean <- filter(means, season == "spring", predator == "silver hake") %>%
+#   select(-season, -predator) %>%
+#   slice(1) %>%
+#   unlist()
+hake_ex <- filter(mean_vcov, season == "spring", predator == "silver hake")
 
 # 3. Simulate new parameter values
-simcovs <- MASS::mvrnorm(n = 1, mu = hakemean, Sigma = hakevcov)
+simcovs <- MASS::mvrnorm(n = 5, mu = hake_ex$mean_vec[[1]], Sigma = hake_ex$vcov[[1]]) %>%
+  as_tibble() %>%
+  mutate(sim_id = row_number()) %>%
+  pivot_longer(cols = -sim_id, names_to = "type", values_to = "value") %>%
+  separate(type, c("covariate", "predictor")) %>%
+  pivot_wider(names_from = c(covariate, predictor), values_from = value)
+
+
+hake_ex <- hake_ex %>%
+  mutate(simcov = pmap(list(
+    n = 10,
+    mu = mean_vec,
+    Sigma = vcov),
+    MASS::mvrnorm)) %>%
+  mutate(simcov = map(simcov, as_tibble)) %>%
+  mutate(simcov = map(simcov, function(x) mutate(x, sim_id = row_number()))) %>%
+  mutate(simcov = map(simcov, function(x) pivot_longer(x, cols = -sim_id, names_to = "type", values_to = "value"))) %>%
+  mutate(simcov = map(simcov, function(x) separate(x, type, c("covariate", "predictor")))) %>%
+  mutate(simcov = map(simcov, function(x) pivot_wider(x, names_from = c(covariate, predictor), values_from = value)))
 
 # 4. Get predicted values for zscores
-hakelen <- filter(lendat, season == "spring", predator == "silver hake")
-simcovs
+# hakelen <- filter(lendat, season == "spring", predator == "silver hake")
+
 
 poop <- expand_grid(hakelen, z_score = seq(-5, 5, length.out = 50)) %>%
   mutate(length = sd*z_score + mean,
