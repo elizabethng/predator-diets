@@ -155,9 +155,10 @@ ggsave(plot = p2, filename = here("output", "plots", "diet-map-avg-log.pdf"), wi
 
 p3 <- ggplot() +
   geom_sf(data = northamerica, color = "white", fill = "grey", inherit.aes = FALSE) +
-  geom_sf(data = filter(plot_average_diet, predator == "Goosefish", season == "Fall"),
-                        aes(fill = density_avg_z, color = density_avg_z)) +
-  facet_grid(season ~ predator) +
+  geom_sf(data = plot_average_diet, aes(fill = density_avg_z, color = density_avg_z)) +
+  # geom_sf(data = filter(plot_average_diet, predator == "Goosefish", season == "Fall"),
+  #                       aes(fill = density_avg_z, color = density_avg_z)) +
+  facet_grid(season ~ predator, scales = "free") +
   scale_fill_viridis_c(
     # option = "inferno",
     name = "Scaled density"
