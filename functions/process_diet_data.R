@@ -19,7 +19,7 @@ process_diet_data <- function(dataset){
     dplyr::summarize(
       pyamtw = mean(pyamtw, na.rm = TRUE),
       pdlen = mean(pdlen, na.rm = TRUE),
-      sizecat = median(size_cat,  na.rm = TRUE)) %>%
+      sizecat = round(median(size_cat,  na.rm = TRUE))) %>%
     dplyr::ungroup() %>%
     dplyr::mutate(
       int = 1,
