@@ -23,7 +23,7 @@ use_empty_stomachs <- TRUE # include predators whose stomachs were empty?
 ```
 
 ```{r load-raw-diet-data}
-frdata <- read_csv(here("data", "raw", "fr_diet.csv"), guess_max = 365080) %>%
+frdata <- read_csv(here::here("data", "raw", "fr_diet.csv"), guess_max = 365080) %>%
   dplyr::select(-X1)
 ```
 
@@ -107,7 +107,6 @@ if(use_empty_stomachs == FALSE){
     distinct()
 }
 
-
 sum(duplicated(preddat$predid)) > 0 # any duplicates?
 ```
 
@@ -181,8 +180,8 @@ dat_tows_all <- dat_tows_all %>%
 # 4. Save output
 ```{r save-output}
 if(save_data == TRUE){
-  saveRDS(dat_preds_all, here("data", "processed", "dat_preds_all.rds"))
-  saveRDS(dat_tows_all, here("data", "processed", "dat_tows_all.rds"))
+  saveRDS(dat_preds_all, here::here("data", "processed", "dat_preds_all.rds"))
+  saveRDS(dat_tows_all, here::here("data", "processed", "dat_tows_all.rds"))
 }
 ```
 
