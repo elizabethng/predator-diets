@@ -7,8 +7,7 @@
 #' @return data_geo data frame including covariates as a columns and rows for all years, including missing
 #'
 #' @examples
-#' diet_data <- readr::read_rds(here::here("output", "data_formatted", "dat_preds_all.rds")) %>%
-#'   dplyr::filter(pdcomnam == "SILVER HAKE" & myseason == "SPRING")
+#' diet_data <- readr::read_rds(here::here("data", "processed", "dat_preds_all.rds")) %>% dplyr::filter(predator == "silver hake" & season == "spring")
 #' diet_test <- process_diet_data(diet_data)      
 process_diet_data <- function(dataset){
 
