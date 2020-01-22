@@ -77,6 +77,7 @@ topmods <- modchecks %>%
   ) %>% 
   group_by(predator, season) %>%
   top_n(-1, wt = ranef_n) %>%
+  top_n(-1, wt = fixef_n) %>%
   ungroup()
 
 # Get data, config file etc.
