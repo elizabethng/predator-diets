@@ -18,7 +18,8 @@ library("tidyverse")
 library("here")
 
 save_data <- TRUE
-use_harengus_only <- FALSE # use only C. harengus? otherwise all clupea spp.
+use_all_clupea <- TRUE   # if TRUE use all clupea spp. otherwise use only C. harengus
+use_empty_stomachs <- TRUE # include predators whose stomachs were empty?
 ```
 
 ```{r load-raw-diet-data}
@@ -67,11 +68,11 @@ slice(frdata, frdata$pynam %>% str_which("CLUP")) %>%
 ```
 
 ```{r filter-out-prey}
-if(use_harengus_only == FALSE){
+if(use_all_clupea == TRUE){
   preydat <- frdata %>% 
     filter(pynam == "CLUPEA HARENGUS" | pynam == "CLUPEIDAE") %>%
     dplyr::select(predid, pyamtw)
-}else{
+}else if(use_all_clupea == FALSE){
   preydat <- frdata %>% 
     filter(pynam == "CLUPEA HARENGUS") %>%
     dplyr::select(predid, pyamtw)
@@ -87,13 +88,25 @@ sum(preydat$pyamtw == 0)
 ```
 
 ## Predator Data
-Create a data frame with one row per predator and all the relevant predator/tow info. Exclude predators whose stomachs were empty, because we don't know why they were empty (e.g., regurgitated in trawl due to barotrauma).
+Create a data frame with one row per predator and all the relevant predator/tow info. 
+
+Version (1) Exclude predators whose stomachs were empty, because we don't know why they were empty (e.g., regurgitated in trawl due to barotrauma).
+
+Version (2) Empty stomachs are data, include those too. 
 ```{r simplify-predator-data}
-preddat <- frdata %>%
-  filter(pynam != "EMPTY") %>% # remove empty stomachs, from 289,470 to 162,203
-  dplyr::select(towid, station, geoarea, declat, declon, month, day, year, season, setdepth,
-         predid, pdcomnam, pdsex, pdlen, sizecat, pdwgt) %>%
-  distinct()
+if(use_empty_stomachs == FALSE){
+  preddat <- frdata %>%
+    filter(pynam != "EMPTY") %>% # remove empty stomachs, from 289,470 to 162,203
+    dplyr::select(towid, station, geoarea, declat, declon, month, day, year, season, setdepth,
+                  predid, pdcomnam, pdsex, pdlen, sizecat, pdwgt) %>%
+    distinct()
+}else if(use_empty_stomachs == TRUE){
+  preddat <- frdata %>%
+    dplyr::select(towid, station, geoarea, declat, declon, month, day, year, season, setdepth,
+                  predid, pdcomnam, pdsex, pdlen, sizecat, pdwgt) %>%
+    distinct()
+}
+
 
 sum(duplicated(preddat$predid)) > 0 # any duplicates?
 ```
