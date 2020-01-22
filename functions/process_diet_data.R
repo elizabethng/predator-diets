@@ -33,11 +33,19 @@ process_diet_data <- function(dataset){
   missing_years <- all_years[!(all_years %in% obs_years)]
   
   # Check for zero biomass years and set to NA
+  # yrs_wo_obs <- dat %>% 
+  #   dplyr::group_by(year) %>%
+  #   dplyr::summarize(tot_biomass = sum(pyamtw)) %>%
+  #   dplyr::filter(tot_biomass == 0) %>% 
+  #   dplyr::pull(year)
+
+  # Update to check for <2 tows with observed biomass
+  # each row is 1 tow
   yrs_wo_obs <- dat %>% 
-    dplyr::group_by(year) %>%
-    dplyr::summarize(tot_biomass = sum(pyamtw)) %>%
-    dplyr::filter(tot_biomass == 0) %>% 
-    dplyr::pull(year)
+      dplyr::group_by(year) %>%
+      dplyr::summarize(pos_obs = sum(pyamtw > 0)) %>%
+      dplyr::filter(pos_obs < 2) %>%
+      dplyr::pull(year)
   
   exclude_years <- dplyr::tibble(
     reason = c(rep("missing_yr", length(missing_years)), rep("no_pos_obs", length(yrs_wo_obs))),
