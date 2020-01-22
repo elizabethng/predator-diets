@@ -36,7 +36,10 @@ stock_index <- assessdatr %>%
   rename(year = Year) %>%
   expand_grid(pred_seas, .) %>%
   ungroup()
-  
+
+plim <- max(c(diet_index$diet_index, overlap_index$overlap_index, stock_index$stock_index))
+nlim <- min(c(diet_index$diet_index, overlap_index$overlap_index, stock_index$stock_index))
+
 
 # Diet index vs overlap index ---------------------------------------------
 
@@ -49,8 +52,8 @@ diet_overlap_dat <- inner_join(diet_index, overlap_index, by = c("season", "pred
 ggplot(diet_overlap_dat, aes(x = `Overlap index`, `Diet index`)) +
   geom_point() +
   geom_abline(color = "lightgrey") +
-  scale_x_continuous(limits = c(-5.47, 5.47)) +
-  scale_y_continuous(limits = c(-5.47, 5.47)) +
+  scale_x_continuous(limits = c(nlim, plim)) +
+  scale_y_continuous(limits = c(nlim, plim)) +
   coord_fixed() +
   facet_grid(predator ~ season) +
   theme_bw()+
@@ -71,8 +74,8 @@ diet_stock_dat <- inner_join(diet_index, stock_index, by = c("season", "predator
 ggplot(diet_stock_dat, aes(x = `Assessment index`, y = `Diet index`)) +
   geom_point() +
   geom_abline(color = "lightgrey") +
-  scale_x_continuous(limits = c(-5.47, 5.47)) +
-  scale_y_continuous(limits = c(-5.47, 5.47)) +
+  scale_x_continuous(limits = c(nlim, plim)) +
+  scale_y_continuous(limits = c(nlim, plim)) +
   coord_fixed() +
   facet_grid(predator ~ season) +
   theme_bw()+
@@ -93,8 +96,8 @@ overlap_stock_dat <- inner_join(overlap_index, stock_index, by = c("season", "pr
 ggplot(overlap_stock_dat, aes(x = `Assessment index`, y = `Overlap index`)) +
   geom_point() +
   geom_abline(color = "lightgrey") +
-  scale_x_continuous(limits = c(-4.1, 4.1)) +
-  scale_y_continuous(limits = c(-4.1, 4.1)) +
+  scale_x_continuous(limits = c(nlim, plim)) +
+  scale_y_continuous(limits = c(nlim, plim)) +
   coord_fixed() +
   facet_grid(predator ~ season) +
   theme_bw()+
