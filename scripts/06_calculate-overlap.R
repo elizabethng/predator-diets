@@ -90,7 +90,7 @@ northamerica <- ne_countries(continent = "north america",
                              scale = "medium",
                              returnclass = "sf")
 
-if(TRUE){
+if(FALSE){
   # Make for all species for reference
   predators <- unique(stoverlap$predator)
   seasons <- unique(stoverlap$season)
