@@ -41,7 +41,7 @@ failed <- allruns %>%
 
 # Process models without errors
 worked <- allruns %>%
-  filter(converged == TRUE) %>%
+  # filter(converged == TRUE) %>%
   mutate(hatval = purrr::map(output, "estimates")) %>%
   select(-output, -data) %>%
   dplyr::group_by(predator, season) %>%
