@@ -33,13 +33,14 @@ allruns <- dietrun %>%
                    run_name,
                    output_file_loc)) %>%
   dplyr::mutate(
-    converged = purrr::map_chr(output, "converged"), # Some errors were passed (non numerical argument)
-    converged = ifelse(converged %in% c("TRUE", "FALSE"), converged, NA) 
-    )  
+    converged = purrr::map_chr(output, "converged")) # Some errors were passed (non numerical argument)
+    # converged = ifelse(converged %in% c("TRUE", "FALSE"), converged, NA) 
+    # )  
 
 # Error messages get caught before going to output$error
 failed <- allruns %>%
-  filter(is.na(converged) | converged == FALSE)
+  filter(converged != "TRUE")
+  # filter(is.na(converged) | converged == FALSE)
 
 # Process models without errors
 worked <- allruns %>%
@@ -81,6 +82,7 @@ topmods <- modchecks %>%
          ranef_ok == TRUE) %>%
   group_by(predator, season) %>%
   top_n(-1, wt = ranef_n) %>%
+  top_n(-1, wt = use_aniso) %>%
   ungroup()
 
 # Get data, config file etc.
@@ -89,7 +91,7 @@ topmod_data <- dietrun %>%
     model = basename(config_file_loc), 
     model = gsub(".R", "", model)
   ) %>%
-  semi_join(topmods, by = c("predator", "season", "model"))
+  semi_join(topmods, by = c("predator", "season", "model", "use_aniso"))
 write_rds(topmod_data, here("output", "top_st_diet.rds"))
 
 badmod_data <- dietrun %>%
@@ -97,7 +99,7 @@ badmod_data <- dietrun %>%
     model = basename(config_file_loc), 
     model = gsub(".R", "", model)
   ) %>%
-  semi_join(failed, by = c("predator", "season", "model"))
+  inner_join(failed, by = c("predator", "season", "model", "use_aniso"))
 write_rds(badmod_data, here("output", "bad_st_diet.rds"))
 
 
@@ -118,9 +120,13 @@ allruns <- trawlrun %>%
     model = gsub(".R", "", model),
     covars = purrr::map_chr(covar_columns, ~ gsub(" ", ", ", .x))
   ) %>%
-  dplyr::select(
-    -contains("_"),
-    -c(errors, worked)) %>%
+  dplyr::select(-c(errors, 
+                   worked,
+                   processed_data,
+                   covar_columns, 
+                   config_file_loc,
+                   run_name,
+                   output_file_loc)) %>%
   dplyr::mutate(
     converged = purrr::map_chr(output, "converged"), # Some errors were passed (non numerical argument)
     converged = ifelse(converged %in% c("TRUE", "FALSE"), converged, NA) 
@@ -156,7 +162,7 @@ modchecks <- worked %>%
                       yes = abs(estimate) > 0.001,
                       no = NA)
   ) %>%
-  group_by(species, season, model, covars, aic, delta_aic) %>%
+  group_by(species, season, model, covars, use_aniso, aic, delta_aic) %>%
   summarize(
     ranef_ok = all(ranef_ok, na.rm = TRUE),
     ranef_n = sum(ranef)
@@ -169,6 +175,7 @@ topmods <- modchecks %>%
          ranef_ok == TRUE) %>%
   group_by(species, season) %>%
   top_n(-1, wt = ranef_n) %>%
+  top_n(-1, wt = use_aniso) %>%
   ungroup()
 
 # Get data, config file etc.
