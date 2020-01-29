@@ -18,18 +18,20 @@ diagnostic_folder <- file.path("D:", "Dropbox", "Predator_Diets", "output", "VAS
 # Diet Data ---------------------------------------------------------------
 
 # Load top models
-dietrun <- read_rds(here("output", "top_st_diet.rds")) %>%
-  select(-output) # create separate output folder?
+dietrun <- read_rds(here("output", "top_cov_diet.rds")) %>%
+  select(-output) %>%
+  filter(predator == "silver hake", season == "spring")
 
 # Function Options
-covar_columns = NA #"int sizecat" # dietrun$covar_columns
+covar_columns = dietrun$covar_columns # NA #"int sizecat"
 config_file_loc = dietrun$config_file_loc
 strata_file_loc = here("configuration-files", "strata_limits_subset.R")
 processed_data = dietrun$processed_data[[1]]
 output_file_loc = diagnostic_folder # dietrun$output_file_loc
 check_identifiable = FALSE
 run_fast = TRUE
-use_REML = TRUE
+use_REML = FALSE
+aniso = 0
 
 # Body of Function
 if(run_fast == TRUE){
@@ -82,7 +84,7 @@ if(all(is.na(covar_columns))){
     "ObsModel_ez" = ObsModel,
     "OverdispersionConfig" = OverdispersionConfig,
     "RhoConfig" = RhoConfig,
-    "Aniso" = 1,
+    "Aniso" = aniso,
     "Options" = Options,
     "Version" =  Version
   )
@@ -104,7 +106,7 @@ if(all(is.na(covar_columns))){
     "ObsModel_ez" = ObsModel,
     "OverdispersionConfig" = OverdispersionConfig,
     "RhoConfig" = RhoConfig,
-    "Aniso" = 1,
+    "Aniso" = aniso,
     "Q_ik" = Q_ik, 
     "Options" = Options,
     "Version" =  Version
@@ -119,11 +121,11 @@ TmbList <- VAST::make_model(
   "loc_x" = Spatial_List$loc_x,
   "Method" = Spatial_List$Method,
   "Use_REML" = use_REML)
-  # "Random" = c("Epsiloninput1_sft", "Omegainput1_sf", "eta1_vf", "Epsiloninput2_sft", 
-               # "Omegainput2_sf", "eta2_vf", "delta_i", "beta1_ft", "gamma1_ctp", 
-               # "beta2_ft", "gamma2_ctp", "Xiinput1_scp", 
-               # "Xiinput2_scp"))
-  # "Random" = c("Epsiloninput1_sft", "Omegainput1_sf"))
+# "Random" = c("Epsiloninput1_sft", "Omegainput1_sf", "eta1_vf", "Epsiloninput2_sft", 
+# "Omegainput2_sf", "eta2_vf", "delta_i", "beta1_ft", "gamma1_ctp", 
+# "beta2_ft", "gamma2_ctp", "Xiinput1_scp", 
+# "Xiinput2_scp"))
+# "Random" = c("Epsiloninput1_sft", "Omegainput1_sf"))
 
 Obj <- TmbList[["Obj"]]
 
@@ -134,20 +136,31 @@ Opt <- TMBhelper::fit_tmb(
   upper = TmbList[["Upper"]],
   getsd = TRUE, 
   savedir = DateFile,
-  bias.correct = use_bias_correct,
+  bias.correct = FALSE, #use_bias_correct
   newtonsteps = 1,
   bias.correct.control = list(
     sd=FALSE, split=NULL, nsplit=1, vars_to_correct = "Index_cyl"))
 
 Report <- Obj$report()
 
+# try with more steps to get convergence
+# Opt <- TMBhelper::fit_tmb(
+#   startpar = Obj$par,
+#   obj = Obj,
+#   lower = TmbList[["Lower"]],
+#   upper = TmbList[["Upper"]],
+#   getsd = TRUE, 
+#   savedir = DateFile,
+#   bias.correct = use_bias_correct,
+#   newtonsteps = 3,
+#   bias.correct.control = list(
+#     sd=FALSE, split=NULL, nsplit=1, vars_to_correct = "Index_cyl"))
+
 if(check_identifiable){
   Opt$identifiable <- TMBhelper::Check_Identifiable(Obj)  
 }
 
-
-
-# Run fast output ---------------------------------------------------------------
+# Minimal Output ---------------------------------------------------------------
 
 converged <- try(all(abs(Opt$diagnostics$final_gradient)<1e-6 ))
 
@@ -158,8 +171,6 @@ safe_get_parhat <- purrr::safely(get_parhat)  # Wrap troublesome part in a funct
 parhat <- safe_get_parhat(Obj)
 
 # Get table of parameter estimates
- # cond 1: did I get parameter estimates? if yes, then go to 2 else return the error
-# cond 2: given that I got parameter estimates, were there covariates? if yes, return them. else give NA?
 if(is.null(parhat$error)){
   estimates <- tibble(
     covariate = c("epsilon", "omega"),
@@ -195,7 +206,7 @@ if(is.null(parhat$error)){
 }
 
 
-# Get all the outputs ------------------------------------------
+# Full Output ------------------------------------------
 
 if(run_fast == FALSE){
   # Get region-specific settings for plots
@@ -221,58 +232,61 @@ if(run_fast == FALSE){
     DirName = paste0(DateFile, "/"),
     use_biascorr = TRUE)
   
-  # Data
-  FishStatsUtils::plot_data(
-    Extrapolation_List = Extrapolation_List,
-    Spatial_List = Spatial_List,
-    Data_Geostat = Data_Geostat,
-    PlotDir = paste0(DateFile, "/"))
   
-  # Presence model
-  Enc_prob <- FishStatsUtils::plot_encounter_diagnostic(
-    Report = Report,
-    Data_Geostat = Data_Geostat,
-    DirName = DateFile)
-  
-  # Positive model
-  Q <- FishStatsUtils::plot_quantile_diagnostic(
-    TmbData = TmbData,
-    Report = Report,
-    DateFile = DateFile)
-  
-  
-  # Map of residuals
-  residual <- FishStatsUtils::plot_residuals(
-    Lat_i = Data_Geostat[,'Lat'],
-    Lon_i = Data_Geostat[,'Lon'],
-    TmbData = TmbData,
-    Report = Report,
-    Q = Q,
-    working_dir = paste0(DateFile, "/"),
-    spatial_list = Spatial_List,
-    extrapolation_list = Extrapolation_List,
-    Year_Set = Year_Set,
-    Years2Include = Years2Include)
-  
-  
-  # Anisotropy
-  FishStatsUtils::plot_anisotropy(
-    FileName = file.path(DateFile, "Aniso.png"),
-    Report = Report,
-    TmbData = TmbData)
-  
-  
-  my_plots <- FishStatsUtils::plot_maps(
-    plot_set = c(1:2, 6:7, 11:14, 3),
-    Report = Report,
-    PlotDF = MapDetails_List[["PlotDF"]],
-    Sdreport = Opt$SD,
-    TmbData = TmbData,
-    Year_Set = Year_Set,
-    Years2Include = Years2Include,
-    working_dir = paste0(DateFile, "/"))
-  # Last output is matrix of density values 
-  # with smooth interpolation
+  if(FALSE){  # Don't run these plots that take a very long time
+    # Data
+    FishStatsUtils::plot_data(
+      Extrapolation_List = Extrapolation_List,
+      Spatial_List = Spatial_List,
+      Data_Geostat = Data_Geostat,
+      PlotDir = paste0(DateFile, "/"))
+    
+    # Presence model
+    Enc_prob <- FishStatsUtils::plot_encounter_diagnostic(
+      Report = Report,
+      Data_Geostat = Data_Geostat,
+      DirName = DateFile)
+    
+    # Positive model
+    Q <- FishStatsUtils::plot_quantile_diagnostic(
+      TmbData = TmbData,
+      Report = Report,
+      DateFile = DateFile)
+    
+    
+    # Map of residuals
+    residual <- FishStatsUtils::plot_residuals(
+      Lat_i = Data_Geostat[,'Lat'],
+      Lon_i = Data_Geostat[,'Lon'],
+      TmbData = TmbData,
+      Report = Report,
+      Q = Q,
+      working_dir = paste0(DateFile, "/"),
+      spatial_list = Spatial_List,
+      extrapolation_list = Extrapolation_List,
+      Year_Set = Year_Set,
+      Years2Include = Years2Include)
+    
+    
+    # Anisotropy
+    FishStatsUtils::plot_anisotropy(
+      FileName = file.path(DateFile, "Aniso.png"),
+      Report = Report,
+      TmbData = TmbData)
+    
+    
+    my_plots <- FishStatsUtils::plot_maps(
+      plot_set = c(1:2, 6:7, 11:14, 3),
+      Report = Report,
+      PlotDF = MapDetails_List[["PlotDF"]],
+      Sdreport = Opt$SD,
+      TmbData = TmbData,
+      Year_Set = Year_Set,
+      Years2Include = Years2Include,
+      working_dir = paste0(DateFile, "/"))
+    # Last output is matrix of density values 
+    # with smooth interpolation
+  } 
   
   # Get locations and standard errors for spatial density
   # Will automatically account for different dimensions of D_gcy depending on whether finescale is true
@@ -306,7 +320,7 @@ if(run_fast == FALSE){
 
 
 
-# Stuff to Return ---------------------------------------------------------
+# Return ---------------------------------------------------------
 
 if(run_fast == TRUE){
   return_list <- list(
@@ -323,9 +337,10 @@ if(run_fast == TRUE){
     covar_vcov = covar_vcov,
     index = my_index,
     knot_density = map_dat
-    # knot_centers = Spatial_List$loc_x, # MapDetails_List$PlotDF knot locs and ids
   )
 }
+
+
 
 
 

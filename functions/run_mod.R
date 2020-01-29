@@ -3,6 +3,7 @@
 #' @description Function to run VAST using helper functions, configuration file, and external strata file.
 #'
 #' @param covar_columns character element of column names (separated by spaces)
+#' @param use_aniso if true, estimate parameters for anisotropy, else use isotropic correlation
 #' @param config_file_loc filepath to configuration file with model set up information
 #' @param strata_file_loc filepath to file with strata
 #' @param processed_data a filtered data frame of processed data 
@@ -13,6 +14,7 @@
 #'
 #' @return No explicit return. Saves output to output_file_loc destination
 run_mod <- function(covar_columns = NA,
+                    use_aniso = TRUE,
                     config_file_loc,
                     strata_file_loc,
                     processed_data,
@@ -71,7 +73,7 @@ run_mod <- function(covar_columns = NA,
       "ObsModel_ez" = ObsModel,
       "OverdispersionConfig" = OverdispersionConfig,
       "RhoConfig" = RhoConfig,
-      "Aniso" = 1,
+      "Aniso" = use_aniso,
       "Options" = Options,
       "Version" =  Version
     )
@@ -93,7 +95,7 @@ run_mod <- function(covar_columns = NA,
       "ObsModel_ez" = ObsModel,
       "OverdispersionConfig" = OverdispersionConfig,
       "RhoConfig" = RhoConfig,
-      "Aniso" = 1,
+      "Aniso" = use_aniso,
       "Q_ik" = Q_ik, 
       "Options" = Options,
       "Version" =  Version
@@ -185,6 +187,7 @@ run_mod <- function(covar_columns = NA,
   # Full Output ------------------------------------------
   
   if(run_fast == FALSE){
+    if(FALSE){  # Don't run these plots that take a very long time
     # Get region-specific settings for plots
     MapDetails_List <- FishStatsUtils::make_map_info(
       Region = "northwest_atlantic",
@@ -260,6 +263,7 @@ run_mod <- function(covar_columns = NA,
       working_dir = paste0(DateFile, "/"))
     # Last output is matrix of density values 
     # with smooth interpolation
+    } 
     
     # Get locations and standard errors for spatial density
     # Will automatically account for different dimensions of D_gcy depending on whether finescale is true
