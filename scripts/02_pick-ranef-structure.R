@@ -25,9 +25,13 @@ allruns <- dietrun %>%
     model = gsub(".R", "", model),
     covars = purrr::map_chr(covar_columns, ~ gsub(" ", ", ", .x))
     ) %>%
-  dplyr::select(
-    -contains("_"),
-    -c(errors, worked)) %>%
+  dplyr::select(-c(errors, 
+                   worked,
+                   processed_data,
+                   covar_columns, 
+                   config_file_loc,
+                   run_name,
+                   output_file_loc)) %>%
   dplyr::mutate(
     converged = purrr::map_chr(output, "converged"), # Some errors were passed (non numerical argument)
     converged = ifelse(converged %in% c("TRUE", "FALSE"), converged, NA) 
@@ -44,7 +48,7 @@ worked <- allruns %>%
     aic = na_if(aic, "NULL")
   ) %>%
   unnest(cols = c("aic")) %>%
-  # filter(converged == TRUE) %>%
+  filter(converged == TRUE) %>%
   filter(!is.na(converged)) %>%
   mutate(hatval = purrr::map(output, "estimates")) %>%
   select(-output, -data) %>%
@@ -64,7 +68,7 @@ modchecks <- worked %>%
                       yes = abs(estimate) > 0.001,
                       no = NA)
   ) %>%
-  group_by(predator, season, model, covars, aic, delta_aic, converged) %>%
+  group_by(predator, season, model, covars, use_aniso, aic, delta_aic, converged) %>%
   summarize(
     ranef_ok = all(ranef_ok, na.rm = TRUE),
     ranef_n = sum(ranef)
