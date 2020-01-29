@@ -8,7 +8,7 @@ library("TMB")
 
 
 # Setup -------------------------------------------------------------------
- test <- FALSE
+ test <- TRUE
 
 # Load helper functions
 source(here("functions", "process_trawl_data.R"))
@@ -28,7 +28,7 @@ diagnostic_folder <- file.path("D:", "Dropbox", "Predator_Diets", "output", "VAS
 if(test == TRUE){
   dietsetup <- readr::read_rds(here("data", "processed", "dat_preds_all.rds")) %>%
     dplyr::filter(year %in% 1990:1995) %>%
-    dplyr::filter(predator %in% c("atlantic cod", "silver hake", "spiny dogfish", "goosefish")) %>%
+    dplyr::filter(predator %in% c("spiny dogfish", "goosefish")) %>%
         group_by(predator, season) %>%
     nest() %>%
     mutate(processed_data = purrr::map(data, process_diet_data))
@@ -42,6 +42,7 @@ if(test == TRUE){
 
 
 # Add model options (covariates, config_files)
+use_aniso <- c(TRUE, FALSE)
 covar_columns <- c("int sizecat pdlenz pdlenz2")
 config_file_loc <- map2_chr("configuration-files", 
                             c("gamma_ind-yrs_st-full.R", 
@@ -50,7 +51,7 @@ config_file_loc <- map2_chr("configuration-files",
                               "gamma_ind-yrs_st-none.R"), 
                             here)
 
-dietrun <- tidyr::expand_grid(dietsetup, covar_columns, config_file_loc)
+dietrun <- tidyr::expand_grid(dietsetup, covar_columns, use_aniso, config_file_loc)
 
 # Make file run name and save file location
 dietrun <- dietrun %>%
@@ -68,6 +69,7 @@ dietrun <- dietrun %>%
 dietrun <- dietrun %>%
   dplyr::mutate(output = purrr::pmap(
   list(covar_columns, 
+       use_aniso,
        config_file_loc, 
        strata_file_loc = here("configuration-files", "strata_limits_subset.R"), 
        processed_data, 
@@ -98,6 +100,7 @@ if(test == TRUE){
 
 
 # Add in model options (covariates, config_files)
+use_aniso <- c(TRUE, FALSE)
 covar_columns <- NA
 config_file_loc <- map2_chr("configuration-files", 
                             c("gamma_ind-yrs_st-full.R", 
@@ -106,7 +109,7 @@ config_file_loc <- map2_chr("configuration-files",
                               "gamma_ind-yrs_st-none.R"),
                             here)
 
-trawlrun <- tidyr::expand_grid(trawlsetup, covar_columns, config_file_loc)
+trawlrun <- tidyr::expand_grid(trawlsetup, covar_columns, use_aniso, config_file_loc)
 
 # Make file run name and save file location
 trawlrun <- trawlrun %>%
@@ -125,6 +128,7 @@ trawlrun <- trawlrun %>%
 trawlrun <- trawlrun %>%
   dplyr::mutate(output = purrr::pmap(
     list(covar_columns, 
+         use_aniso,
          config_file_loc, 
          strata_file_loc = here("configuration-files", "strata_limits_subset.R"), 
          processed_data, 
