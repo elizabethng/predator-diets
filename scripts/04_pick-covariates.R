@@ -22,26 +22,30 @@ allruns <- dietrun %>%
     model = gsub(".R", "", model),
     covars = purrr::map_chr(covar_columns, ~ gsub(" ", ", ", .x))
   ) %>%
-  dplyr::select(
-    -contains("_"),
-    -c(errors, worked)) %>%
+  dplyr::select(-c(errors, 
+                   worked,
+                   processed_data,
+                   covar_columns, 
+                   config_file_loc,
+                   run_name,
+                   output_file_loc)) %>%
   dplyr::mutate(
-    converged = purrr::map_chr(output, "converged"), # Some errors were passed (non numerical argument)
-    converged = ifelse(converged %in% c("TRUE", "FALSE"), converged, NA) 
-  ) %>%
+    converged = purrr::map_chr(output, "converged")) %>%
   dplyr::mutate(
     aic = purrr::map(output, "aic"),
     aic = na_if(aic, "NULL")
   ) %>%
   unnest(cols = c("aic")) 
 
+
 # Error messages get caught before going to output$error
 failed <- allruns %>%
-  filter(is.na(converged) | converged == FALSE)
+  filter(converged != "TRUE")
+
 
 # Process models without errors
 worked <- allruns %>%
-  # filter(converged == TRUE) %>%
+  # filter(converged == TRUE) %>% # no silver hake springs converged
   mutate(hatval = purrr::map(output, "estimates")) %>%
   select(-output, -data) %>%
   dplyr::group_by(predator, season) %>%
@@ -60,7 +64,7 @@ modchecks <- worked %>%
                       yes = abs(estimate) > 0.001,
                       no = NA)
   ) %>%
-  group_by(predator, season, model, covars, aic, delta_aic) %>%
+  group_by(predator, season, model, converged, covars, aic, delta_aic) %>%
   summarize(
     ranef_ok = all(ranef_ok, na.rm = TRUE),
     ranef_n = sum(ranef)
@@ -70,13 +74,11 @@ modchecks <- worked %>%
 # Write output for next phase of model selection
 topmods <- modchecks %>%
   filter(delta_aic < 2) %>%
-  # filter(ranef_ok == TRUE) %>% # only 2 models pass this test
   mutate(
     fixef_n = str_count(covars, ","),
     fixef_n = replace_na(fixef_n, 0)
   ) %>% 
   group_by(predator, season) %>%
-  top_n(-1, wt = ranef_n) %>%
   top_n(-1, wt = fixef_n) %>%
   ungroup()
 

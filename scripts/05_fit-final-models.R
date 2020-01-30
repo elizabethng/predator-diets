@@ -42,7 +42,8 @@ dietrun <- read_rds(here("output", "top_cov_diet.rds")) %>%
 # Run the model
 dietrun <- dietrun %>%
   dplyr::mutate(output = purrr::pmap(
-    list(covar_columns, 
+    list(covar_columns,
+         use_aniso,
          config_file_loc, 
          strata_file_loc = here("configuration-files", "strata_limits_subset.R"), 
          processed_data, 
@@ -65,6 +66,7 @@ trawlrun <- read_rds(here("output", "top_st_trawl.rds")) %>%
 trawlrun <- trawlrun %>%
   dplyr::mutate(output = purrr::pmap(
     list(covar_columns, 
+         use_aniso,
          config_file_loc, 
          strata_file_loc = here("configuration-files", "strata_limits_subset.R"), 
          processed_data, 

@@ -184,7 +184,7 @@ topmod_data <- trawlrun %>%
     model = basename(config_file_loc), 
     model = gsub(".R", "", model)
   ) %>%
-  semi_join(topmods, by = c("species", "season", "model"))
+  semi_join(topmods, by = c("species", "season", "model", "use_aniso"))
 write_rds(topmod_data, here("output", "top_st_trawl.rds"))
 
   

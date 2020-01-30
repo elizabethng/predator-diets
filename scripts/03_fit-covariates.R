@@ -25,7 +25,7 @@ diagnostic_folder <- file.path("D:", "Dropbox", "Predator_Diets", "output", "VAS
 
 # Load top models
 dietsetup <- read_rds(here("output", "top_st_diet.rds")) %>%
-  select(predator, season, data, processed_data, config_file_loc)
+  select(predator, season, data, processed_data, config_file_loc, use_aniso)
 
 covar_columns <- c(NA,
                    "int sizecat",
@@ -50,6 +50,7 @@ dietrun <- dietrun %>%
 dietrun <- dietrun %>%
   dplyr::mutate(output = purrr::pmap(
   list(covar_columns, 
+       use_aniso,
        config_file_loc, 
        strata_file_loc = here("configuration-files", "strata_limits_subset.R"), 
        processed_data, 
