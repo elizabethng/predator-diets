@@ -51,7 +51,8 @@ vcovs <- topdiet %>%
 means <- lencoefs %>%
   pivot_wider(names_from = predictor, values_from = c(pdlenz, pdlenz2)) %>%
   nest(mean_vec = starts_with("pdlenz")) %>%
-  mutate(mean_vec = map(mean_vec, unlist))
+  mutate(mean_vec = map(mean_vec, unlist)) %>%
+  mutate(mean_vec = map(mean_vec, ~ .x[!is.na(.x)]))
 
 mean_vcov <- left_join(vcovs, means, by = c("season", "predator")) %>%
   left_join(lendat, by = c("season", "predator"))
@@ -68,7 +69,9 @@ simpreds <- mean_vcov %>%
   mutate(simcov = map(simcov, ~ pivot_longer(.x, cols = -sim_id, names_to = "type", values_to = "value"))) %>%
   mutate(simcov = map(simcov, ~ separate(.x, type, c("covariate", "predictor")))) %>%
   mutate(simcov = map(simcov, ~ pivot_wider(.x, names_from = c(covariate, predictor), values_from = value))) %>%
-  unnest(cols = simcov)
+  unnest(cols = simcov) %>%
+  mutate_all(~ replace_na(.x, 0))
+
 
 # 3. Get predicted values for zscores
 plotdat <- expand_grid(simpreds, z_score = seq(-5, 5, length.out = 50)) %>%

@@ -1,5 +1,7 @@
-# Script to check aic and random effects magnitude for 
-# random effect structure model selection fit with REML. 
+# Check fits of final models
+
+# Script to check convergence and random effects magnitude for 
+# final models fit with REML. 
 
 # Save results for use by next script to do model 
 # selction for covaraites.
@@ -9,21 +11,20 @@ library("here")
 
 
 # Diet Models ---------------------------------------------------------------
-
-dietrun <- read_rds(here("output", "select_st_diet.rds"))
+dietrun <- read_rds(here("output", "top_final_diet.rds"))
 
 allruns <- dietrun %>% 
   dplyr::mutate(
     errors = purrr::map(output,"error"), 
     worked = purrr::map_lgl(errors, is.null)
   ) %>% 
-  dplyr::filter(worked) %>% 
+  # dplyr::filter(worked) %>% 
   dplyr::mutate(
     output = purrr::map(output, "result"),
     model = basename(config_file_loc), 
     model = gsub(".R", "", model),
     covars = purrr::map_chr(covar_columns, ~ gsub(" ", ", ", .x))
-    ) %>%
+  ) %>%
   dplyr::select(-c(errors, 
                    worked,
                    processed_data,
@@ -33,13 +34,13 @@ allruns <- dietrun %>%
                    output_file_loc)) %>%
   dplyr::mutate(
     converged = purrr::map_chr(output, "converged")) # Some errors were passed (non numerical argument)
-    # converged = ifelse(converged %in% c("TRUE", "FALSE"), converged, NA) 
-    # )  
+# converged = ifelse(converged %in% c("TRUE", "FALSE"), converged, NA) 
+# )  
 
 # Error messages get caught before going to output$error
 failed <- allruns %>%
   filter(converged != "TRUE")
-  # filter(is.na(converged) | converged == FALSE)
+# filter(is.na(converged) | converged == FALSE)
 
 # Process models without errors
 worked <- allruns %>%
@@ -74,7 +75,7 @@ modchecks <- worked %>%
     ranef_n = sum(ranef)
   ) %>%
   ungroup() 
-  
+
 # Write output for next phase of model selection
 topmods <- modchecks %>%
   filter(delta_aic < 2,
@@ -91,7 +92,7 @@ topmod_data <- dietrun %>%
     model = gsub(".R", "", model)
   ) %>%
   semi_join(topmods, by = c("predator", "season", "model", "use_aniso"))
-write_rds(topmod_data, here("output", "top_st_diet.rds"))
+
 
 badmod_data <- dietrun %>%
   dplyr::mutate(
@@ -104,7 +105,7 @@ write_rds(badmod_data, here("output", "bad_st_diet.rds"))
 
 
 # Trawl Models --------------------------------------------------------------
-
+readr::write_rds(trawlrun, path = here("output", "top_final_trawl.rds"))
 trawlrun <- read_rds(here("output", "select_st_trawl.rds"))
 
 allruns <- trawlrun %>% 
@@ -184,6 +185,5 @@ topmod_data <- trawlrun %>%
     model = gsub(".R", "", model)
   ) %>%
   semi_join(topmods, by = c("species", "season", "model", "use_aniso"))
-write_rds(topmod_data, here("output", "top_st_trawl.rds"))
 
-  
+
