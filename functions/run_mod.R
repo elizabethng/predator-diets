@@ -187,7 +187,6 @@ run_mod <- function(covar_columns = NA,
   # Full Output ------------------------------------------
   
   if(run_fast == FALSE){
-    if(FALSE){  # Don't run these plots that take a very long time
     # Get region-specific settings for plots
     MapDetails_List <- FishStatsUtils::make_map_info(
       Region = "northwest_atlantic",
@@ -209,8 +208,9 @@ run_mod <- function(covar_columns = NA,
       Year_Set = Year_Set,
       Years2Include = Years2Include,
       DirName = paste0(DateFile, "/"),
-      use_biascorr = TRUE)
+      use_biascorr = TRUE)    
     
+    if(FALSE){  # Don't run these plots that take a very long time
     # Data
     FishStatsUtils::plot_data(
       Extrapolation_List = Extrapolation_List,
