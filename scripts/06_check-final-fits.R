@@ -105,8 +105,7 @@ write_rds(badmod_data, here("output", "bad_st_diet.rds"))
 
 
 # Trawl Models --------------------------------------------------------------
-readr::write_rds(trawlrun, path = here("output", "top_final_trawl.rds"))
-trawlrun <- read_rds(here("output", "select_st_trawl.rds"))
+trawlrun <- read_rds(here("output", "top_final_trawl.rds"))
 
 allruns <- trawlrun %>% 
   dplyr::mutate(
@@ -143,7 +142,7 @@ failed <- allruns %>%
 
 # Process models without errors
 worked <- allruns %>%
-  filter(converged == TRUE) %>%
+  # filter(converged == TRUE) %>%
   mutate(hatval = purrr::map(output, "estimates")) %>%
   select(-output, -data) %>%
   dplyr::group_by(species, season) %>%
