@@ -179,6 +179,109 @@ p3 <- ggplot() +
         strip.background = element_blank())
 ggsave(plot = p2, filename = here("output", "plots", "diet-map-avg-z.pdf"), width = 9, height = 5, units = "in")
 
+
+# Diet average plot with quantile legend ----------------------------------
+# see https://timogrossenbacher.ch/2016/12/beautiful-thematic-maps-with-ggplot2-only/
+library("viridis")
+
+no_classes <- 6
+labels <- c()
+
+quantiles <- quantile(average_diet$density_avg, 
+                      probs = seq(0, 1, length.out = no_classes + 1))
+
+for(idx in 1:length(quantiles)){
+  labels <- c(labels, paste0(round(quantiles[idx], 2), 
+                             " – ", 
+                             round(quantiles[idx + 1], 2)))
+}
+# I need to remove the last label 
+# because that would be something like "66.62 - NA"
+labels <- labels[1:length(labels)-1]
+
+# here I actually create a new 
+# variable on the dataset with the quantiles
+average_diet$density_avg_quantiles <- cut(average_diet$density_avg, 
+                                          breaks = quantiles, 
+                                          labels = labels, 
+                                          include.lowest = T)
+
+plot_average_diet <- st_as_sf(average_diet, coords = c("lon", "lat"), crs = 4326) %>%
+  mutate(predator = str_to_sentence(predator),
+         season = str_to_sentence(season))
+
+sample_n(average_diet, 10000) %>%
+  ggplot(aes(x = lon, y = lat, color = density_avg_quantiles), alpha = 0.5) +
+  geom_point()
+
+
+
+p <- ggplot() +
+  geom_sf(data = plot_average_diet, aes(fill = density_avg_quantiles)) + #, color = density_avg_quantiles)) +
+  facet_grid(season ~ predator) +
+  scale_fill_viridis(
+    option = "magma",
+    name = "Average age",
+    discrete = T
+    )
+p
+
+# Just looks black, issue may be over plotting with all the points
+
+#   scale_fill_viridis_c(
+#     option = "inferno",
+#     name = "Diet index"
+#   ) +
+#   scale_color_viridis_c(
+#     option = "inferno",
+#     name = "Diet index"
+#   ) +
+#   geom_sf(data = northamerica, color = "white", fill = "grey", inherit.aes = FALSE) +
+#   coord_sf(xlim = c(-79.5, -65.5), ylim = c(32.5, 45.5)) +
+#   theme(panel.grid.major = element_line(color = "white"),
+#         panel.background = element_blank(),
+#         axis.title.x = element_blank(),
+#         axis.text.x = element_blank(),
+#         axis.ticks.x = element_blank(),
+#         axis.title.y = element_blank(),
+#         axis.text.y = element_blank(),
+#         axis.ticks.y = element_blank(),
+#         strip.background = element_blank())
+# ggsave(plot = p, filename = here("output", "plots", "diet-map-quantiles.pdf"), width = 9, height = 5, units = "in")
+
+
+
+
+
+
+# stars plotting approach -------------------------------------------------
+
+ 
+library("stars")
+
+myraster <- stars::st_rasterize(plot_average_diet)
+ggplot() +
+  stars::geom_stars(data = myraster) +
+  viridis::scale_fill_viridis()
+
+
+myraster <- stars::st_as_stars(plot_average_diet)
+poop <- stars::st_set_dimensions(myraster, "predator")
+
+ggplot() +
+  stars::geom_stars(data = myraster) +
+  facet_wrap(season ~ predator)
+
+
+# d = st_dimensions(station = st_as_sfc(stations), time = dates)
+# (aq = st_as_stars(list(PM10 = air), dimensions = d))
+
+
+st_as_sf(average_diet, coords = c("lon", "lat"), crs = 4326)
+poop <- st_dimensions(coords = st_as_sf(select(average_diet,-c("predator", "season", "density_avg_z")), coords = c("lon", "lat"), crs = 4326)),
+                      season = average_diet$season,
+                      predator = average_diet$predator)
+
 # Diet index timeseries plots ---------------------------------------------
 
 alldietdat <- knot_diets %>%
