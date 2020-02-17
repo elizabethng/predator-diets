@@ -154,7 +154,8 @@ q <- ggplot() +
         axis.ticks.x = element_blank(),
         axis.title.y = element_blank(),
         axis.text.y = element_blank(),
-        axis.ticks.y = element_blank()) +
+        axis.ticks.y = element_blank(),
+        strip.background = element_blank()) +
   scale_fill_manual(
     values = viridis::viridis(6),
     breaks = brks_scale,
