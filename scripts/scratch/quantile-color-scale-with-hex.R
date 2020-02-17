@@ -273,12 +273,21 @@ ggplot() +
 
 
 # Make breaks pretty ------------------------------------------------------
-quantiles
+# Make pretty breaks for quantile-scaled relative density??
+# quantiles
 
-pretty_breaks <- c(15, 30, 45, 60, 75)
+pretty_breaks <- c(-1, 0, 1, 2, 5)
+
+# Justification: about 85% of the data are below 1,
+# about 95% are below 2
+# and about 99% are below 5
+sum(densitymap$scaled_density<1)/length(densitymap$scaled_density)
+sum(densitymap$scaled_density<2)/length(densitymap$scaled_density)
+sum(densitymap$scaled_density<5)/length(densitymap$scaled_density)
+
 # find the extremes
-minVal <- min(densitymap$mean_density, na.rm = T)
-maxVal <- max(densitymap$mean_density, na.rm = T)
+minVal <- min(densitymap$scaled_density, na.rm = T)
+maxVal <- max(densitymap$scaled_density, na.rm = T)
 # compute labels
 labels <- c()
 brks <- c(minVal, pretty_breaks, maxVal)
@@ -287,15 +296,15 @@ for(idx in 1:length(brks)){
   labels <- c(labels,round(brks[idx + 1], 2))
 }
 
-labels <- labels[1:length(labels)-1]
+labels <- labels[1:length(labels)-1] # get rid of Na
 # define a new variable on the data set just as above
-densitymap$brks <- cut(densitymap$mean_density, 
+densitymap$brks <- cut(densitymap$scaled_density, 
                      breaks = brks, 
                      include.lowest = TRUE, 
                      labels = labels)
 
 brks_scale <- levels(densitymap$brks)
-labels_scale <- rev(brks_scale)
+# labels_scale <- rev(brks_scale)
 
 ggplot() +
   geom_sf(data = densitymap, aes(fill = brks, color = brks), lwd = 0) +
@@ -311,18 +320,27 @@ ggplot() +
         axis.text.y = element_blank(),
         axis.ticks.y = element_blank()) +
   scale_fill_manual(
-
     values = viridis::viridis(6),
     breaks = brks_scale,
-    name = "diet index",
+    name = "Diet index",
     drop = FALSE,
-    labels = labels_scale) +
+    guide = guide_legend(
+      reverse = TRUE,
+      keyheight = unit(70 / length(labels), units = "mm"),
+      keywidth = unit(2, units = "mm"),
+      label.vjust = 1
+    )
+  ) +
   scale_color_manual(
     values = viridis::viridis(6),
     breaks = brks_scale,
-    name = "diet index",
+    name = "Diet index",
     drop = FALSE,
-    labels = labels_scale)
-
-# Quantiles seem more justifiable from a data visualization stand point...
+    guide = guide_legend(
+      reverse = TRUE,
+      keyheight = unit(70 / length(labels), units = "mm"),
+      keywidth = unit(2, units = "mm"),
+      label.vjust = 1
+    )
+  )
 
