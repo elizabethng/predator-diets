@@ -1,19 +1,12 @@
-# Get a rough estiamte of overlap by re-aligning knot locations
-# using post hoc spatial grid
+# Make map of diet index using discretized space and quantile color scale
+# Based on hex grid calculation for overlap
 
-# Steps
-# 1. Generate a grid for aggregated
-# 2. Assign each observation to a grid cell
-# 3. Using grid cell index only,
-#    a. Average density within cells (for each year/season/species)
-#    b. Normalize density (fro each year/season/species)
-#    c. Filter out prey data
-#    d. Join prey data to predator data by cell/year/season/species
-#    e. Calculate overlap metric
-# 4. Calculate annual index of overlap (average accross space)
-# 5. Calcualte annualy averaged spatial index (average accross years)
-# 6. Join back in spatial references for plotting (get raw space-time plots)
-
+# Outline
+# 0. Load diet index, north america map, and average across years
+# 1. Generate hex grid to use for discretization
+# 2. Assign observations at fine-scale level to grid cells
+# 3. Find average density for each cell, normalize within species, join back to grid
+# 4. Find pretty breaks for relative index scale and make map
 
 library("rnaturalearth")
 library("tidyverse")
@@ -22,8 +15,6 @@ library("sf")
 
 
 # 0. Load data ------------------------------------------------------------
-
-
 topdiets <- readr::read_rds(here::here("output", "top_final_diet.rds"))
 
 plot_dietindex <- topdiets %>%
@@ -60,6 +51,7 @@ knot_diets <- topdiets %>%
   dplyr::mutate(output = purrr::map(output, "result")) %>%
   dplyr::mutate(output = purrr::map(output, "knot_density"))
 
+# Average over year
 average_diet <- knot_diets %>%
   mutate(density = purrr::map(output, ~ select(.x, starts_with("density_")))) %>%
   select(-output) %>%
@@ -70,14 +62,12 @@ average_diet <- knot_diets %>%
   rename(density_avg = value) %>%
   select(-name, -density) %>%
   group_by(season, predator) %>%
-  mutate(density_avg_z = scale(density_avg)[,1]) %>%
+  # mutate(density_avg_z = scale(density_avg)[,1]) %>%
   ungroup()
 
-plot_average_diet <- st_as_sf(average_diet, coords = c("lon", "lat"), crs = 4326) %>%
+finescale_locs <- st_as_sf(average_diet, coords = c("lon", "lat"), crs = 4326) %>%
   mutate(predator = str_to_sentence(predator),
          season = str_to_sentence(season))
-
-
 
 # 1. Generate grid ----------------------------------
 spatialdat <- st_as_sf(locations, coords = c("lon", "lat"), crs = 4326) 
@@ -93,7 +83,7 @@ grid <- st_sf(id = 1:length(grid), geometry = grid)
 
 # 2. Assign each observation to grid cell --------------------------------------------------------
 
-grid_dat <- st_join(grid, plot_average_diet, join = st_contains)
+grid_dat <- st_join(grid, finescale_locs, join = st_contains)
 
 
 # 3a. Average density within cells ----------------------------------------
@@ -109,172 +99,18 @@ nonspat <- as.data.frame(grid_dat) %>%
 
 # 3b. Normalize density ---------------------------------------------------
 # Normalize density (for each year/season/species)
-
 nonspat <- ungroup(nonspat) %>%
   group_by(predator, season) %>%
   mutate(scaled_density = scale(mean_density)[,1])
-
 
 densitymap <- left_join(grid, nonspat, by = "id") %>% 
   drop_na() 
 
 
-# Plot raw densities ------------------------------------------------------
 
-ggplot() +
-  geom_sf(data = densitymap, aes(fill = mean_density, color = mean_density), lwd = 0) +
-  facet_grid(season ~ predator) +
-  scale_fill_viridis_c(
-    option = "inferno",
-    name = "diet index"
-  ) +
-  scale_color_viridis_c(
-    option = "inferno",
-    name = "diet index"
-  ) +
-  geom_sf(data = northamerica, color = "white", fill = "grey", inherit.aes = FALSE) +
-  coord_sf(xlim = c(-79.5, -65.5), ylim = c(32.5, 45.5)) +
-  theme(panel.grid.major = element_line(color = "white"),
-        panel.background = element_blank(),
-        axis.title.x = element_blank(),
-        axis.text.x = element_blank(),
-        axis.ticks.x = element_blank(),
-        axis.title.y = element_blank(),
-        axis.text.y = element_blank(),
-        axis.ticks.y = element_blank())
-
-
-
-
-# Plot scaled densities ---------------------------------------------------
-
-ggplot() +
-  geom_sf(data = densitymap, aes(fill = scaled_density, color = scaled_density), lwd = 0) +
-  facet_grid(season ~ predator) +
-  scale_fill_viridis_c(
-    option = "viridis",
-    name = "relative diet index"
-  ) +
-  scale_color_viridis_c(
-    option = "viridis",
-    name = "relative diet index"
-  ) +
-  geom_sf(data = northamerica, color = "white", fill = "grey", inherit.aes = FALSE) +
-  coord_sf(xlim = c(-79.5, -65.5), ylim = c(32.5, 45.5)) +
-  theme(panel.grid.major = element_line(color = "white"),
-        panel.background = element_blank(),
-        axis.title.x = element_blank(),
-        axis.text.x = element_blank(),
-        axis.ticks.x = element_blank(),
-        axis.title.y = element_blank(),
-        axis.text.y = element_blank(),
-        axis.ticks.y = element_blank())
-
-
-# Quantile scale with mean density -------------------------------------------------------
-no_classes <- 6
-labels <- c()
-
-quantiles <- quantile(densitymap$mean_density, 
-                      probs = seq(0, 1, length.out = no_classes + 1))
-
-# here I define custom labels (the default ones would be ugly)
-labels <- c()
-for(idx in 1:length(quantiles)){
-  labels <- c(labels, paste0(round(quantiles[idx], 2), 
-                             " – ", 
-                             round(quantiles[idx + 1], 2)))
-}
-# I need to remove the last label 
-# because that would be something like "66.62 - NA"
-labels <- labels[1:length(labels)-1]
-
-# here I actually create a new 
-# variable on the dataset with the quantiles
-densitymap$density_quantiles <- cut(densitymap$mean_density, 
-                                     breaks = quantiles, 
-                                     labels = labels, 
-                                     include.lowest = T)
-
-ggplot() +
-  geom_sf(data = densitymap, aes(fill = density_quantiles, color = density_quantiles), lwd = 0) +
-  facet_grid(season ~ predator) +
-  viridis::scale_fill_viridis(
-    option = "viridis",
-    name = "diet index",
-    discrete = TRUE
-  ) +
-  viridis::scale_color_viridis(
-    option = "viridis",
-    name = "diet index",
-    discrete = TRUE
-  ) +
-  geom_sf(data = northamerica, color = "white", fill = "grey", inherit.aes = FALSE) +
-  coord_sf(xlim = c(-79.5, -65.5), ylim = c(32.5, 45.5)) +
-  theme(panel.grid.major = element_line(color = "white"),
-        panel.background = element_blank(),
-        axis.title.x = element_blank(),
-        axis.text.x = element_blank(),
-        axis.ticks.x = element_blank(),
-        axis.title.y = element_blank(),
-        axis.text.y = element_blank(),
-        axis.ticks.y = element_blank())
-
-
-# Quantile scale with scaled density -------------------------------------------------------
-no_classes <- 6
-labels <- c()
-
-quantiles <- quantile(densitymap$scaled_density, 
-                      probs = seq(0, 1, length.out = no_classes + 1))
-
-# here I define custom labels (the default ones would be ugly)
-labels <- c()
-for(idx in 1:length(quantiles)){
-  labels <- c(labels, paste0(round(quantiles[idx], 2), 
-                             " – ", 
-                             round(quantiles[idx + 1], 2)))
-}
-# I need to remove the last label 
-# because that would be something like "66.62 - NA"
-labels <- labels[1:length(labels)-1]
-
-# here I actually create a new 
-# variable on the dataset with the quantiles
-densitymap$density_quantiles <- cut(densitymap$scaled_density, 
-                                    breaks = quantiles, 
-                                    labels = labels, 
-                                    include.lowest = T)
-
-ggplot() +
-  geom_sf(data = densitymap, aes(fill = density_quantiles, color = density_quantiles), lwd = 0) +
-  facet_grid(season ~ predator) +
-  viridis::scale_fill_viridis(
-    option = "viridis",
-    name = "relative diet index",
-    discrete = TRUE
-  ) +
-  viridis::scale_color_viridis(
-    option = "viridis",
-    name = "relative diet index",
-    discrete = TRUE
-  ) +
-  geom_sf(data = northamerica, color = "white", fill = "grey", inherit.aes = FALSE) +
-  coord_sf(xlim = c(-79.5, -65.5), ylim = c(32.5, 45.5)) +
-  theme(panel.grid.major = element_line(color = "white"),
-        panel.background = element_blank(),
-        axis.title.x = element_blank(),
-        axis.text.x = element_blank(),
-        axis.ticks.x = element_blank(),
-        axis.title.y = element_blank(),
-        axis.text.y = element_blank(),
-        axis.ticks.y = element_blank())
-
-
-
-# Make breaks pretty ------------------------------------------------------
-# Make pretty breaks for quantile-scaled relative density??
-# quantiles
+# 4. Map with pretty breaks ------------------------------------------------------
+# Maps based on https://timogrossenbacher.ch/2016/12/beautiful-thematic-maps-with-ggplot2-only/#more-intuitive-legend
+# Make pretty breaks for (normalized) relative density based roughly on quantiles
 
 pretty_breaks <- c(-1, 0, 1, 2, 5)
 
@@ -344,3 +180,7 @@ q <- ggplot() +
     )
   )
 q
+
+ggsave(plot = q, 
+       filename = here("output", "plots", "diet-map-quantile.pdf"), 
+       width = 9, height = 5, units = "in")
