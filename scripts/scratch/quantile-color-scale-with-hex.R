@@ -306,7 +306,7 @@ densitymap$brks <- cut(densitymap$scaled_density,
 brks_scale <- levels(densitymap$brks)
 # labels_scale <- rev(brks_scale)
 
-ggplot() +
+q <- ggplot() +
   geom_sf(data = densitymap, aes(fill = brks, color = brks), lwd = 0) +
   facet_grid(season ~ predator) +
   geom_sf(data = northamerica, color = "white", fill = "grey", inherit.aes = FALSE) +
@@ -326,7 +326,7 @@ ggplot() +
     drop = FALSE,
     guide = guide_legend(
       reverse = TRUE,
-      keyheight = unit(70 / length(labels), units = "mm"),
+      keyheight = unit(70*rev(diff(brks))/sum(diff(brks)), units = "mm"),
       keywidth = unit(2, units = "mm"),
       label.vjust = 1
     )
@@ -338,9 +338,9 @@ ggplot() +
     drop = FALSE,
     guide = guide_legend(
       reverse = TRUE,
-      keyheight = unit(70 / length(labels), units = "mm"),
+      keyheight = unit(70*rev(diff(brks))/sum(diff(brks)), units = "mm"), # key height prop to distance between values
       keywidth = unit(2, units = "mm"),
       label.vjust = 1
     )
   )
-
+q
