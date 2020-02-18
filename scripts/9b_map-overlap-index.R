@@ -20,24 +20,23 @@ library("sf")
 
 
 # 0. Load data ------------------------------------------------------------
-topdiets <- readr::read_rds(here::here("output", "top_final_diet.rds"))
+# topdiets <- readr::read_rds(here::here("output", "top_final_diet.rds"))
 overlap <- readr::read_rds(here("output", "finescale_overlap.rds"))
 
 northamerica <- ne_countries(continent = "north america",
                              scale = "medium",
                              returnclass = "sf")
 
-locations <- topdiets$output[[1]]$result$knot_density[, c("Lon", "Lat")] %>%
+locations <- overlap$bhat[[1]][, c("Lon", "Lat")] %>%
   rename(lon = Lon, lat = Lat)
 
-knot_diets <- topdiets %>%
-  dplyr::select(season, predator, output) %>%
-  dplyr::mutate(output = purrr::map(output, "result")) %>%
-  dplyr::mutate(output = purrr::map(output, "knot_density"))
+knot_diets <- overlap %>%
+  dplyr::select(season, predator, bhat)
+  # dplyr::mutate(output = purrr::map(output, "result")) %>%
+  # dplyr::mutate(output = purrr::map(output, "knot_density"))
 
 finescale_data <- knot_diets %>%
-  unnest(output) %>%
-  select(-Include) %>%
+  unnest(bhat) %>%
   rename(knot = x2i,
          lat = Lat,
          lon = Lon) %>%
@@ -76,7 +75,7 @@ nonspat <- as.data.frame(grid_dat) %>%
   summarize(density_grid = mean(density))
 
 
-# 4. Make annually-averaged diet index map --------------------------------
+# 4. Make annually-averaged overlap index map --------------------------------
 
 # 4.1. Get relative average index ---------------------------------------------------
 # Average across years then normalize between predators
@@ -87,6 +86,7 @@ annual_dat <- nonspat %>%
   summarize(density_annual_avg = mean(density_grid, na.rm = TRUE)) %>% # avg by year
   ungroup() %>% 
   group_by(predator, season) %>%
+  # mutate(scaled_density = density_annual_avg) # shoudl try with and without rescaling...
   mutate(scaled_density = scale(density_annual_avg)[,1]) # normalize within species/season
 
 densitymap <- left_join(grid, annual_dat, by = "id") %>% 
@@ -96,16 +96,18 @@ densitymap <- left_join(grid, annual_dat, by = "id") %>%
 
 # 4.2. Map with pretty breaks ------------------------------------------------------
 # Maps based on https://timogrossenbacher.ch/2016/12/beautiful-thematic-maps-with-ggplot2-only/#more-intuitive-legend
-# Make pretty breaks for (normalized) relative density based roughly on quantiles
 
+# Do a check for new break values
+quantile(densitymap$density_annual_avg)
+quantile(densitymap$scaled_density, prob = 0.85)
+
+# Make pretty breaks for (normalized) relative density based roughly on quantiles
 pretty_breaks <- c(-1, 0, 1, 2, 5)
 
-# Justification: about 85% of the data are below 1,
-# about 95% are below 2
-# and about 99% are below 5
-sum(densitymap$scaled_density<1)/length(densitymap$scaled_density)
-sum(densitymap$scaled_density<2)/length(densitymap$scaled_density)
-sum(densitymap$scaled_density<5)/length(densitymap$scaled_density)
+# Justification: upper values represent quantiles
+sum(densitymap$scaled_density<1)/length(densitymap$scaled_density) # 90%
+sum(densitymap$scaled_density<2)/length(densitymap$scaled_density) # 95%
+sum(densitymap$scaled_density<5)/length(densitymap$scaled_density) # 99%
 
 # find the extremes
 minVal <- min(densitymap$scaled_density, na.rm = T)
@@ -143,25 +145,25 @@ q <- ggplot() +
         axis.ticks.y = element_blank(),
         strip.background = element_blank()) +
   scale_fill_manual(
-    values = viridis::viridis(6),
+    values = viridis::magma(6),
     breaks = brks_scale,
-    name = "Diet index",
+    name = "Overlap index",
     drop = FALSE,
     guide = guide_legend(
       reverse = TRUE,
-      keyheight = unit(70*rev(diff(brks))/sum(diff(brks)), units = "mm"),
+      keyheight = unit(70*rev(abs(diff(brks)))/(maxVal - minVal), units = "mm"),
       keywidth = unit(2, units = "mm"),
       label.vjust = 1
     )
   ) +
   scale_color_manual(
-    values = viridis::viridis(6),
+    values = viridis::magma(6),
     breaks = brks_scale,
-    name = "Diet index",
+    name = "Overlap index",
     drop = FALSE,
     guide = guide_legend(
       reverse = TRUE,
-      keyheight = unit(70*rev(diff(brks))/sum(diff(brks)), units = "mm"), # key height prop to distance between values
+      keyheight = unit(70*rev(abs(diff(brks)))/(maxVal - minVal), units = "mm"), # key height prop to distance between values
       keywidth = unit(2, units = "mm"),
       label.vjust = 1
     )
@@ -169,7 +171,7 @@ q <- ggplot() +
 q
 
 ggsave(plot = q, 
-       filename = here("output", "plots", "diet-map-quantile.pdf"), 
+       filename = here("output", "plots", "overlap-map-quantile.pdf"), 
        width = 9, height = 5, units = "in")
 
 
@@ -182,7 +184,7 @@ speciesmap <- left_join(grid, nonspat, by = "id") %>%
 
 for(pred in unique(speciesmap$predator)){
   for(seas in unique(speciesmap$season)){
-    
+
     tmpdat <- filter(speciesmap, predator == pred & season == seas)
     
     # Make discrete scale based on quantiles
@@ -194,8 +196,8 @@ for(pred in unique(speciesmap$predator)){
     # Define custom labels
     labels <- c()
     for(idx in 1:length(quantiles)){
-      labels <- c(labels, paste0(round(quantiles[idx], 2), " – ", 
-                                 round(quantiles[idx + 1], 2)))
+      labels <- c(labels, paste0(signif(quantiles[idx], 2), " – ", 
+                                 signif(quantiles[idx + 1], 2)))
     }
     labels <- labels[1:length(labels)-1] # remove last label
     tmpdat$quantiles <- cut(tmpdat$density_grid, 
@@ -203,12 +205,9 @@ for(pred in unique(speciesmap$predator)){
                             labels = labels, 
                             include.lowest = T)
     
-    # get year list
-    yearlist <- filter(topdiets, predator == tolower(pred) & season == tolower(seas))
-    yearlist <- yearlist$output[[1]]$result$index %>% filter(is.na(exclude_reason)) %>% pull(Year)
-    
-    # Make one plot for each year
-    for(yr in yearlist){
+
+        # Make one plot for each year
+    for(yr in unique(tmpdat$year)){
       tmpplot <- filter(tmpdat, year == yr) %>%
         ggplot() +
         geom_sf(aes(fill = quantiles, color = quantiles), lwd = 0) +
@@ -225,23 +224,23 @@ for(pred in unique(speciesmap$predator)){
               axis.ticks.y = element_blank(),
               strip.background = element_blank())  +
         scale_fill_manual(
-          values = viridis::viridis(no_classes),
+          values = viridis::magma(no_classes),
           # breaks = quantiles,
-          name = "Diet index",
+          name = "Overlap index",
           drop = FALSE,
           guide = guide_legend(
             reverse = TRUE)
         ) +
         scale_color_manual(
-          values = viridis::viridis(no_classes),
+          values = viridis::magma(no_classes),
           # breaks = quantiles,
-          name = "Diet index",
+          name = "Overlap index",
           drop = FALSE,
           guide = guide_legend(
             reverse = TRUE)
         )
       ggsave(plot = tmpplot, 
-             filename = here("output", "plots", "diet-map-ts", 
+             filename = here("output", "plots", "overlap-map-ts", 
                              paste0(pred, "-", seas, "-", yr, ".png")), 
              width = 3, height = 3, units = "in")
     }
@@ -250,6 +249,13 @@ for(pred in unique(speciesmap$predator)){
 }
 
 
+
+# Check aggregated index --------------------------------------------------
+# Quick plot to compare aggregated overlap ts relative finescale overlap ts
+as.data.frame(densitymap) %>%
+  select(-geometry) %>%
+  group_by(id, predator, season, year) %>%
+  summarize(density_grid = mean(density))
 
 
 
