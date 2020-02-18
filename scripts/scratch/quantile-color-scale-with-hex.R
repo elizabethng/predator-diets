@@ -5,8 +5,11 @@
 # 0. Load diet index, north america map, and average across years
 # 1. Generate hex grid to use for discretization
 # 2. Assign observations at fine-scale level to grid cells
-# 3. Find average density for each cell, normalize within species, join back to grid
-# 4. Find pretty breaks for relative index scale and make map
+# 3. Average density for each cell (per pred/season/year)
+# 4. Plot annually averaged diet index
+#    - Average accross years
+#    - Find pretty breaks for relative index scale and make map
+# 5. Plot time-series for each predator
 
 library("rnaturalearth")
 library("tidyverse")
@@ -17,27 +20,27 @@ library("sf")
 # 0. Load data ------------------------------------------------------------
 topdiets <- readr::read_rds(here::here("output", "top_final_diet.rds"))
 
-plot_dietindex <- topdiets %>%
-  dplyr::select(season, predator, output) %>%
-  dplyr::mutate(output = purrr::map(output, "result")) %>%
-  dplyr::mutate(output = purrr::map(output, "index")) %>%
-  unnest(cols = c(output)) %>%
-  select(-Unit, -Fleet, -SD_log) %>%
-  rename(year = Year,
-         density = Estimate_metric_tons,
-         density_se = SD_mt) %>%
-  mutate(density = ifelse(is.na(exclude_reason), density, NA),
-         density_se = ifelse(is.na(exclude_reason), density_se, NA)) %>%
-  select(-exclude_reason) %>%
-  rename(
-    Year = year,
-    Season = season,
-    Density = density
-  ) %>%
-  mutate(
-    predator = str_to_sentence(predator), 
-    Season = str_to_sentence(Season)
-  )
+# plot_dietindex <- topdiets %>%
+#   dplyr::select(season, predator, output) %>%
+#   dplyr::mutate(output = purrr::map(output, "result")) %>%
+#   dplyr::mutate(output = purrr::map(output, "index")) %>%
+#   unnest(cols = c(output)) %>%
+#   select(-Unit, -Fleet, -SD_log) %>%
+#   rename(year = Year,
+#          density = Estimate_metric_tons,
+#          density_se = SD_mt) %>%
+#   mutate(density = ifelse(is.na(exclude_reason), density, NA),
+#          density_se = ifelse(is.na(exclude_reason), density_se, NA)) %>%
+#   select(-exclude_reason) %>%
+#   rename(
+#     Year = year,
+#     Season = season,
+#     Density = density
+#   ) %>%
+#   mutate(
+#     predator = str_to_sentence(predator), 
+#     Season = str_to_sentence(Season)
+#   )
 
 northamerica <- ne_countries(continent = "north america",
                              scale = "medium",
@@ -51,23 +54,48 @@ knot_diets <- topdiets %>%
   dplyr::mutate(output = purrr::map(output, "result")) %>%
   dplyr::mutate(output = purrr::map(output, "knot_density"))
 
-# Average over year
-average_diet <- knot_diets %>%
-  mutate(density = purrr::map(output, ~ select(.x, starts_with("density_")))) %>%
-  select(-output) %>%
-  mutate(average_spatial = pmap(list(density), rowSums)) %>% 
-  mutate(average_spatial = pmap(list(average_spatial), enframe)) %>%
-  mutate(average_spatial = pmap(list(average_spatial), function(x) bind_cols(locations, x))) %>%
-  unnest(cols = c(average_spatial)) %>%
-  rename(density_avg = value) %>%
-  select(-name, -density) %>%
-  group_by(season, predator) %>%
-  # mutate(density_avg_z = scale(density_avg)[,1]) %>%
-  ungroup()
+# Average over year 
+# But what if I don't average here, instead keep all and average just before plotting
 
-finescale_locs <- st_as_sf(average_diet, coords = c("lon", "lat"), crs = 4326) %>%
+# 1. pivot longer columns that start with density
+# 2. make a new column year from density_XXXX
+# 3. unnest everything
+# 4. rename x2i knot
+# 5. drop include
+
+
+finescale_data <- knot_diets %>%
+  unnest(output) %>%
+  select(-Include) %>%
+  rename(knot = x2i,
+         lat = Lat,
+         lon = Lon) %>%
+  pivot_longer(cols = starts_with("density_"), names_to = "year", values_to = "density") %>%
+  mutate(year = gsub("density_", "", year),
+         year = as.numeric(year))
+
+finescale_locs <- finescale_data %>% 
+  st_as_sf(coords = c("lon", "lat"), crs = 4326) %>%
   mutate(predator = str_to_sentence(predator),
          season = str_to_sentence(season))
+
+# average_diet <- knot_diets %>%
+#   mutate(density = purrr::map(output, ~ select(.x, starts_with("density_")))) %>%
+#   select(-output) %>%
+#   mutate(average_spatial = pmap(list(density), rowSums)) %>% 
+#   mutate(average_spatial = pmap(list(average_spatial), enframe)) %>%
+#   mutate(average_spatial = pmap(list(average_spatial), function(x) bind_cols(locations, x))) %>%
+#   unnest(cols = c(average_spatial)) %>%
+#   rename(density_avg = value) %>%
+#   select(-name, -density) %>%
+#   group_by(season, predator) %>%
+#   # mutate(density_avg_z = scale(density_avg)[,1]) %>%
+#   ungroup()
+#
+# finescale_locs <- st_as_sf(average_diet, coords = c("lon", "lat"), crs = 4326) %>%
+#   mutate(predator = str_to_sentence(predator),
+#          season = str_to_sentence(season))
+
 
 # 1. Generate grid ----------------------------------
 spatialdat <- st_as_sf(locations, coords = c("lon", "lat"), crs = 4326) 
@@ -82,33 +110,37 @@ grid <- st_sf(id = 1:length(grid), geometry = grid)
 
 
 # 2. Assign each observation to grid cell --------------------------------------------------------
-
 grid_dat <- st_join(grid, finescale_locs, join = st_contains)
 
 
-# 3a. Average density within cells ----------------------------------------
-# Average density within cells (for each year/season/species)
-
+# 3. Average density within cells ----------------------------------------
+# Calculate average density within cells (for each year/season/species)
 # Using grid cell data only
 nonspat <- as.data.frame(grid_dat) %>%
   select(-geometry) %>%
+  group_by(id, predator, season, year) %>%
+  summarize(density_grid = mean(density))
+
+
+# 4. Make annually-averaged diet index map --------------------------------
+
+# 4.1. Get relative average index ---------------------------------------------------
+# Average across years then normalize between predators
+
+annual_dat <- nonspat %>%
+  ungroup() %>%
   group_by(id, predator, season) %>%
-  summarize(mean_density = mean(density_avg))
-
-
-
-# 3b. Normalize density ---------------------------------------------------
-# Normalize density (for each year/season/species)
-nonspat <- ungroup(nonspat) %>%
+  summarize(density_annual_avg = mean(density_grid, na.rm = TRUE)) %>% # avg by year
+  ungroup() %>% 
   group_by(predator, season) %>%
-  mutate(scaled_density = scale(mean_density)[,1])
+  mutate(scaled_density = scale(density_annual_avg)[,1]) # normalize within species/season
 
-densitymap <- left_join(grid, nonspat, by = "id") %>% 
+densitymap <- left_join(grid, annual_dat, by = "id") %>% 
   drop_na() 
 
 
 
-# 4. Map with pretty breaks ------------------------------------------------------
+# 4.2. Map with pretty breaks ------------------------------------------------------
 # Maps based on https://timogrossenbacher.ch/2016/12/beautiful-thematic-maps-with-ggplot2-only/#more-intuitive-legend
 # Make pretty breaks for (normalized) relative density based roughly on quantiles
 
@@ -185,3 +217,92 @@ q
 ggsave(plot = q, 
        filename = here("output", "plots", "diet-map-quantile.pdf"), 
        width = 9, height = 5, units = "in")
+
+
+# 5. Plot time series for each predator -----------------------------------
+# Make with mostly default plot specs and save as .png or similar for ease of viewing
+
+# Get the spatial data
+speciesmap <- left_join(grid, nonspat, by = "id") %>% 
+  drop_na() 
+
+for(pred in unique(speciesmap$predator)){
+  for(seas in unique(speciesmap$season)){
+    # pred <- unique(speciesmap$predator)[[1]]
+    # seas <- unique(speciesmap$season)[[1]]
+    
+    tmpdat <- filter(speciesmap, predator == pred & season == seas)
+    
+    # Make discrete scale based on quantiles
+    no_classes <- 6
+
+    quantiles <- quantile(tmpdat$density_grid, 
+                          probs = seq(0, 1, length.out = no_classes + 1))
+    # breaks <- c(min(tmpdat$density_grid), unname(quantiles), max(tmpdat$density_grid))
+    
+    # Define custom labels
+    labels <- c()
+    for(idx in 1:length(quantiles)){
+      labels <- c(labels, paste0(round(quantiles[idx], 2), " – ", 
+                                 round(quantiles[idx + 1], 2)))
+    }
+    labels <- labels[1:length(labels)-1] # remove last label
+    tmpdat$quantiles <- cut(tmpdat$density_grid, 
+                             breaks = quantiles, 
+                             labels = labels, 
+                             include.lowest = T)
+    
+    # get year list
+    yearlist <- filter(topdiets, predator == tolower(pred) & season == tolower(seas))
+    yearlist <- yearlist$output[[1]]$result$index %>% filter(is.na(exclude_reason)) %>% pull(Year)
+    
+    # Make one plot for each year
+    for(yr in yearlist){
+      tmpplot <- filter(tmpdat, year == yr) %>%
+        ggplot() +
+        geom_sf(aes(fill = quantiles, color = quantiles), lwd = 0) +
+        ggtitle(paste(pred, "-", seas, "-", yr)) +
+        geom_sf(data = northamerica, color = "white", fill = "grey", inherit.aes = FALSE) +
+        coord_sf(xlim = c(-79.5, -65.5), ylim = c(32.5, 45.5)) +
+        theme(panel.grid.major = element_line(color = "white"),
+              panel.background = element_blank(),
+              axis.title.x = element_blank(),
+              axis.text.x = element_blank(),
+              axis.ticks.x = element_blank(),
+              axis.title.y = element_blank(),
+              axis.text.y = element_blank(),
+              axis.ticks.y = element_blank(),
+              strip.background = element_blank())  +
+        scale_fill_manual(
+          values = viridis::viridis(no_classes),
+          # breaks = quantiles,
+          name = "Diet index",
+          drop = FALSE,
+          guide = guide_legend(
+            reverse = TRUE)
+        ) +
+        scale_color_manual(
+          values = viridis::viridis(no_classes),
+          # breaks = quantiles,
+          name = "Diet index",
+          drop = FALSE,
+          guide = guide_legend(
+            reverse = TRUE)
+        )
+      ggsave(plot = tmpplot, 
+             filename = here("output", "plots", "diet-map-ts", 
+                             paste0(pred, "-", seas, "-", yr, ".png")), 
+             width = 3, height = 3, units = "in")
+    }
+      
+  }
+}
+
+
+
+
+
+
+
+
+
