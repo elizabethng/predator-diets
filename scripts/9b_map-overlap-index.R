@@ -252,14 +252,56 @@ for(pred in unique(speciesmap$predator)){
 
 # Check aggregated index --------------------------------------------------
 # Quick plot to compare aggregated overlap ts relative finescale overlap ts
-as.data.frame(densitymap) %>%
+indexagg <- as.data.frame(speciesmap) %>%
   select(-geometry) %>%
-  group_by(id, predator, season, year) %>%
-  summarize(density_grid = mean(density))
+  group_by(predator, season, year) %>%
+  summarize(overlap_sum = sum(density_grid))
 
+ggplot(indexagg, aes(x = year, y = overlap_sum, color = season)) +
+  geom_point() +
+  geom_line() +
+  facet_wrap(~predator) +
+  theme_bw() +
+  theme(panel.grid.major = element_blank(),
+        panel.grid.minor = element_blank(),
+        strip.background = element_blank())
 
+# Qualitatively looks very similar
 
+# How much does aggregation matter?
+n_cells = c(10, 20, 30)
 
+for(my_n in n_cells){
+  test_grid <- spatialdat %>%
+    st_combine() %>%
+    st_convex_hull() %>%
+    st_make_grid(n = c(my_n, my_n), square = FALSE)
+  
+  test_grid <- st_sf(id = 1:length(test_grid), geometry = test_grid)
+  
+  test_grid_dat <- st_join(test_grid, finescale_locs, join = st_contains)
+  
+  test_nonspat <- as.data.frame(test_grid_dat) %>%
+    select(-geometry) %>%
+    group_by(predator, season, year) %>%
+    summarize(overlap_sum = mean(density)) %>%
+    drop_na()
+  
+  ggplot(test_nonspat, aes(x = year, y = overlap_sum, color = season)) +
+    geom_point() +
+    geom_line() +
+    facet_wrap(~predator) +
+    theme_bw() +
+    theme(panel.grid.major = element_blank(),
+          panel.grid.minor = element_blank(),
+          strip.background = element_blank())
+  ggsave(filename = here("output", "plots", "check-overlap-ts", 
+                         paste0("cells-", my_n, ".png")), 
+         width = 3, height = 3, units = "in")
+  
+}
 
+# Seems like aggregation doesn't matter at the index level,
+# but could still matter at the individual species density level
 
 
