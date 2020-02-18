@@ -1,12 +1,9 @@
 # Process diet index data
 # 1. Extract and save index
-# 2. Make annually-averaged map
-# 3. Make predator time-series maps
+# 2. Plot diet index
 
-library("rnaturalearth")
 library("tidyverse")
 library("here")
-library("sf")
 
 
 # 0. Load data ------------------------------------------------------------
@@ -32,6 +29,9 @@ dietindex <- topdiets %>%
 write_rds(dietindex, path = here("output", "index_diet.rds"))
 
 
+
+# Plot diet-based abundance index -----------------------------------------
+
 plot_dietindex <- dietindex %>%
   rename(
     Year = year,
@@ -55,30 +55,3 @@ p <- ggplot(plot_dietindex, aes(x = Year, y = Density, color = Season)) +
         panel.grid.minor = element_blank(),
         strip.background = element_blank())
 ggsave(plot = p, filename = here("output", "plots", "diet-index-ts.pdf"), width = 10, height = 6, units = "in")
-
-# Compare with outliers removed
-plot_dietindex %>%
-  filter(!is.na(Density)) %>%
-  filter(density_se < 900) %>%
-  ggplot(aes(x = Year, y = Density, color = Season)) +
-  geom_point() +
-  geom_errorbar(aes(ymin = (Density - density_se), 
-                    ymax = (Density + density_se), 
-                    color = Season),
-                width = 0) +
-  facet_wrap(~ predator, scales = "free_y") +
-  theme_bw() +
-  theme(panel.grid.major = element_blank(),
-        panel.grid.minor = element_blank(),
-        strip.background = element_blank())
-
-
-# Annually-averaged map ---------------------------------------------------
-
-
-
-
-ggsave(plot = p, 
-       filename = here("output", "plots", "overlap-ts",
-                       paste0(gsub(" ", "-", paste(preds, seas)), ".pdf")),
-       width = 12, height = 10, units = "in")
