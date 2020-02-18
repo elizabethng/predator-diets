@@ -1,5 +1,3 @@
-# Map overlap metric
-
 # Make map of overlap index using discretized space and quantile color scale
 # Based on hex grid calculation for overlap
 
@@ -20,7 +18,6 @@ library("sf")
 
 
 # 0. Load data ------------------------------------------------------------
-# topdiets <- readr::read_rds(here::here("output", "top_final_diet.rds"))
 overlap <- readr::read_rds(here("output", "finescale_overlap.rds"))
 
 northamerica <- ne_countries(continent = "north america",
@@ -32,8 +29,6 @@ locations <- overlap$bhat[[1]][, c("Lon", "Lat")] %>%
 
 knot_diets <- overlap %>%
   dplyr::select(season, predator, bhat)
-  # dplyr::mutate(output = purrr::map(output, "result")) %>%
-  # dplyr::mutate(output = purrr::map(output, "knot_density"))
 
 finescale_data <- knot_diets %>%
   unnest(bhat) %>%
@@ -86,7 +81,6 @@ annual_dat <- nonspat %>%
   summarize(density_annual_avg = mean(density_grid, na.rm = TRUE)) %>% # avg by year
   ungroup() %>% 
   group_by(predator, season) %>%
-  # mutate(scaled_density = density_annual_avg) # shoudl try with and without rescaling...
   mutate(scaled_density = scale(density_annual_avg)[,1]) # normalize within species/season
 
 densitymap <- left_join(grid, annual_dat, by = "id") %>% 
@@ -112,15 +106,15 @@ sum(densitymap$scaled_density<5)/length(densitymap$scaled_density) # 99%
 # find the extremes
 minVal <- min(densitymap$scaled_density, na.rm = T)
 maxVal <- max(densitymap$scaled_density, na.rm = T)
+
 # compute labels
 labels <- c()
 brks <- c(minVal, pretty_breaks, maxVal)
-# round the labels (actually, only the extremes)
 for(idx in 1:length(brks)){
-  labels <- c(labels,round(brks[idx + 1], 2))
+  labels <- c(labels,round(brks[idx + 1], 2)) # round the labels (actually, only the extremes)
 }
-
 labels <- labels[1:length(labels)-1] # get rid of Na
+
 # define a new variable on the data set just as above
 densitymap$brks <- cut(densitymap$scaled_density, 
                        breaks = brks, 
@@ -128,7 +122,6 @@ densitymap$brks <- cut(densitymap$scaled_density,
                        labels = labels)
 
 brks_scale <- levels(densitymap$brks)
-# labels_scale <- rev(brks_scale)
 
 q <- ggplot() +
   geom_sf(data = densitymap, aes(fill = brks, color = brks), lwd = 0) +
@@ -177,7 +170,6 @@ ggsave(plot = q,
 
 # 5. Plot time series for each predator -----------------------------------
 # Make with mostly default plot specs and save as .png or similar for ease of viewing
-
 # Get the spatial data
 speciesmap <- left_join(grid, nonspat, by = "id") %>% 
   drop_na() 
@@ -225,7 +217,6 @@ for(pred in unique(speciesmap$predator)){
               strip.background = element_blank())  +
         scale_fill_manual(
           values = viridis::magma(no_classes),
-          # breaks = quantiles,
           name = "Overlap index",
           drop = FALSE,
           guide = guide_legend(
@@ -233,7 +224,6 @@ for(pred in unique(speciesmap$predator)){
         ) +
         scale_color_manual(
           values = viridis::magma(no_classes),
-          # breaks = quantiles,
           name = "Overlap index",
           drop = FALSE,
           guide = guide_legend(
@@ -247,61 +237,4 @@ for(pred in unique(speciesmap$predator)){
     
   }
 }
-
-
-
-# Check aggregated index --------------------------------------------------
-# Quick plot to compare aggregated overlap ts relative finescale overlap ts
-indexagg <- as.data.frame(speciesmap) %>%
-  select(-geometry) %>%
-  group_by(predator, season, year) %>%
-  summarize(overlap_sum = sum(density_grid))
-
-ggplot(indexagg, aes(x = year, y = overlap_sum, color = season)) +
-  geom_point() +
-  geom_line() +
-  facet_wrap(~predator) +
-  theme_bw() +
-  theme(panel.grid.major = element_blank(),
-        panel.grid.minor = element_blank(),
-        strip.background = element_blank())
-
-# Qualitatively looks very similar
-
-# How much does aggregation matter?
-n_cells = c(10, 20, 30)
-
-for(my_n in n_cells){
-  test_grid <- spatialdat %>%
-    st_combine() %>%
-    st_convex_hull() %>%
-    st_make_grid(n = c(my_n, my_n), square = FALSE)
-  
-  test_grid <- st_sf(id = 1:length(test_grid), geometry = test_grid)
-  
-  test_grid_dat <- st_join(test_grid, finescale_locs, join = st_contains)
-  
-  test_nonspat <- as.data.frame(test_grid_dat) %>%
-    select(-geometry) %>%
-    group_by(predator, season, year) %>%
-    summarize(overlap_sum = mean(density)) %>%
-    drop_na()
-  
-  ggplot(test_nonspat, aes(x = year, y = overlap_sum, color = season)) +
-    geom_point() +
-    geom_line() +
-    facet_wrap(~predator) +
-    theme_bw() +
-    theme(panel.grid.major = element_blank(),
-          panel.grid.minor = element_blank(),
-          strip.background = element_blank())
-  ggsave(filename = here("output", "plots", "check-overlap-ts", 
-                         paste0("cells-", my_n, ".png")), 
-         width = 3, height = 3, units = "in")
-  
-}
-
-# Seems like aggregation doesn't matter at the index level,
-# but could still matter at the individual species density level
-
 
