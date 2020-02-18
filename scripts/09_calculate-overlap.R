@@ -9,14 +9,14 @@ library("sf")
 # 0. Load data ------------------------------------------------------------
 trawlmods <- readr::read_rds(here::here("output", "top_final_trawl.rds"))
 
-# Extract years to exclude (shouldn't be many in trawl data)
-exclude_years <- trawlmods %>%
-  dplyr::select(season, species, output) %>%
-  dplyr::mutate(output = purrr::map(output, "result")) %>%
-  dplyr::mutate(output = purrr::map(output, "index")) %>%
-  unnest(cols = c(output)) %>%
-  select(season, species, Year, exclude_reason) %>%
-  rename(year = Year)
+# Extract years to exclude (shouldn't be any/many in trawl data)
+# exclude_years <- trawlmods %>%
+#   dplyr::select(season, species, output) %>%
+#   dplyr::mutate(output = purrr::map(output, "result")) %>%
+#   dplyr::mutate(output = purrr::map(output, "index")) %>%
+#   unnest(cols = c(output)) %>%
+#   select(season, species, Year, exclude_reason) %>%
+#   rename(year = Year)
 
 # Extract location level densities
 locdat <- trawlmods %>%
@@ -25,19 +25,19 @@ locdat <- trawlmods %>%
   dplyr::mutate(output = purrr::map(output, "knot_density"))
 
 # Check that locations are the same
-compdata <- locdat %>%
-  mutate(locations = purrr::map(output, `[`, c("Lat", "Lon", "x2i"))) %>%
-  select(locations)
-for(i in 1:9){
-  print(all_equal(compdata[i,][[1]], compdata[i+1,][[1]]))
-}
+# compdata <- locdat %>%
+#   mutate(locations = purrr::map(output, `[`, c("Lat", "Lon", "x2i"))) %>%
+#   select(locations)
+# for(i in 1:9){
+#   print(all_equal(compdata[i,][[1]], compdata[i+1,][[1]]))
+# }
 
 
 
 
 # 1. Calculate overlap metric ---------------------------------------------
 # Get just the density data
-densdat <- locdat %>%
+densdat <- locdat %>% # could leave in lat, lon, x2i here...
   mutate(density = purrr::map(output, ~ select(.x, starts_with("density_")))) %>%
   select(-output)
 
@@ -66,76 +66,81 @@ results <- widedat %>%
   mutate(average_spatial = pmap(list(bhat), rowSums))
 
 
+# Join back location data to results and save output for use in making maps
+finescale_results <- results %>%
+  mutate(bhat = map(bhat, ~ bind_cols(locdat$output[[1]][,1:3], .x)))
+write_rds(finescale_results, path = here("output", "finescale_overlap.rds"))
+
 
 # 2. Spatially-explicit time series -----------------------------------------------
-locations <- locdat$output[[1]][, c("Lon", "Lat")] %>%
-  rename(lon = Lon, lat = Lat)
-
-stoverlap <- results %>%
-  select(season, predator, bhat) %>% 
-  mutate(bhat = pmap(list(bhat), function(x) bind_cols(locations, x))) %>%
-  unnest(cols = c(bhat)) %>%
-  pivot_longer(cols = starts_with("density_"), names_to = "year", values_to = "bhat") %>%
-  mutate(year = gsub("density_", "", year),
-         year = as.numeric(year))
-
-stoverlap_spatial <- st_as_sf(stoverlap, coords = c("lon", "lat"), crs = 4326)
-
-label_dat <- stoverlap %>%
-  select(year) %>%
-  distinct() %>%
-  na.omit()
-
-northamerica <- ne_countries(continent = "north america",
-                             scale = "medium",
-                             returnclass = "sf")
-
-if(FALSE){
-  # Make for all species for reference
-  predators <- unique(stoverlap$predator)
-  seasons <- unique(stoverlap$season)
-  
-  
-  for(preds in predators){
-    for(seas in seasons){
-      
-      p <- stoverlap_spatial %>%
-        filter(
-          predator == preds,
-          season == seas) %>%
-        ggplot() +
-        geom_sf(aes(fill = bhat, color = bhat)) +
-        scale_fill_viridis_c(
-          option = "inferno",
-          name = "Overlap metric"
-        ) +
-        scale_color_viridis_c(
-          option = "inferno",
-          name = "overlap metric"
-        ) +
-        facet_wrap(~year) +
-        geom_text(data = label_dat, aes(label = year), x = -69.5, y = 33, color = "grey", inherit.aes = FALSE) + 
-        geom_sf(data = northamerica, color = "white", fill = "grey", inherit.aes = FALSE) +
-        coord_sf(xlim = c(-79.5, -65.5), ylim = c(32.5, 45.5)) +
-        theme(panel.grid.major = element_line(color = "white"),
-              panel.background = element_blank(),
-              axis.title.x = element_blank(),
-              axis.text.x = element_blank(),
-              axis.ticks.x = element_blank(),
-              axis.title.y = element_blank(),
-              axis.text.y = element_blank(),
-              axis.ticks.y = element_blank(),
-              strip.text.x = element_blank(), # controls facets
-              strip.text.y = element_blank(),
-              strip.background = element_blank())
-      ggsave(plot = p, 
-             filename = here("output", "plots", "overlap-ts",
-                             paste0(gsub(" ", "-", paste(preds, seas)), ".pdf")),
-             width = 12, height = 10, units = "in")
-    }
-  }
-  
-}
+# locations <- locdat$output[[1]][, c("Lon", "Lat")] %>%
+#   rename(lon = Lon, lat = Lat)
+# 
+# stoverlap <- results %>%
+#   select(season, predator, bhat) %>% 
+#   mutate(bhat = pmap(list(bhat), function(x) bind_cols(locations, x))) %>%
+#   unnest(cols = c(bhat)) %>%
+#   pivot_longer(cols = starts_with("density_"), names_to = "year", values_to = "bhat") %>%
+#   mutate(year = gsub("density_", "", year),
+#          year = as.numeric(year))
+# 
+# stoverlap_spatial <- st_as_sf(stoverlap, coords = c("lon", "lat"), crs = 4326)
+# 
+# label_dat <- stoverlap %>%
+#   select(year) %>%
+#   distinct() %>%
+#   na.omit()
+# 
+# northamerica <- ne_countries(continent = "north america",
+#                              scale = "medium",
+#                              returnclass = "sf")
+# 
+# if(FALSE){
+#   # Make for all species for reference
+#   predators <- unique(stoverlap$predator)
+#   seasons <- unique(stoverlap$season)
+#   
+#   
+#   for(preds in predators){
+#     for(seas in seasons){
+#       
+#       p <- stoverlap_spatial %>%
+#         filter(
+#           predator == preds,
+#           season == seas) %>%
+#         ggplot() +
+#         geom_sf(aes(fill = bhat, color = bhat)) +
+#         scale_fill_viridis_c(
+#           option = "inferno",
+#           name = "Overlap metric"
+#         ) +
+#         scale_color_viridis_c(
+#           option = "inferno",
+#           name = "overlap metric"
+#         ) +
+#         facet_wrap(~year) +
+#         geom_text(data = label_dat, aes(label = year), x = -69.5, y = 33, color = "grey", inherit.aes = FALSE) + 
+#         geom_sf(data = northamerica, color = "white", fill = "grey", inherit.aes = FALSE) +
+#         coord_sf(xlim = c(-79.5, -65.5), ylim = c(32.5, 45.5)) +
+#         theme(panel.grid.major = element_line(color = "white"),
+#               panel.background = element_blank(),
+#               axis.title.x = element_blank(),
+#               axis.text.x = element_blank(),
+#               axis.ticks.x = element_blank(),
+#               axis.title.y = element_blank(),
+#               axis.text.y = element_blank(),
+#               axis.ticks.y = element_blank(),
+#               strip.text.x = element_blank(), # controls facets
+#               strip.text.y = element_blank(),
+#               strip.background = element_blank())
+#       ggsave(plot = p, 
+#              filename = here("output", "plots", "overlap-ts",
+#                              paste0(gsub(" ", "-", paste(preds, seas)), ".pdf")),
+#              width = 12, height = 10, units = "in")
+#     }
+#   }
+#   
+# }
 
 
 
@@ -168,41 +173,41 @@ write_rds(annualindex, path = here::here("output", "index_overlap.rds"))
 
 
 # 4. Annually-averaged overlap ----------------------------------------------
-averagespatial <- results %>%
-  select(season, predator, average_spatial) %>% 
-  mutate(average_spatial = pmap(list(average_spatial), enframe)) %>%
-  mutate(average_spatial = pmap(list(average_spatial), function(x) bind_cols(locations, x))) %>%
-  unnest(cols = c(average_spatial)) %>%
-  rename(bhat = value) %>%
-  select(-name)
-
-plot_averagespatial <- st_as_sf(averagespatial, coords = c("lon", "lat"), crs = 4326) %>%
-  mutate(predator = str_to_sentence(predator),
-         season = str_to_sentence(season))
-
-p <- ggplot() +
-  geom_sf(data = plot_averagespatial, aes(fill = bhat, color = bhat)) +
-  facet_grid(season ~ predator) +
-  scale_fill_viridis_c(
-    option = "inferno",
-    name = "Overlap metric"
-  ) +
-  scale_color_viridis_c(
-    option = "inferno",
-    name = "Overlap metric"
-  ) +
-  geom_sf(data = northamerica, color = "white", fill = "grey", inherit.aes = FALSE) +
-  coord_sf(xlim = c(-79.5, -65.5), ylim = c(32.5, 45.5)) +
-  theme(panel.grid.major = element_line(color = "white"),
-        panel.background = element_blank(),
-        axis.title.x = element_blank(),
-        axis.text.x = element_blank(),
-        axis.ticks.x = element_blank(),
-        axis.title.y = element_blank(),
-        axis.text.y = element_blank(),
-        axis.ticks.y = element_blank(),
-        strip.background = element_blank())
-ggsave(plot = p, filename = here("output", "plots", "overlap-map-avg.pdf"), width = 9, height = 5, units = "in")
+# averagespatial <- results %>%
+#   select(season, predator, average_spatial) %>% 
+#   mutate(average_spatial = pmap(list(average_spatial), enframe)) %>%
+#   mutate(average_spatial = pmap(list(average_spatial), function(x) bind_cols(locations, x))) %>%
+#   unnest(cols = c(average_spatial)) %>%
+#   rename(bhat = value) %>%
+#   select(-name)
+# 
+# plot_averagespatial <- st_as_sf(averagespatial, coords = c("lon", "lat"), crs = 4326) %>%
+#   mutate(predator = str_to_sentence(predator),
+#          season = str_to_sentence(season))
+# 
+# p <- ggplot() +
+#   geom_sf(data = plot_averagespatial, aes(fill = bhat, color = bhat)) +
+#   facet_grid(season ~ predator) +
+#   scale_fill_viridis_c(
+#     option = "inferno",
+#     name = "Overlap metric"
+#   ) +
+#   scale_color_viridis_c(
+#     option = "inferno",
+#     name = "Overlap metric"
+#   ) +
+#   geom_sf(data = northamerica, color = "white", fill = "grey", inherit.aes = FALSE) +
+#   coord_sf(xlim = c(-79.5, -65.5), ylim = c(32.5, 45.5)) +
+#   theme(panel.grid.major = element_line(color = "white"),
+#         panel.background = element_blank(),
+#         axis.title.x = element_blank(),
+#         axis.text.x = element_blank(),
+#         axis.ticks.x = element_blank(),
+#         axis.title.y = element_blank(),
+#         axis.text.y = element_blank(),
+#         axis.ticks.y = element_blank(),
+#         strip.background = element_blank())
+# ggsave(plot = p, filename = here("output", "plots", "overlap-map-avg.pdf"), width = 9, height = 5, units = "in")
 
 
 
