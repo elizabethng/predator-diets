@@ -42,6 +42,14 @@ allruns <- dietrun %>%
 failed <- allruns %>%
   filter(converged != "TRUE")
 
+badmod_data <- dietrun %>%
+  dplyr::mutate(
+    model = basename(config_file_loc),
+    model = gsub(".R", "", model)
+  ) %>%
+  semi_join(failed, by = c("predator", "season", "model"))
+write_rds(badmod_data, here("output", "bad_cov_diet.rds"))
+
 
 # Process models without errors
 worked <- allruns %>%
