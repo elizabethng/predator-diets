@@ -127,7 +127,7 @@ brks_scale <- levels(densitymap$brks)
 
 q <- ggplot() +
   geom_sf(data = densitymap, aes(fill = brks, color = brks), lwd = 0) +
-  facet_grid(season ~ predator) +
+  facet_grid(season ~ predator, switch = "y") +
   geom_sf(data = northamerica, color = "white", fill = "grey", inherit.aes = FALSE) +
   coord_sf(xlim = c(-79.5, -65.5), ylim = c(32.5, 45.5)) +
   theme(panel.grid.major = element_line(color = "white"),
@@ -138,36 +138,49 @@ q <- ggplot() +
         axis.title.y = element_blank(),
         axis.text.y = element_blank(),
         axis.ticks.y = element_blank(),
-        strip.background = element_blank()) +
+        strip.background = element_blank(),
+        legend.position = "bottom") +
   scale_fill_manual(
     values = viridis::viridis(6),
     breaks = brks_scale,
-    name = "Diet index",
+    name = "Relative diet index",
     drop = FALSE,
     guide = guide_legend(
-      reverse = TRUE,
-      keyheight = unit(70*rev(diff(brks))/sum(diff(brks)), units = "mm"),
-      keywidth = unit(2, units = "mm"),
-      label.vjust = 1
+      direction = "horizontal",
+      reverse = FALSE,
+      keywidth = unit(70*abs(diff(brks))/(maxVal - minVal), units = "mm"), # key height prop to distance between values
+      keyheight = unit(2, units = "mm"),
+      title.position = "top",
+      title.hjust = 0.5,
+      label.position = "bottom",
+      label.hjust = 1,
+      nrow = 1,
+      byrow = TRUE
     )
   ) +
   scale_color_manual(
     values = viridis::viridis(6),
     breaks = brks_scale,
-    name = "Diet index",
+    name = "Relative diet index",
     drop = FALSE,
     guide = guide_legend(
-      reverse = TRUE,
-      keyheight = unit(70*rev(diff(brks))/sum(diff(brks)), units = "mm"), # key height prop to distance between values
-      keywidth = unit(2, units = "mm"),
-      label.vjust = 1
+      direction = "horizontal",
+      reverse = FALSE,
+      keywidth = unit(70*abs(diff(brks))/(maxVal - minVal), units = "mm"), # key height prop to distance between values
+      keyheight = unit(2, units = "mm"),
+      title.position = "top",
+      title.hjust = 0.5,
+      label.position = "bottom",
+      label.hjust = 1,
+      nrow = 1,
+      byrow = TRUE
     )
   )
 q
 
 ggsave(plot = q, 
        filename = here("output", "plots", "diet-map-quantile.pdf"), 
-       width = 9, height = 5, units = "in")
+       width = 7, height = 5, units = "in")
 
 
 # 5. Plot time series for each predator -----------------------------------
