@@ -57,14 +57,14 @@ annualindex <- results %>%
   rename(year = name, bhat = value) %>%
   mutate(year = gsub("density_", "", year),
          year = as.numeric(year)) %>%
-  rename("Overlap metric" = bhat) 
+  rename("Overlap index" = bhat) 
 
 plot_annualindex <- annualindex %>%
   rename(Season = season, Year = year) %>%
   mutate(predator = str_to_sentence(predator),
          Season = str_to_sentence(Season))
 
-ggplot(plot_annualindex, aes(x = Year, y = `Overlap metric`, color = Season)) +
+ggplot(plot_annualindex, aes(x = Year, y = `Overlap index`, color = Season)) +
   geom_point() +
   geom_line() +
   facet_wrap(~predator) +

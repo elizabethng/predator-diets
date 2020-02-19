@@ -50,8 +50,9 @@ p <- ggplot(plot_dietindex, aes(x = Year, y = Density, color = Season)) +
                     color = Season),
                 width = 0) +
   facet_wrap(~ predator, scales = "free_y") +
+  labs(y = "Diet index") +
   theme_bw() +
   theme(panel.grid.major = element_blank(),
         panel.grid.minor = element_blank(),
         strip.background = element_blank())
-ggsave(plot = p, filename = here("output", "plots", "diet-index-ts.pdf"), width = 10, height = 6, units = "in")
+ggsave(plot = p, filename = here("output", "plots", "diet-index-ts.pdf"), width = 9, height = 5, units = "in")
