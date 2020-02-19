@@ -111,4 +111,4 @@ p <- ggplot(plotdat, aes(x = `Length (cm)`, y = Effect, group = paste(sim_id, Se
         strip.background = element_blank(),
         panel.spacing.x = unit(0.8, "lines"))
 
-ggsave(plot = p, filename = here("output", "plots", "length-effects.pdf"), width = 10, height = 4, units = "in")
+ggsave(plot = p, filename = here("output", "plots", "length-effects.pdf"), width = 9, height = 4, units = "in")
