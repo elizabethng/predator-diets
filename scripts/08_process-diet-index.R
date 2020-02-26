@@ -45,6 +45,7 @@ plot_dietindex <- dietindex %>%
 
 p <- ggplot(plot_dietindex, aes(x = Year, y = Density, color = Season)) +
   geom_point() +
+  scale_color_manual(values = c("blue", "red")) +
   geom_errorbar(aes(ymin = (Density - density_se), 
                     ymax = (Density + density_se), 
                     color = Season),

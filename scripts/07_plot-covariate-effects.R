@@ -89,13 +89,15 @@ plotdat <- expand_grid(simpreds, z_score = seq(-5, 5, length.out = 50)) %>%
   ) %>%
   mutate(
     predator = str_to_sentence(predator), 
-    predictor = ifelse(predictor == "pred1", 1, 2)
+    predictor = ifelse(predictor == "pred1", 1, 2),
+    Season = str_to_sentence(Season)
   )
 
 
 # 4. Plot results
 p <- ggplot(plotdat, aes(x = `Length (cm)`, y = Effect, group = paste(sim_id, Season, predator, predictor), color = Season)) +
   geom_line(alpha = 0.01) +
+  scale_color_manual(values = c("blue", "red")) +
   geom_rug(data = obslenplot,
            aes(x = pdlen),
            inherit.aes = FALSE,

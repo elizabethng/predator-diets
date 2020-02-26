@@ -67,6 +67,7 @@ plot_annualindex <- annualindex %>%
 ggplot(plot_annualindex, aes(x = Year, y = `Overlap index`, color = Season)) +
   geom_point() +
   geom_line() +
+  scale_color_manual(values = c("blue", "red")) +
   facet_wrap(~predator) +
   theme_bw() +
   theme(panel.grid.major = element_blank(),
@@ -120,6 +121,7 @@ for(i in 1:iters){
 
 ggplot(permres, aes(x = year, y = `Overlap metric`, color = season, group = paste(season, iter))) +
   geom_line(alpha = 0.01) +
+  scale_color_manual(values = c("blue", "red")) +
   geom_point(data = annualindex, aes(x = year, y = `Overlap metric`, color = season), inherit.aes = FALSE) +
   facet_wrap(~predator) +
   theme_bw() +
