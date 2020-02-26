@@ -56,3 +56,21 @@ p <- ggplot(plot_dietindex, aes(x = Year, y = Density, color = Season)) +
         panel.grid.minor = element_blank(),
         strip.background = element_blank())
 ggsave(plot = p, filename = here("output", "plots", "diet-index-ts.pdf"), width = 9, height = 5, units = "in")
+
+
+
+# Simpler BW option -------------------------------------------------------
+
+ggplot(plot_dietindex, aes(x = Year, y = Density)) +
+  geom_point() +
+  geom_line() +
+  geom_errorbar(aes(ymin = (Density - density_se), 
+                    ymax = (Density + density_se)),
+                width = 0) +
+  facet_grid(rows = c(vars(predator), vars(Season)), scale = "free_y") +
+  labs(y = "Diet index") +
+  theme_bw() +
+  theme(panel.grid.major = element_blank(),
+        panel.grid.minor = element_blank(),
+        strip.background = element_blank())
+
