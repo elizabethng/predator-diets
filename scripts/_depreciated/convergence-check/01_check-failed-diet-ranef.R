@@ -1,5 +1,5 @@
 # Script to check models that were found to have failed to converge 
-# (or threw errors) in 02_pick-ranef-structure.R
+# (or threw errors) in 02_pick-ranef-structure.R and 04_pick-covariates.R
 
 library("tidyverse")
 library("here")
@@ -14,27 +14,34 @@ Version <- FishStatsUtils::get_latest_version()
 safe_run_mod <- purrr::safely(run_mod)
 
 # Set VAST output location
-diagnostic_folder <- file.path("D:", "Dropbox", "Predator_Diets", "output", "VAST")
+diagnostic_folder_name <- "VAST-test-version"
 
 
 # Diet Data ---------------------------------------------------------------
 
-# Load top models
-badmod_data <- read_rds(here("output", "bad_st_diet.rds"))
+# Load bad models
+# badmod_data <- read_rds(here("output", "bad_st_diet.rds"))
+badmod_data <- read_rds(here("output", "bad_cov_diet.rds"))
 
-# Run the model
-checkrun <- badmod_data 
+
+# Switch diagnostic folder location
+checkrun <- badmod_data %>%
+  mutate(output_file_loc = gsub("VAST", diagnostic_folder_name, output_file_loc))
+
+
+# debug(run_mod)
 
 for(i in 1:nrow(checkrun)){
   checkrun$output[[i]] <- safe_run_mod(
-    checkrun$covar_columns[[i]], 
-    checkrun$config_file_loc[[i]], 
+    covar_columns = checkrun$covar_columns[[i]], 
+    use_aniso = checkrun$use_aniso[[i]],
+    config_file_loc = checkrun$config_file_loc[[i]], 
     strata_file_loc = here("configuration-files", "strata_limits_subset.R"), 
-    checkrun$processed_data[[i]], 
-    checkrun$output_file_loc[[i]],
+    processed_data = checkrun$processed_data[[i]], 
+    output_file_loc = checkrun$output_file_loc[[i]],
     check_identifiable = TRUE,
-    use_REML = TRUE,
-    run_fast = TRUE
+    use_REML = FALSE,
+    run_fast = FALSE
   )
 
 }
