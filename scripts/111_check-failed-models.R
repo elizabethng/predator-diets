@@ -31,7 +31,7 @@ checkrun <- badmod_data %>%
   mutate(output_file_loc = gsub("VAST", diagnostic_folder_name, output_file_loc))
 
 
-debug(run_mod)
+# debug(run_mod)
 
 for(i in 1:nrow(checkrun)){
   checkrun$output[[i]] <- safe_run_mod(
@@ -46,6 +46,17 @@ for(i in 1:nrow(checkrun)){
     run_fast = TRUE
   )
 }
+
+checkrun %>%
+  select(-c(data.x, output.y, processed_data, config_file_loc, 
+            output_file_loc, output.x,data.y, covar_columns)) %>%
+  dplyr::mutate(
+    errors = purrr::map(output,"error"), 
+    worked = purrr::map_lgl(errors, is.null)
+  ) %>%
+  hoist(output, modres = "result")
+  
+
 
 
 allruns <- checkrun %>% 
@@ -81,4 +92,4 @@ allruns <- checkrun %>%
 # non-converged versions of the model
 
 # readr::write_rds(allruns, path = here("output", "select_cov_diet_fix.rds"))
-# readr::write_rds(allruns, path = here("output", "select_st_diet_fix.rds"))
+readr::write_rds(allruns, path = here("output", "select_st_diet_fix.rds"))
