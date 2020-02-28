@@ -126,7 +126,7 @@ run_mod <- function(covar_columns = NA,
     getsd = TRUE, 
     savedir = DateFile,
     bias.correct = use_bias_correct,
-    newtonsteps = 3,
+    newtonsteps = 1,
     bias.correct.control = list(
       sd=FALSE, split=NULL, nsplit=1, vars_to_correct = "Index_cyl"))
   
@@ -134,6 +134,10 @@ run_mod <- function(covar_columns = NA,
   
   if(check_identifiable){
     Opt$identifiable <- TMBhelper::Check_Identifiable(Obj)  
+    
+    if(length(Opt$identifiable$WhichBad > 0)){
+      return(Opt$identifiable)
+    }
   }
   
   
