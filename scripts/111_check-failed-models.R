@@ -20,8 +20,8 @@ diagnostic_folder_name <- "VAST-test-version"
 # Diet Data ---------------------------------------------------------------
 
 # Load bad models
-# badmod_data <- read_rds(here("output", "bad_st_diet.rds"))
-badmod_data <- read_rds(here("output", "bad_cov_diet.rds"))
+badmod_data <- read_rds(here("output", "bad_st_diet.rds"))
+# badmod_data <- read_rds(here("output", "bad_cov_diet.rds"))
 
 
 # Switch diagnostic folder location
