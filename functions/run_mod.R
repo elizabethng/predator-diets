@@ -143,21 +143,21 @@ run_mod <- function(covar_columns = NA,
   # Convergence check -------------------------------------------------------
   converged <- try(all(abs(Opt$diagnostics$final_gradient)<1e-6 ))
   
-  if(converged == FALSE){
-    Opt <- TMBhelper::fit_tmb(
-      startpar = Obj$par, # Opt$par, # start at latest parameter value
-      obj = Obj,
-      lower = TmbList[["Lower"]],
-      upper = TmbList[["Upper"]],
-      getsd = TRUE, 
-      savedir = DateFile,
-      bias.correct = use_bias_correct,
-      newtonsteps = 3,
-      bias.correct.control = list(
-        sd=FALSE, split=NULL, nsplit=1, vars_to_correct = "Index_cyl")
-      )
-  }
-  converged <- try(all(abs(Opt$diagnostics$final_gradient)<1e-6 ))
+  # if(converged == FALSE){
+  #   Opt <- TMBhelper::fit_tmb(
+  #     startpar = Obj$par, # Opt$par, # start at latest parameter value
+  #     obj = Obj,
+  #     lower = TmbList[["Lower"]],
+  #     upper = TmbList[["Upper"]],
+  #     getsd = TRUE, 
+  #     savedir = DateFile,
+  #     bias.correct = use_bias_correct,
+  #     newtonsteps = 3,
+  #     bias.correct.control = list(
+  #       sd=FALSE, split=NULL, nsplit=1, vars_to_correct = "Index_cyl")
+  #     )
+  # }
+  # converged <- try(all(abs(Opt$diagnostics$final_gradient)<1e-6 ))
   
   # Minimal Output ---------------------------------------------------------------
   
