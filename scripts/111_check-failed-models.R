@@ -23,13 +23,15 @@ diagnostic_folder_name <- "VAST-test-version"
 badmod_data <- read_rds(here("output", "bad_st_diet.rds"))
 # badmod_data <- read_rds(here("output", "bad_cov_diet.rds"))
 
+# for checking only
+# badmod_data <- read_rds(here("output", "top_cov_diet.rds"))
 
 # Switch diagnostic folder location
 checkrun <- badmod_data %>%
   mutate(output_file_loc = gsub("VAST", diagnostic_folder_name, output_file_loc))
 
 
-# debug(run_mod)
+debug(run_mod)
 
 for(i in 1:nrow(checkrun)){
   checkrun$output[[i]] <- safe_run_mod(
@@ -40,7 +42,7 @@ for(i in 1:nrow(checkrun)){
     processed_data = checkrun$processed_data[[i]], 
     output_file_loc = checkrun$output_file_loc[[i]],
     check_identifiable = TRUE,
-    use_REML = FALSE,
+    use_REML = TRUE,
     run_fast = TRUE
   )
 }
@@ -78,4 +80,5 @@ allruns <- checkrun %>%
 # Interestingly, the aic values are the same for the converged and
 # non-converged versions of the model
 
-readr::write_rds(allruns, path = here("output", "select_cov_diet_fix.rds"))
+# readr::write_rds(allruns, path = here("output", "select_cov_diet_fix.rds"))
+# readr::write_rds(allruns, path = here("output", "select_st_diet_fix.rds"))
