@@ -7,6 +7,7 @@
 library("tidyverse")
 library("here")
 
+add_identifiability_check = FALSE
 
 # Diet Models ---------------------------------------------------------------
 
@@ -51,13 +52,40 @@ worked <- allruns %>%
   filter(converged == TRUE) %>%
   filter(!is.na(converged)) %>%
   mutate(hatval = purrr::map(output, "estimates")) %>%
-  select(-output, -data) %>%
-  dplyr::group_by(predator, season) %>%
-  dplyr::mutate(delta_aic = aic - min(aic))
+  select(-output, -data) 
+
+if(add_identifiability_check == FALSE){
+  # Load convergence-checked models
+  checkrun <- read_rds(here("output", "select_st_diet_fix.rds")) %>%
+    filter(identifiable) %>%
+    select(-identifiable) %>% 
+    dplyr::mutate(
+      model = basename(config_file_loc), 
+      model = gsub(".R", "", model),
+      covars = purrr::map_chr(covar_columns, ~ gsub(" ", ", ", .x))
+    ) %>%
+    dplyr::select(-c(processed_data,
+                     covar_columns, 
+                     config_file_loc,
+                     run_name,
+                     output_file_loc)) %>%
+    dplyr::mutate(
+      aic = purrr::map(output, "aic"),
+      aic = na_if(aic, "NULL")
+    ) %>%
+    unnest(cols = c("aic")) %>%
+    mutate(hatval = purrr::map(output, "estimates")) %>%
+    select(-output, -data) 
+  
+  worked <- select(worked, -converged) %>%
+    bind_rows(checkrun)
+}
 
 
 # check if any hatvals for top models are small
 modchecks <- worked %>%
+  dplyr::group_by(predator, season) %>%
+  dplyr::mutate(delta_aic = aic - min(aic)) %>%
   unnest(cols = c(hatval)) %>%
   ungroup() %>%
   mutate(
@@ -68,13 +96,28 @@ modchecks <- worked %>%
                       yes = abs(estimate) > 0.001,
                       no = NA)
   ) %>%
-  group_by(predator, season, model, covars, use_aniso, aic, delta_aic, converged) %>%
+  group_by(predator, season, model, covars, use_aniso, aic, delta_aic) %>% # converged
   summarize(
     ranef_ok = all(ranef_ok, na.rm = TRUE),
     ranef_n = sum(ranef)
   ) %>%
   ungroup() 
-  
+
+# Add in non-identifiable models and save AIC table
+if(add_identifiability_check == TRUE){
+  read_rds(here("output", "select_st_diet_fix.rds")) %>%
+    filter(!identifiable) %>%
+    dplyr::mutate(
+      model = basename(config_file_loc), 
+      model = gsub(".R", "", model),
+      covars = purrr::map_chr(covar_columns, ~ gsub(" ", ", ", .x))
+    ) %>%
+    select(predator, season, model, covars, use_aniso, identifiable) %>%
+    bind_rows(modchecks) %>%
+    mutate(identifiable = ifelse(is.na(identifiable), TRUE, identifiable)) %>%
+    write_csv(path = here("output", "st_diet_aic.csv"))
+}
+
 # Write output for next phase of model selection
 topmods <- modchecks %>%
   filter(delta_aic < 2,
@@ -92,6 +135,17 @@ topmod_data <- dietrun %>%
   ) %>%
   semi_join(topmods, by = c("predator", "season", "model", "use_aniso"))
 write_rds(topmod_data, here("output", "top_st_diet.rds"))
+
+
+# Final AIC table
+topmod_data %>% 
+  mutate(n_tows = map_int(processed_data, nrow),
+         perc_tows_w_herring = map(processed_data, "Catch_KG"),
+         perc_tows_w_herring = map_int(perc_tows_w_herring,
+                                       ~ sum(.x > 0, na.rm = TRUE)),
+         perc_tows_w_herring = perc_tows_w_herring/n_tows) %>%
+  select(predator, season, model, use_aniso, perc_tows_w_herring, n_tows) %>%
+  write_csv(here("output", "st_diet_aic_top.csv"))
 
 badmod_data <- dietrun %>%
   dplyr::mutate(
