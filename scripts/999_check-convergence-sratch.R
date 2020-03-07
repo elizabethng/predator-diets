@@ -1,8 +1,11 @@
 # Checking model convergence interactively
 
+# Change start value for log_kappa issues
 startval <- Obj$par
 startval[2] <- -1
+Obj$par <- startval
 
+# Rerun here, or go back to debug to continue running
 Opt <- TMBhelper::fit_tmb(
   startpar = startval,
   obj = Obj,
@@ -20,7 +23,7 @@ Obj$par <- startval
 Opt$identifiable <- TMBhelper::Check_Identifiable(Obj)
 
 
-
+# Work through checking Hessian
 RowMax = apply(jj$Eigen$vectors[, jj$WhichBad, drop = FALSE], 
                MARGIN = 1, 
                function(vec){max(abs(vec))})
