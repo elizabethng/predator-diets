@@ -108,7 +108,7 @@ if(ranef_mods == TRUE){
   res_nonid <- filter(ar0, identifiable == FALSE)
   
 
-  poop <- res_nonid %>%
+  nonid_params <- res_nonid %>%
     rowid_to_column("mod_num") %>%
     dplyr::mutate(
       bad_params = purrr::map_int(output, "WhichBad"),
@@ -120,11 +120,10 @@ if(ranef_mods == TRUE){
     filter(param == bad_params | Param_check == "Bad") %>%
     select(-run_name, -covars, -converged, -worked, -identifiable)
   
+  readr::write_rds(nonid_params, path = here("output", "select_st_diet_bad_mods.rds"))
   
   
-  
-  
-  res_ident %>%
+  fix_params <- res_ident %>%
     select(-element) %>%
     dplyr::mutate(
       aic = purrr::map(output, "aic"),
@@ -132,6 +131,16 @@ if(ranef_mods == TRUE){
     ) %>%
     unnest(cols = c("aic")) 
   
+  tmp <- checkrun %>% 
+    dplyr::mutate(output = purrr::map(output, "result"),
+                  element = purrr::map(output, 1))
+  tmp$identifiable <- sapply(myres$element, function(x) is.null(dim((x))))
+  
+  allruns <- tmp %>%
+    # filter(identifiable) %>%
+  select(-output.x, -model, -data.y, -output.y, -covars,
+         -converged, -element) %>%
+    rename(data = data.x) 
 }
 
 
