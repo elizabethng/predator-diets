@@ -77,7 +77,9 @@ modchecks <- worked %>%
     ranef_ok = all(ranef_ok, na.rm = TRUE),
     ranef_n = sum(ranef)
   ) %>%
-  ungroup() 
+  ungroup()
+write_csv(modchecks, here("output", "aic_cov_diet.csv"))
+
 
 # Write output for next phase of model selection
 topmods <- modchecks %>%
