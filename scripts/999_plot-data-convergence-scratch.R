@@ -1,5 +1,4 @@
 # Wonky data exploration
-
 exdat <- filter(poop, mod_num == 2) %>%
   slice(1) %>%
   semi_join(badmod_data, ., by = c("predator", "season", "use_aniso", "model")) %>%
@@ -27,9 +26,11 @@ group_by(exdat, year) %>%
 
 
 # Look at raw data
-alldiet <- readr::read_rds(here("data", "processed", "dat_tows_all.rds"))
+library(tidyverse)
 
-mydiet <- all_diet %>%
+alldiet <- readr::read_rds(here::here("data", "processed", "dat_tows_all.rds"))
+
+mydiet <- alldiet %>%
   # filter(mean_pyamtw > 0) %>%
   sf::st_as_sf(coords = c("declon", "declat"), crs = 4326) %>%
   filter(predator %in% c("silver hake", "atlantic cod", "goosefish", "spiny dogfish"))
@@ -42,4 +43,33 @@ ggplot() +
   facet_grid(season ~ predator)
 
 
+# Zero observations
+ggplot() +
+  geom_sf(data = filter(mydiet, mean_pyamtw == 0),
+          aes(color = mean_pyamtw), alpha = 0.1) +
+  scale_color_viridis_c() +
+  geom_sf(data = northamerica, color = "white", fill = "grey", inherit.aes = FALSE) +
+  coord_sf(xlim = c(-79.5, -65.5), ylim = c(32.5, 45.5)) +
+  facet_grid(season ~ predator)
+
+# Positve observations
+ggplot() +
+  geom_sf(data = filter(mydiet, mean_pyamtw > 0),
+          aes(color = mean_pyamtw), alpha = 0.1) +
+  scale_color_viridis_c() +
+  geom_sf(data = northamerica, color = "white", fill = "grey", inherit.aes = FALSE) +
+  coord_sf(xlim = c(-79.5, -65.5), ylim = c(32.5, 45.5)) +
+  facet_grid(season ~ predator)
+
+
+# Single species over time
+ggplot() +
+  geom_sf(data = filter(mydiet, 
+                        mean_pyamtw > 0,
+                        predator == "silver hake"),
+          aes(color = season, alpha = mean_pyamtw/max(mean_pyamtw))) + # , alpha = 0.1
+  # scale_color_viridis_c() +
+  geom_sf(data = northamerica, color = "white", fill = "grey", inherit.aes = FALSE) +
+  coord_sf(xlim = c(-79.5, -65.5), ylim = c(32.5, 45.5)) +
+  facet_wrap(~year)
 
