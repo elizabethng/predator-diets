@@ -143,7 +143,7 @@ topmod_data %>%
          perc_tows_w_herring = map(processed_data, "Catch_KG"),
          perc_tows_w_herring = map_int(perc_tows_w_herring,
                                        ~ sum(.x > 0, na.rm = TRUE)),
-         perc_tows_w_herring = perc_tows_w_herring/n_tows) %>%
+         perc_tows_w_herring = 100*perc_tows_w_herring/n_tows) %>%
   select(predator, season, model, use_aniso, perc_tows_w_herring, n_tows) %>%
   write_csv(here("output", "st_diet_aic_top.csv"))
 
