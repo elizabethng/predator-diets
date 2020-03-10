@@ -115,7 +115,7 @@ if(add_identifiability_check == TRUE){
     select(predator, season, model, covars, use_aniso, identifiable) %>%
     bind_rows(modchecks) %>%
     mutate(identifiable = ifelse(is.na(identifiable), TRUE, identifiable)) %>%
-    write_csv(path = here("output", "st_diet_aic.csv"))
+    write_csv(path = here("output", "aic_st_diet.csv"))
 }
 
 # Write output for next phase of model selection
@@ -145,7 +145,7 @@ topmod_data %>%
                                        ~ sum(.x > 0, na.rm = TRUE)),
          perc_tows_w_herring = 100*perc_tows_w_herring/n_tows) %>%
   select(predator, season, model, use_aniso, perc_tows_w_herring, n_tows) %>%
-  write_csv(here("output", "st_diet_aic_top.csv"))
+  write_csv(here("output", "aic_top_st_diet.csv"))
 
 badmod_data <- dietrun %>%
   dplyr::mutate(
