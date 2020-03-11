@@ -97,7 +97,7 @@ plotdat <- expand_grid(simpreds, z_score = seq(-5, 5, length.out = 50)) %>%
 # 4. Plot results
 p <- ggplot(plotdat, aes(x = `Length (cm)`, y = Effect, group = paste(sim_id, Season, predator, predictor), color = Season)) +
   geom_line(alpha = 0.01) +
-  scale_color_manual(values = c("blue", "red")) +
+  scale_color_manual(values = c(scales::muted("blue", l = 50, c = 100), scales::muted("red", l = 50, c = 100))) +
   geom_rug(data = obslenplot,
            aes(x = pdlen),
            inherit.aes = FALSE,
