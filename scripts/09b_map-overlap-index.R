@@ -21,7 +21,7 @@ library("sf")
 overlap <- readr::read_rds(here("output", "finescale_overlap.rds"))
 
 northamerica <- ne_countries(continent = "north america",
-                             scale = "medium",
+                             scale = "small",
                              returnclass = "sf")
 
 locations <- overlap$bhat[[1]][, c("Lon", "Lat")] %>%
@@ -126,7 +126,7 @@ brks_scale <- levels(densitymap$brks)
 q <- ggplot() +
   geom_sf(data = densitymap, aes(fill = brks, color = brks), lwd = 0) +
   facet_grid(season ~ predator, switch = "y") +
-  geom_sf(data = northamerica, color = "white", fill = "grey", inherit.aes = FALSE) +
+  geom_sf(data = northamerica, color = "white", fill = "grey", lwd = 0.1, inherit.aes = FALSE) +
   coord_sf(xlim = c(-79.5, -65.5), ylim = c(32.5, 45.5)) +
   theme(panel.grid.major = element_line(color = "white"),
         panel.background = element_blank(),
