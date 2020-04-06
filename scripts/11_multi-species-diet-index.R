@@ -53,4 +53,10 @@ broom::tidy(top_mod)
 
 
 
+# 3. Extract covariates and make predictions ------------------------------
+
+# Do this by leaving out predator effects? Not entirely clear how to do this. 
+
+
+
 
