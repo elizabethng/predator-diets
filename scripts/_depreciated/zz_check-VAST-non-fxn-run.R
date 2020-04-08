@@ -12,15 +12,16 @@ library("TMB")
 Version <- FishStatsUtils::get_latest_version() # now at VAST_v8_3_0
 
 # Set VAST output location
-diagnostic_folder <- file.path("D:", "Dropbox", "Predator_Diets", "output", "VAST-test-version")
+diagnostic_folder <- file.path("D:", "Dropbox", "Predator_Diets", "output", "VAST-test-version",
+                               "atlantic-herring-spring")
 
 
 # Diet Data ---------------------------------------------------------------
 
 # Load top models
-dietrun <- read_rds(here("output", "top_cov_diet.rds")) %>%
+dietrun <- read_rds(here("output", "top_final_trawl.rds")) %>%
   select(-output) %>%
-  filter(predator == "silver hake", season == "spring")
+  filter(species == "atlantic herring", season == "spring")
 
 # Function Options
 covar_columns = dietrun$covar_columns # NA #"int sizecat"
@@ -137,7 +138,7 @@ Opt <- TMBhelper::fit_tmb(
   getsd = TRUE, 
   savedir = DateFile,
   bias.correct = FALSE, #use_bias_correct
-  newtonsteps = 3,
+  newtonsteps = 1,
   bias.correct.control = list(
     sd=FALSE, split=NULL, nsplit=1, vars_to_correct = "Index_cyl"))
 
