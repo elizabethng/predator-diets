@@ -137,7 +137,7 @@ Opt <- TMBhelper::fit_tmb(
   getsd = TRUE, 
   savedir = DateFile,
   bias.correct = FALSE, #use_bias_correct
-  newtonsteps = 1,
+  newtonsteps = 3,
   bias.correct.control = list(
     sd=FALSE, split=NULL, nsplit=1, vars_to_correct = "Index_cyl"))
 
