@@ -99,6 +99,7 @@ plotdat <- expand_grid(simpreds, z_score = seq(-5, 5, length.out = 50)) %>%
   )
 
 
+# 4. Plot results
 p <- ggplot(plotdat, aes(x = `Length (cm)`, y = `log Effect`, color = Season)) +
   geom_ribbon(aes(ymin = lcb, ymax = ucb, fill = Season), alpha = 0.3, color = NA) +
   geom_line() +
@@ -118,29 +119,5 @@ p <- ggplot(plotdat, aes(x = `Length (cm)`, y = `log Effect`, color = Season)) +
         strip.background = element_blank(),
         panel.spacing.x = unit(0.8, "lines"))
 ggsave(plot = p, filename = here("output", "plots", "length-effects.pdf"), width = 9, height = 4, units = "in")
-
-
-
-# 4. Plot results
-p <- ggplot(plotci, aes(x = `Length (cm)`, 
-                        y = Effect, 
-                        group = paste(Season, predator, predictor), 
-                        color = Season)) +
-  geom_line(alpha = 0.01) +
-  scale_color_manual(values = c(scales::muted("blue", l = 50, c = 100), scales::muted("red", l = 50, c = 100))) +
-  geom_rug(data = obslenplot,
-           aes(x = pdlen),
-           inherit.aes = FALSE,
-           size = 0.1,
-           color = "#D3D3D388") +
-  facet_grid(predictor ~ predator, 
-             scales = "free_x",
-             labeller = label_bquote(italic(predictor))) +
-  guides(color = guide_legend(override.aes = list(alpha = 1))) +
-  theme_bw() +
-  theme(panel.grid.major = element_blank(),
-        panel.grid.minor = element_blank(),
-        strip.background = element_blank(),
-        panel.spacing.x = unit(0.8, "lines"))
 
 ggsave(plot = p, filename = here("output", "plots", "length-effects.pdf"), width = 9, height = 4, units = "in")
