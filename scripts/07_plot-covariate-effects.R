@@ -98,11 +98,12 @@ plotdat <- expand_grid(simpreds, z_score = seq(-5, 5, length.out = 50)) %>%
     Season = str_to_sentence(Season)
   )
 
-ggplot(plotdat, aes(x = `Length (cm)`, y = `log Effect`, color = Season)) +
+
+p <- ggplot(plotdat, aes(x = `Length (cm)`, y = `log Effect`, color = Season)) +
   geom_ribbon(aes(ymin = lcb, ymax = ucb, fill = Season), alpha = 0.3, color = NA) +
   geom_line() +
   scale_color_manual(aesthetics = c("color", "fill"),
-               values = c(scales::muted("blue", l = 50, c = 100), scales::muted("red", l = 50, c = 100))) +
+                     values = c(scales::muted("blue", l = 50, c = 100), scales::muted("red", l = 50, c = 100))) +
   facet_grid(predictor ~ predator,
              scales = "free_x",
              labeller = label_bquote(italic(.(predictor)))) + 
@@ -110,12 +111,14 @@ ggplot(plotdat, aes(x = `Length (cm)`, y = `log Effect`, color = Season)) +
            aes(x = pdlen),
            inherit.aes = FALSE,
            size = 0.1,
-           color = "#D3D3D388") +
+           color = "#00000088") +
   theme_bw() +
   theme(panel.grid.major = element_blank(),
         panel.grid.minor = element_blank(),
         strip.background = element_blank(),
         panel.spacing.x = unit(0.8, "lines"))
+ggsave(plot = p, filename = here("output", "plots", "length-effects.pdf"), width = 9, height = 4, units = "in")
+
 
 
 # 4. Plot results
