@@ -82,20 +82,47 @@ plotdat <- expand_grid(simpreds, z_score = seq(-5, 5, length.out = 50)) %>%
   pivot_longer(cols = c(pred1, pred2), names_to = "predictor", values_to = "effect") %>%
   left_join(lengthlimits, by = c("predator")) %>%
   filter(length > min_obs & length < max_obs) %>%
+  group_by(predator, season, length, predictor) %>%
+  summarize(log_effect = mean(effect),
+            lcb = quantile(effect, prob = 0.025),
+            ucb = quantile(effect, prob = 0.975)) %>%
+  ungroup() %>%
   rename(
     Season = season,
-    Effect = effect, 
+    "log Effect" = log_effect, 
     "Length (cm)" = length
   ) %>%
   mutate(
     predator = str_to_sentence(predator), 
-    predictor = ifelse(predictor == "pred1", 1, 2),
+    predictor = ifelse(predictor == "pred1", "n", "w"),
     Season = str_to_sentence(Season)
   )
 
+ggplot(plotdat, aes(x = `Length (cm)`, y = `log Effect`, color = Season)) +
+  geom_ribbon(aes(ymin = lcb, ymax = ucb, fill = Season), alpha = 0.3, color = NA) +
+  geom_line() +
+  scale_color_manual(aesthetics = c("color", "fill"),
+               values = c(scales::muted("blue", l = 50, c = 100), scales::muted("red", l = 50, c = 100))) +
+  facet_grid(predictor ~ predator,
+             scales = "free_x",
+             labeller = label_bquote(italic(.(predictor)))) + 
+  geom_rug(data = obslenplot,
+           aes(x = pdlen),
+           inherit.aes = FALSE,
+           size = 0.1,
+           color = "#D3D3D388") +
+  theme_bw() +
+  theme(panel.grid.major = element_blank(),
+        panel.grid.minor = element_blank(),
+        strip.background = element_blank(),
+        panel.spacing.x = unit(0.8, "lines"))
+
 
 # 4. Plot results
-p <- ggplot(plotdat, aes(x = `Length (cm)`, y = Effect, group = paste(sim_id, Season, predator, predictor), color = Season)) +
+p <- ggplot(plotci, aes(x = `Length (cm)`, 
+                        y = Effect, 
+                        group = paste(Season, predator, predictor), 
+                        color = Season)) +
   geom_line(alpha = 0.01) +
   scale_color_manual(values = c(scales::muted("blue", l = 50, c = 100), scales::muted("red", l = 50, c = 100))) +
   geom_rug(data = obslenplot,
@@ -105,7 +132,7 @@ p <- ggplot(plotdat, aes(x = `Length (cm)`, y = Effect, group = paste(sim_id, Se
            color = "#D3D3D388") +
   facet_grid(predictor ~ predator, 
              scales = "free_x",
-             labeller = label_bquote(italic(p[.(predictor)]))) +
+             labeller = label_bquote(italic(predictor))) +
   guides(color = guide_legend(override.aes = list(alpha = 1))) +
   theme_bw() +
   theme(panel.grid.major = element_blank(),
