@@ -89,7 +89,7 @@ plotdat <- expand_grid(simpreds, z_score = seq(-5, 5, length.out = 50)) %>%
   ungroup() %>%
   rename(
     Season = season,
-    "log Effect" = log_effect, 
+    "log(Effect)" = log_effect, 
     "Length (cm)" = length
   ) %>%
   mutate(
@@ -100,7 +100,7 @@ plotdat <- expand_grid(simpreds, z_score = seq(-5, 5, length.out = 50)) %>%
 
 
 # 4. Plot results
-p <- ggplot(plotdat, aes(x = `Length (cm)`, y = `log Effect`, color = Season)) +
+p <- ggplot(plotdat, aes(x = `Length (cm)`, y = `log(Effect)`, color = Season)) +
   geom_ribbon(aes(ymin = lcb, ymax = ucb, fill = Season), alpha = 0.3, color = NA) +
   geom_line() +
   scale_color_manual(aesthetics = c("color", "fill"),
@@ -118,6 +118,4 @@ p <- ggplot(plotdat, aes(x = `Length (cm)`, y = `log Effect`, color = Season)) +
         panel.grid.minor = element_blank(),
         strip.background = element_blank(),
         panel.spacing.x = unit(0.8, "lines"))
-ggsave(plot = p, filename = here("output", "plots", "length-effects.pdf"), width = 9, height = 4, units = "in")
-
 ggsave(plot = p, filename = here("output", "plots", "length-effects.pdf"), width = 9, height = 4, units = "in")
