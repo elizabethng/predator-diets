@@ -75,3 +75,20 @@ ggplot(plot_dietindex, aes(x = Year, y = Density)) +
         panel.grid.minor = element_blank(),
         strip.background = element_blank())
 
+
+# Check error bars --------------------------------------------------------
+filter(plot_dietindex, predator == "Goosefish") %>%
+  drop_na() %>%
+  mutate(ymin = Density - density_se,
+         ymax = Density + density_se) %>%
+ggplot(aes(x = Year, y = Density, color = Season)) +
+  # geom_point() +
+  geom_errorbar(aes(ymin = ymin, 
+                    ymax = ymax, 
+                    color = Season),
+                width = 0) +
+  labs(y = "Diet index") +
+  theme_bw() +
+  theme(panel.grid.major = element_blank(),
+        panel.grid.minor = element_blank(),
+        strip.background = element_blank())
