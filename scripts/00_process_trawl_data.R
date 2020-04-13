@@ -10,7 +10,10 @@ save_data <- TRUE
 # Remove spatial outliers
 # Add tow ID
 
-rawdata <- read_csv(here("data", "raw", "Ng_OPS.txt"), guess_max = 365080)
+nohakedat <- read_csv(here("data", "raw", "Ng_OPS.txt"), guess_max = 365080)
+rawhake <- read_csv(here("data", "raw", "Ng_OPS_urophycis_tenuis.txt"), guess_max = 365080)
+
+rawdata <- bind_cols(nohakedat, rawhake[, 16])
 
 mydata <- rawdata %>% 
   filter(!(LAT > 37.5 & LON < -75.6)) %>%
@@ -22,7 +25,8 @@ mydata <- rawdata %>%
     ATLANTIC_COD_wt = GADUS_MORHUA_WT,
     SILVER_HAKE_wt = MERLUCCIUS_BILINEARIS_WT,
     SPINY_DOGFISH_wt = SQUALUS_ACANTHIAS_WT,
-    GOOSEFISH_wt = LOPHIUS_AMERICANUS_WT
+    GOOSEFISH_wt = LOPHIUS_AMERICANUS_WT,
+    WHITE_HAKE_wt = UROPHYCIS_TENUIS_WT
   )
 
 
