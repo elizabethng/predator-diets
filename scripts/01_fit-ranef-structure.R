@@ -34,7 +34,7 @@ if(test == TRUE){
     mutate(processed_data = purrr::map(data, process_diet_data))
 }else if(test == FALSE){
   dietsetup <- readr::read_rds(here("data", "processed", "dat_preds_all.rds")) %>%
-    dplyr::filter(predator %in% c("atlantic cod", "silver hake", "spiny dogfish", "goosefish")) %>%
+    dplyr::filter(predator %in% c("atlantic cod", "silver hake", "spiny dogfish", "goosefish", "white hake")) %>%
     group_by(predator, season) %>%
     nest() %>%
     mutate(processed_data = purrr::map(data, process_diet_data))
