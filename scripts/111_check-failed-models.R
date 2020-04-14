@@ -8,7 +8,7 @@ library("here")
 # Options -----------------------------------------------------------------
 
 ranef_mods <- TRUE # if false, check covariate models
-interactive <- FALSE
+interactive <- TRUE
 
 
 # Setup -------------------------------------------------------------------
