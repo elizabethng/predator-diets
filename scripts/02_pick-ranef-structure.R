@@ -7,7 +7,7 @@
 library("tidyverse")
 library("here")
 
-add_identifiability_check = FALSE
+add_identifiability_check = FALSE # Add model results for mannually-checked convergence
 
 # Diet Models ---------------------------------------------------------------
 
@@ -54,7 +54,7 @@ worked <- allruns %>%
   mutate(hatval = purrr::map(output, "estimates")) %>%
   select(-output, -data) 
 
-if(add_identifiability_check == FALSE){
+if(add_identifiability_check == TRUE){
   # Load convergence-checked models
   checkrun <- read_rds(here("output", "select_st_diet_fix.rds")) %>%
     filter(identifiable) %>%
