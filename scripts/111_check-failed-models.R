@@ -111,13 +111,13 @@ if(ranef_mods == TRUE){
   nonid_params <- res_nonid %>%
     rowid_to_column("mod_num") %>%
     dplyr::mutate(
-      bad_params = purrr::map_int(output, "WhichBad"),
+      bad_params = purrr::map(output, "WhichBad"),
       param_list = purrr::map(output, "BadParams"),
       param_list = purrr::map(param_list, ~ rowid_to_column(.x, "param")) # add an id for parameter number
     ) %>%
     select(-element, -output) %>%
     unnest(param_list) %>%
-    filter(param == bad_params | Param_check == "Bad") %>%
+    filter(param %in% bad_params | Param_check == "Bad") %>%
     select(-run_name, -covars, -converged, -worked, -identifiable)
   
   readr::write_rds(nonid_params, path = here("output", "select_st_diet_bad_mods.rds"))

@@ -2,7 +2,8 @@
 
 # Change start value for log_kappa issues
 startval <- Obj$par
-startval[2] <- -1
+startval <- Opt$par
+startval[5] <- 1
 Obj$par <- startval
 
 # Rerun here, or go back to debug to continue running
