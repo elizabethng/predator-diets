@@ -130,20 +130,13 @@ run_mod <- function(covar_columns = NA,
     bias.correct.control = list(
       sd=FALSE, split=NULL, nsplit=1, vars_to_correct = "Index_cyl"))
   
-  if(check_identifiable){
-    Opt$identifiable <- TMBhelper::Check_Identifiable(Obj)  
-    
-    if(length(Opt$identifiable$WhichBad > 0)){
-      return(Opt$identifiable)
-    }
-  }
   
-  
-
   # Convergence check -------------------------------------------------------
-  converged <- try(all(abs(Opt$diagnostics$final_gradient)<1e-6 ))
+  converged <- Opt$opt$Convergence_check # try(all(abs(Opt$diagnostics$final_gradient)<1e-6 ))
+  # throws error: Error in abs(Opt$diagnostics$final_gradient) : 
+  # non-numeric argument to mathematical function if Hessian is not postive definte
   
-  if(converged == FALSE){
+  if(converged == "The model is likely not converged"){
     Opt <- TMBhelper::fit_tmb(
       startpar = Obj$par, # Opt$par, # start at latest parameter value
       obj = Obj,
@@ -157,7 +150,20 @@ run_mod <- function(covar_columns = NA,
         sd=FALSE, split=NULL, nsplit=1, vars_to_correct = "Index_cyl")
       )
   }
-  converged <- try(all(abs(Opt$diagnostics$final_gradient)<1e-6 ))
+  converged <- Opt$opt$Convergence_check # 
+  
+  
+
+# Identifiability check ---------------------------------------------------
+
+  if(check_identifiable){
+    Opt$identifiable <- TMBhelper::Check_Identifiable(Obj)  
+    
+    if(length(Opt$identifiable$WhichBad > 0)){
+      return(Opt$identifiable)
+    }
+  }
+  
   
   # Minimal Output ---------------------------------------------------------------
   
