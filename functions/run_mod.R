@@ -132,7 +132,7 @@ run_mod <- function(covar_columns = NA,
   
   
   # Convergence check -------------------------------------------------------
-  converged <- Opt$opt$Convergence_check # try(all(abs(Opt$diagnostics$final_gradient)<1e-6 ))
+  converged <- Opt$Convergence_check # try(all(abs(Opt$diagnostics$final_gradient)<1e-6 ))
   # throws error: Error in abs(Opt$diagnostics$final_gradient) : 
   # non-numeric argument to mathematical function if Hessian is not postive definte
   
@@ -148,9 +148,10 @@ run_mod <- function(covar_columns = NA,
       newtonsteps = 3,
       bias.correct.control = list(
         sd=FALSE, split=NULL, nsplit=1, vars_to_correct = "Index_cyl")
-      )
+    )
+    converged <- Opt$Convergence_check
   }
-  converged <- Opt$opt$Convergence_check # 
+  
   
   
 
@@ -169,18 +170,20 @@ run_mod <- function(covar_columns = NA,
   
   Report <- Obj$report()
   
-  get_parhat <- function(Obj){
-    Obj$env$parList(Opt$par)
-  }  
-  safe_get_parhat <- purrr::safely(get_parhat)  # Wrap troublesome part in a function
-  parhat <- safe_get_parhat(Obj)
+  # get_parhat <- function(Obj){
+  #   Obj$env$parList(Opt$par)
+  # }
+  # safe_get_parhat <- purrr::safely(get_parhat)  # Wrap troublesome part in a function
+  # parhat <- safe_get_parhat(Obj)
   
   # Get table of parameter estimates
-  if(is.null(parhat$error)){
+  if(!is.null(Opt$par)){
+    parhat <- Obj$env$parList(Opt$par)
+    
     estimates <- tibble(
       covariate = c("epsilon", "omega"),
-      pred1 = c(parhat$result$L_epsilon1_z, parhat$result$L_omega1_z),
-      pred2 = c(parhat$result$L_epsilon2_z, parhat$result$L_omega2_z)
+      pred1 = c(parhat$L_epsilon1_z, parhat$L_omega1_z),
+      pred2 = c(parhat$L_epsilon2_z, parhat$L_omega2_z)
     )
     
     if(!is.na(covar_columns)){
@@ -191,8 +194,8 @@ run_mod <- function(covar_columns = NA,
             covariate = covar_columns_vec[-1],
             # pred1 = Opt$SD$par.fixed[names(Opt$SD$par.fixed) == "lambda1_k"], 
             # pred2 = Opt$SD$par.fixed[names(Opt$SD$par.fixed) == "lambda2_k"] # Doen't work with use_REML == TRUE because it treats lambdas as random 
-            pred1 = parhat$result$lambda1_k[-1], 
-            pred2 = parhat$result$lambda2_k[-1] # works when use_REML == TRUE
+            pred1 = parhat$lambda1_k[-1], 
+            pred2 = parhat$lambda2_k[-1] # works when use_REML == TRUE
           )
         )
       )
@@ -206,8 +209,8 @@ run_mod <- function(covar_columns = NA,
                               names_to = "predictor", 
                               values_to = "estimate")
   }else{
-    estimates <- parhat$error 
-    covar_vcov <- parhat$error
+    estimates <- Opt$par  # parhat$error 
+    covar_vcov <- Opt$par # parhat$error
   }
   
   

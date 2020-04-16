@@ -8,7 +8,7 @@ library("TMB")
 
 
 # Setup -------------------------------------------------------------------
- test <- FALSE
+test <- TRUE
 
 # Load helper functions
 source(here("functions", "process_trawl_data.R"))
@@ -28,7 +28,7 @@ diagnostic_folder <- file.path("D:", "Dropbox", "Predator_Diets", "output", "VAS
 if(test == TRUE){
   dietsetup <- readr::read_rds(here("data", "processed", "dat_preds_all.rds")) %>%
     dplyr::filter(year %in% 1990:1995) %>%
-    dplyr::filter(predator %in% c("spiny dogfish", "goosefish")) %>%
+    dplyr::filter(predator %in% c("atlantic cod", "silver hake", "spiny dogfish", "goosefish", "white hake")) %>%
         group_by(predator, season) %>%
     nest() %>%
     mutate(processed_data = purrr::map(data, process_diet_data))
@@ -74,7 +74,7 @@ dietrun <- dietrun %>%
        strata_file_loc = here("configuration-files", "strata_limits_subset.R"), 
        processed_data, 
        output_file_loc,
-       check_identifiable = FALSE,
+       check_identifiable = TRUE,
        use_REML = TRUE,
        run_fast = TRUE),
   safe_run_mod))

@@ -49,7 +49,7 @@ worked <- allruns %>%
     aic = na_if(aic, "NULL")
   ) %>%
   unnest(cols = c("aic")) %>%
-  filter(converged == TRUE) %>%
+  filter(converged == "There is no evidence that the model is not converged") %>%
   filter(!is.na(converged)) %>%
   mutate(hatval = purrr::map(output, "estimates")) %>%
   select(-output, -data) 
