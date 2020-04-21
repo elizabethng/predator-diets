@@ -51,7 +51,7 @@ p <- ggplot(plot_dietindex, aes(x = Year, y = Density, color = Season)) +
                     color = Season),
                 width = 0) +
   facet_wrap(~ predator, scales = "free_y") +
-  labs(y = "Mass of herring in predator stomachs") +
+  labs(y = "Mass of Atlantic herring in predator stomachs") +
   theme_bw() +
   theme(legend.position = c(0.8, 0.2),
         panel.grid.major = element_blank(),

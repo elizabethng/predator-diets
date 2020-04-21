@@ -144,7 +144,7 @@ q <- ggplot() +
   scale_fill_manual(
     values = viridis::viridis(6),
     breaks = brks_scale,
-    name = "Relative diet index",
+    name = "Relative mass of Atlantic herring in predator stomachs",
     drop = FALSE,
     guide = guide_legend(
       direction = "horizontal",
@@ -162,7 +162,7 @@ q <- ggplot() +
   scale_color_manual(
     values = viridis::viridis(6),
     breaks = brks_scale,
-    name = "Relative diet index",
+    name = "Relative mass of Atlantic herring in predator stomachs",
     drop = FALSE,
     guide = guide_legend(
       direction = "horizontal",

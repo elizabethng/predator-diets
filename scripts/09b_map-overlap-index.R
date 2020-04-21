@@ -141,7 +141,7 @@ q <- ggplot() +
   scale_fill_manual(
     values = viridis::viridis(6),
     breaks = brks_scale,
-    name = "Relative overlap index",
+    name = "Relative overlap",
     drop = FALSE,
     guide = guide_legend(
       direction = "horizontal",
@@ -159,7 +159,7 @@ q <- ggplot() +
   scale_color_manual(
     values = viridis::viridis(6),
     breaks = brks_scale,
-    name = "Relative overlap index",
+    name = "Relative overlap",
     drop = FALSE,
     guide = guide_legend(
       direction = "horizontal",
