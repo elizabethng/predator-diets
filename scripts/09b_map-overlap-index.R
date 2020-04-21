@@ -21,7 +21,7 @@ library("sf")
 overlap <- readr::read_rds(here("output", "finescale_overlap.rds"))
 
 northamerica <- ne_countries(continent = "north america",
-                             scale = "small",
+                             scale = "large",
                              returnclass = "sf")
 
 locations <- overlap$bhat[[1]][, c("Lon", "Lat")] %>%
