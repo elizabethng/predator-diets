@@ -139,7 +139,7 @@ q <- ggplot() +
         strip.background = element_blank(),
         legend.position = "bottom") +
   scale_fill_manual(
-    values = viridis::magma(6),
+    values = viridis::viridis(6),
     breaks = brks_scale,
     name = "Relative overlap index",
     drop = FALSE,
@@ -157,7 +157,7 @@ q <- ggplot() +
     )
   ) +
   scale_color_manual(
-    values = viridis::magma(6),
+    values = viridis::viridis(6),
     breaks = brks_scale,
     name = "Relative overlap index",
     drop = FALSE,
@@ -229,14 +229,14 @@ for(pred in unique(speciesmap$predator)){
               axis.ticks.y = element_blank(),
               strip.background = element_blank())  +
         scale_fill_manual(
-          values = viridis::magma(no_classes),
+          values = viridis::viridis(no_classes),
           name = "Overlap index",
           drop = FALSE,
           guide = guide_legend(
             reverse = TRUE)
         ) +
         scale_color_manual(
-          values = viridis::magma(no_classes),
+          values = viridis::viridis(no_classes),
           name = "Overlap index",
           drop = FALSE,
           guide = guide_legend(
