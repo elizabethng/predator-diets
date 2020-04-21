@@ -99,65 +99,56 @@ all_cor <- bind_rows(list(docor, dacor, oacor)) %>%
 
 # 3. Make plots --------------------------------------------------------------
 # Adjust label spacing for output
-hjust_c = -0.2
-vjust_c = -14.2
+hjust_c = -0.2 # -0.2
+vjust_c = -11 # -14.2
 
-p1 <- ggplot(diet_overlap_dat, aes(x = `Overlap index`, `Diet index`, color = Correlation)) +
+p1 <- ggplot(diet_overlap_dat, aes(x = `Overlap index`, y = `Diet index`)) +
+  geom_smooth(method = "lm", se = FALSE, color = "grey") +
   geom_point() +
-  scale_color_gradient2(mid = "grey", limits = c(-1, 1)) +
-  geom_abline(color = "lightgrey") +
   geom_text(data = docor, 
-            aes(x = -Inf, y = -Inf, label = correlation, color = correlation), 
+            aes(x = -Inf, y = -Inf, label = correlation), 
             hjust   = hjust_c,
             vjust   = vjust_c,
             inherit.aes = FALSE) +
-  # scale_x_continuous(limits = c(nlim, plim)) +
-  # scale_y_continuous(limits = c(nlim, plim)) +
   coord_fixed(ratio = diff(range(diet_overlap_dat$`Overlap index`))/diff(range(diet_overlap_dat$`Diet index`))) +
   facet_grid(predator ~ season) +
   theme_bw()+
   theme(panel.grid.major = element_blank(),
         panel.grid.minor = element_blank(),
         strip.background = element_blank())
-ggsave(plot = p1, here("output", "plots", "overlap-diet-comp-1to1.pdf"), width = 6, height = 8, units = "in")
+ggsave(plot = p1, here("output", "plots", "overlap-diet-comp-1to1.pdf"), width = 4, height = 8, units = "in")
 
-p2 <- ggplot(diet_stock_dat, aes(x = `Assessment index`, y = `Diet index`, color = Correlation)) +
+p2 <- ggplot(diet_stock_dat, aes(x = `Assessment index`, y = `Diet index`)) +
+  geom_smooth(method = "lm", se = FALSE, color = "grey") +
   geom_point() +
-  scale_color_gradient2(mid = "grey", limits = c(-1, 1)) +
-  geom_abline(color = "lightgrey") +
   geom_text(data = dacor, 
-            aes(x = -Inf, y = -Inf, label = correlation, color = correlation), 
+            aes(x = -Inf, y = -Inf, label = correlation), 
             hjust   = hjust_c,
             vjust   = vjust_c,
             inherit.aes = FALSE) +
-  # scale_x_continuous(limits = c(nlim, plim), expand = c(0,0)) +
-  # scale_y_continuous(limits = c(nlim, plim), expand = c(0,0)) +
   coord_fixed(ratio = diff(range(diet_stock_dat$`Assessment index`))/diff(range(diet_stock_dat$`Diet index`))) +
   facet_grid(predator ~ season) +
   theme_bw()+
   theme(panel.grid.major = element_blank(),
         panel.grid.minor = element_blank(),
         strip.background = element_blank())
-ggsave(plot = p2, here("output", "plots", "assessment-diet-comp-1to1.pdf"), width = 6, height = 8, units = "in")
+ggsave(plot = p2, here("output", "plots", "assessment-diet-comp-1to1.pdf"), width = 4, height = 8, units = "in")
 
 
-p3 <- ggplot(overlap_stock_dat, aes(x = `Assessment index`, y = `Overlap index`, color = Correlation)) +
+p3 <- ggplot(overlap_stock_dat, aes(x = `Assessment index`, y = `Overlap index`)) +
+  geom_smooth(method = "lm", se = FALSE, color = "grey") +
   geom_point() +
-  scale_color_gradient2(mid = "grey", limits = c(-1, 1)) +
-  geom_abline(color = "lightgrey") +
   geom_text(data = oacor, 
-            aes(x = -Inf, y = -Inf, label = correlation, color = correlation), 
+            aes(x = -Inf, y = -Inf, label = correlation), 
             hjust   = hjust_c,
             vjust   = vjust_c,
             inherit.aes = FALSE) +
-  # scale_x_continuous(limits = c(nlim, plim)) +
-  # scale_y_continuous(limits = c(nlim, plim)) +
   coord_fixed(ratio = diff(range(overlap_stock_dat$`Assessment index`))/diff(range(overlap_stock_dat$`Overlap index`))) +
   facet_grid(predator ~ season) +
   theme_bw()+
   theme(panel.grid.major = element_blank(),
         panel.grid.minor = element_blank(),
         strip.background = element_blank())
-ggsave(plot = p3, here("output", "plots", "assessment-overlap-comp-1to1.pdf"), width = 6, height = 8, units = "in")
+ggsave(plot = p3, here("output", "plots", "assessment-overlap-comp-1to1.pdf"), width = 4, height = 8, units = "in")
 
 
