@@ -140,7 +140,7 @@ alldat <- full_join()
 # 1) do another pull of this diet data query, including the vessel
 # 2) what combination of columns will give me unique tows? 
 #     - should be cruise6 + station
-#     - why for trawl data did cruise6 + station + vessel not give unique?
+#     - why for trawl data did cruise6 + station + vessel not give unique? just one, and there is also a tow number that probably makes it unique
 
 
 # hmmm if cruise6 + station (aka towid) is NOT unique (i.e. it also needs vessel)
