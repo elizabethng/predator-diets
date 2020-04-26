@@ -5,6 +5,8 @@
 #   - How many with positive data
 #   - How many sampled, etc. 
 
+# Do a separate table for Atlantic herring
+
 # Use formatted data or raw data?
 
 library("tidyverse")
@@ -91,16 +93,30 @@ diet_boat <- full_join(dietraw, num_boats, by = c("year", "season"))
 # Drop unneccessary data to make it easier (keep lengths?)
 
 # Tows should all have the same values for covariates...
+trawlunique <- filter(trawl_boat, n_boats == 1) %>%
+  filter(species != "atlantic herring") %>%
+  rename(predator = species)
+
+# check that ids are unique between seasons
+# do any towids show up in both seasons?
+trawlunique %>% 
+  select(towid, year, season) %>%
+  distinct() %>%
+  pull(towid) %>%
+  duplicated() %>%
+  sum()
 
 dietunique <- filter(diet_boat, n_boats == 1) %>%
   filter(predator %in% c("atlantic cod", "silver hake", "spiny dogfish", "goosefish", "white hake")) %>%
   group_by(predator, season, towid) %>%
   summarize(
-    declat_var = var(declat),
-    declon_var = var(declon),
+    # declat_var = var(declat),
+    # declon_var = var(declon),
+    declat_avg = mean(declat, na.rm = TRUE),
+    declon_avg = mean(declon, na.rm = TRUE),
     n_pred = n(),
-    length_mean = mean(pdlen),
-    pdwgt_mean = mean(pdwgt),
+    length_avg = mean(pdlen),
+    pdwgt_avg = mean(pdwgt),
     pyamtw_tot = sum(pyamtw),
     pypres_tot = sum(pypres)
   )
@@ -109,17 +125,65 @@ dietunique <- filter(diet_boat, n_boats == 1) %>%
 # sum(dietunique$declat_var > 0, na.rm = TRUE)
 # sum(dietunique$declon_var > 0, na.rm = TRUE)
 
+# Join by towid (I've already subsetted the unique tows)
+# and by predator/species
+
+anti_join(trawlunique, dietunique, by = c("towid", "predator")) # Expect that many tows won't have diet data
+anti_join(dietunique, trawlunique, by = c("towid", "predator")) # but this is more worrying, that these don't match
+
+alldat <- full_join()
+
+# So I can continue to try and work around this, but I think the smarter thing
+# is to do a data request from Jakub and clarify what the tow ID is here
+
+# What do I need/what questions do I have?
+# 1) do another pull of this diet data query, including the vessel
+# 2) what combination of columns will give me unique tows? 
+#     - should be cruise6 + station
+#     - why for trawl data did cruise6 + station + vessel not give unique?
 
 
+# hmmm if cruise6 + station (aka towid) is NOT unique (i.e. it also needs vessel)
+# then I should check diet data and see if there is any variance in location,
+# month, etc. to see if it is actually combining across multiple tows
+jj <- diet_boat %>%
+  filter(predator %in% c("atlantic cod", "silver hake", "spiny dogfish", "goosefish", "white hake")) %>%
+  group_by(towid) %>%
+  summarize(
+    season = n_distinct(season),
+    station = n_distinct(station),
+    geoarea = n_distinct(geoarea),
+    declat_var = n_distinct(declat),
+    declon_var = n_distinct(declon),
+    month = n_distinct(month),
+    day = n_distinct(day),
+    setdepth = n_distinct(setdepth)
+    ) %>%
+  pivot_longer(cols = -towid, names_to = "column", values_to = "value")
+
+filter(jj, value > 1)
 
 
+# Try again with even more raw data
+frdata <- read_csv(here::here("data", "raw", "fr_diet.csv"), guess_max = 365080) %>%
+  dplyr::select(-X1) 
 
+myfrdata <- frdata %>% 
+  mutate(
+    towid = paste(cruise6, station)
+  ) %>%
+  group_by(towid) %>%
+  summarize(
+    season = n_distinct(season),
+    station = n_distinct(station),
+    geoarea = n_distinct(geoarea),
+    declat_var = n_distinct(declat),
+    declon_var = n_distinct(declon),
+    month = n_distinct(month),
+    day = n_distinct(day),
+    setdepth = n_distinct(setdepth)
+  ) %>%
+  pivot_longer(cols = -towid, names_to = "column", values_to = "value")
 
-# good_combos <- full_join(
-#   filter(diet_boat, n_boats == 1),
-#   filter(trawl_boat, n_boats == 1),
-#   by = "towid")
-
-
-
+filter(myfrdata, value > 1)
 
