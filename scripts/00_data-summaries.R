@@ -87,21 +87,6 @@ diet_boat <- full_join(dietraw, num_boats, by = c("year", "season"))
 
 
 
-# These should be able to uniquely link to tow data
-# 
-good_combos <- full_join(
-  filter(diet_boat, n_boats == 1),
-  filter(trawl_boat, n_boats == 1),
-  by = "towid")
-
-all(good_combos$n_boats.x == good_combos$n_boats.y)
-all(good_combos$n_boats.x == good_combos$n_boats.y, na.rm = TRUE)
-
-na_rows <- which(is.na(good_combos$n_boats.x == good_combos$n_boats.y))
-
-good_combos[na_rows, ]
-
-
 # Another approach: widen diet data to one observation per row (essentially what Jakub sent)
 # Drop unneccessary data to make it easier (keep lengths?)
 
