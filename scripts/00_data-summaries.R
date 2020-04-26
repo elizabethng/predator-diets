@@ -66,10 +66,36 @@ filter(trawlobs, declat == dietobs$declat)
 #   - fall 1988
 #   - spring 1992
 
-# Three main eras of concern
-#   1) 1973-1975 Albatross, Atlantic Twin, and Delaware
-#   2) 1976-1993 equal splits between Albatross and Delaware
-#   3) 1994-2008 mostly Albatross (Delaware used Spring 1994 and 2003)
+# Create a flag in raw diet data to separate these ones
+
+num_boats <- group_by(trawlsetup, vessel, year, season) %>% 
+  summarize(n = n()) %>%
+  filter(n > 0) %>%
+  group_by(year, season) %>%
+  summarize(n_boats = n()) %>%
+  ungroup() 
+
+# Add number of boats to trawl data
+trawl_boat <- full_join(trawlsetup, num_boats, by = c("year", "season"))
+
+# Add number of boats to diet data
+anti_join(dietsetup, num_boats, by = c("year", "season"))
+diet_boat <- full_join(dietsetup, num_boats, by = c("year", "season"))
+
+
+
+
+# These should be able to uniquely link to tow data
+good_combos <- full_join(
+  filter(diet_boat, n_boats == 1),
+  filter(trawl_boat, n_boats == 1),
+  by = "towid")
+
+
+
+
+
+# Mapping for double-checking
 small_trawlsetup <- sample_n(trawlsetup, 1000)
 
 ggplot(small_trawlsetup, aes(x = declon, y = declat, color = vessel)) +
