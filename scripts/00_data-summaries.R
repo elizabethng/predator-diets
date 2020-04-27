@@ -267,12 +267,12 @@ semi_join(all_diet, notrawls, by = c("cruise6", "station", "stratum"))
 # 15226/365079 rows, so about 4% (can probably proceed with table as is while I wait for clarification)
 
 # But first, pull data with all trawl-level data, so drop predator data from this last join
-all_diet_no_trawls <- all_diet %>%
+all_diet_distinct <- all_diet %>%
   select(cruise6, station, stratum, setdepth, beglat, beglon, declat, declon, month, day,
          year, purcode, season, geoarea) %>%
   distinct() 
 
-check <- all_diet_no_trawls %>%
+check <- all_diet_distinct %>%
   left_join(notrawls, by = c("cruise6", "station", "stratum"))
 
 # Hypothesis, maybe missing trawls by region?
@@ -286,5 +286,5 @@ filter(check, !is.na(year.y)) %>%
   as.factor() %>%
   summary()
 # Nope, sort of all over. Ok I'm wasting time, just send these data to Jakub and ask.
-
+all_diet_no_trawls <- semi_join(all_diet_distinct, notrawls, by = c("cruise6", "station", "stratum"))
 write_csv(all_diet_no_trawls, path = here("data", "processed", "diets_missing_trawl.csv"))
