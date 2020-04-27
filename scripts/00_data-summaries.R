@@ -187,3 +187,104 @@ myfrdata <- frdata %>%
 
 filter(myfrdata, value > 1)
 
+
+# The rawest data join possible -------------------------------------------
+# Also import everything as text, but maybe still leading zeros have gotten dropped!!
+# Try with *even more* raw format of trawl data
+nohakedat <- read_csv(here("data", "raw", "Ng_OPS.txt"), # guess_max = 365080,
+                      col_types = cols(.default = "c"))
+trawldat <- nohakedat
+names(trawldat) <- tolower(names(nohakedat))
+
+# Let's just look at individual tows from frdata
+dietdat <- read_csv(here::here("data", "raw", "fr_diet.csv"), col_types = cols(.default = "c")) %>%
+  select(cruise6, station, stratum, year, season, declat, declon, setdepth) %>%
+  distinct()
+
+dietdat_fix <- mutate(dietdat, nzeros = 4 - nchar(station)) %>%
+  mutate(station = pmap_chr(list(nzeros, station), 
+                             function(a,b) paste0(paste0(rep(0, a), collapse = ""), b, collapse = "")))
+
+
+# tows in trawl data that don't match diet data (expected) 10091 rows
+anti_join(trawldat, dietdat_fix, by = c("cruise6", "station")) %>% nrow() 
+
+# tows in diet data that don't match trawl data (not expected) 674 rows
+anti_join(dietdat_fix, trawldat, by = c("cruise6", "station")) %>% nrow()
+
+# tows in diet data that do match trawl data 24193
+semi_join(dietdat_fix, trawldat, by = c("cruise6", "station")) %>% nrow()
+
+# out of total possible rows in diet data: 24867
+nrow(dietdat_fix)
+
+# How many rows have multiple mathches?
+left_join(dietdat_fix, trawldat, by = c("cruise6", "station"))
+# Adding stratum will probably resolve these (easier to get equal than location)
+
+# I think I need to pad stratum too
+summary(nchar(trawldat$stratum))
+summary(nchar(dietdat_fix$stratum))
+
+dietdat3 <- mutate(dietdat_fix, nzeros = 5 - nchar(stratum)) %>%
+  mutate(stratum = pmap_chr(list(nzeros, stratum), 
+                            function(a,b) paste0(paste0(rep(0, a), collapse = ""), b, collapse = "")))
+# Ok check again
+# tows in trawl data that don't match diet data (expected) 10091 rows -> 10266 hmm (increase of 175), but multiple matches potentially??
+anti_join(trawldat, dietdat3, by = c("cruise6", "station", "stratum")) %>% nrow() 
+
+# tows in diet data that don't match trawl data (not expected) 674 rows -> 683 (increase of 9)
+anti_join(dietdat3, trawldat, by = c("cruise6", "station", "stratum")) %>% nrow()
+
+# tows in diet data that do match trawl data 24193 -> 24184 (decrease of 9)
+semi_join(dietdat3, trawldat, by = c("cruise6", "station", "stratum")) %>% nrow()
+
+# How many rows have multiple mathches?
+tmp <- left_join(dietdat3, trawldat, by = c("cruise6", "station", "stratum"))
+
+filter(tmp, is.na(year.y)) # 683 diet obs with no match in trawl data
+
+# Ok so where am I? I can join the diet data by cruise6, station, and stratum and get no duplicates
+# (i.e., I think this accoutns for the duplicated vessel station codes)
+# BUT I am missing trawl data for some cruises. 
+
+filter(tmp, setdepth!=depth | is.na(depth))
+
+# Write a csv of the diet observations that are missing corresponding trawl information
+# then email Jakub to get more info. 
+notrawls <- anti_join(dietdat3, trawldat, by = c("cruise6", "station", "stratum"))
+semi_join(tmp, notrawls, by = c("cruise6", "station" ,"stratum")) %>% View()
+
+# And quickly, how many diet data observations are therefore missing trawl data?
+all_diet <- read_csv(here::here("data", "raw", "fr_diet.csv"), col_types = cols(.default = "c")) %>%
+  mutate(nzeros = 4 - nchar(station)) %>%
+  mutate(station = pmap_chr(list(nzeros, station), 
+                            function(a,b) paste0(paste0(rep(0, a), collapse = ""), b, collapse = ""))) %>%
+  mutate(nzeros = 5 - nchar(stratum)) %>%
+  mutate(stratum = pmap_chr(list(nzeros, stratum), 
+                            function(a,b) paste0(paste0(rep(0, a), collapse = ""), b, collapse = "")))
+semi_join(all_diet, notrawls, by = c("cruise6", "station", "stratum"))
+# 15226/365079 rows, so about 4% (can probably proceed with table as is while I wait for clarification)
+
+# But first, pull data with all trawl-level data, so drop predator data from this last join
+all_diet_no_trawls <- all_diet %>%
+  select(cruise6, station, stratum, setdepth, beglat, beglon, declat, declon, month, day,
+         year, purcode, season, geoarea) %>%
+  distinct() 
+
+check <- all_diet_no_trawls %>%
+  left_join(notrawls, by = c("cruise6", "station", "stratum"))
+
+# Hypothesis, maybe missing trawls by region?
+filter(check, is.na(year.y)) %>%
+  pull(geoarea) %>%
+  as.factor() %>%
+  summary()
+
+filter(check, !is.na(year.y)) %>%
+  pull(geoarea) %>%
+  as.factor() %>%
+  summary()
+# Nope, sort of all over. Ok I'm wasting time, just send these data to Jakub and ask.
+
+write_csv(all_diet_no_trawls, path = here("data", "processed", "diets_missing_trawl.csv"))
