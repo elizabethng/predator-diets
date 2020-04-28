@@ -30,8 +30,8 @@ strata_file_loc <- file.path(gitdir, "configuration-files", "strata_limits_subse
 
 
 # 1. Filter and 2. process data
-diet_test <- readr::read_rds(here::here("output", "data_formatted", "dat_preds_all.rds")) %>%
-  dplyr::filter(pdcomnam == "SPINY DOGFISH" & myseason == "FALL") %>%
+diet_test <- readr::read_rds(here::here("data", "processed", "dat_preds_all.rds")) %>%
+  dplyr::filter(predator == "spiny dogfish" & season == "fall") %>%
   process_diet_data() %>% 
   dplyr::filter(Year %in% 1990:2000)
 

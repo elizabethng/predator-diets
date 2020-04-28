@@ -6,7 +6,7 @@ library(here)
 library(concaveman)
 library(tidyverse)
 
-dietdata = read_csv(here("data", "fr_diet.csv"), guess_max = 365080) %>%
+dietdata = read_csv(here("data","raw", "fr_diet.csv"), guess_max = 365080) %>%
   select(-X1)
 
 diet_space = dietdata %>% 
