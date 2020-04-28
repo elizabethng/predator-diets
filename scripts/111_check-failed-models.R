@@ -16,7 +16,7 @@ interactive <- TRUE
 source(here("functions", "run_mod.R"))
 source(here("functions", "make_run_name.R"))
 
-Version <- FishStatsUtils::get_latest_version()
+Version <- FishStatsUtils::get_latest_version() # "VAST_v8_3_0"
 safe_run_mod <- purrr::safely(run_mod)
 
 # Set VAST output location
