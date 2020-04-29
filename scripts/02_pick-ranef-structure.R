@@ -138,14 +138,14 @@ write_rds(topmod_data, here("output", "top_st_diet.rds"))
 
 
 # Final AIC table
-topmod_data %>% 
-  mutate(n_tows = map_int(processed_data, nrow),
-         perc_tows_w_herring = map(processed_data, "Catch_KG"),
-         perc_tows_w_herring = map_int(perc_tows_w_herring,
-                                       ~ sum(.x > 0, na.rm = TRUE)),
-         perc_tows_w_herring = 100*perc_tows_w_herring/n_tows) %>%
-  select(predator, season, model, use_aniso, perc_tows_w_herring, n_tows) %>%
-  write_csv(here("output", "aic_top_st_diet.csv"))
+# topmod_data %>% 
+#   mutate(n_tows = map_int(processed_data, nrow),
+#          perc_tows_w_herring = map(processed_data, "Catch_KG"),
+#          perc_tows_w_herring = map_int(perc_tows_w_herring,
+#                                        ~ sum(.x > 0, na.rm = TRUE)),
+#          perc_tows_w_herring = 100*perc_tows_w_herring/n_tows) %>%
+#   select(predator, season, model, use_aniso, perc_tows_w_herring, n_tows) %>%
+#   write_csv(here("output", "aic_top_st_diet.csv"))
 
 badmod_data <- dietrun %>%
   dplyr::mutate(
@@ -156,6 +156,23 @@ badmod_data <- dietrun %>%
 write_rds(badmod_data, here("output", "bad_st_diet.rds"))
 
 
+# Full AIC table
+full_diet_aic <- allruns %>%
+  dplyr::mutate(
+    aic = purrr::map(output, "aic"),
+    aic = na_if(aic, "NULL")
+  ) %>%
+  unnest(cols = c("aic")) %>%
+  mutate(hatval = purrr::map(output, "estimates")) %>%
+  select(-output, -data, -hatval) %>%
+  dplyr::group_by(predator, season) %>%
+  dplyr::mutate(delta_aic = aic - min(aic, na.rm = TRUE)) %>%
+  ungroup() %>%
+  mutate(predator = str_to_sentence(predator),
+         season = str_to_sentence(season)) %>%
+  rename_all(str_to_title)
+
+write_csv(full_diet_aic, here("output", "aic_top_st_diet.csv"))
 
 # Trawl Models --------------------------------------------------------------
 
