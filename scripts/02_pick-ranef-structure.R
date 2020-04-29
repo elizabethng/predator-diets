@@ -257,4 +257,22 @@ topmod_data <- trawlrun %>%
   semi_join(topmods, by = c("species", "season", "model", "use_aniso"))
 write_rds(topmod_data, here("output", "top_st_trawl.rds"))
 
+# Full AIC table
+full_trawl_aic <- allruns %>%
+  dplyr::mutate(
+    aic = purrr::map(output, "aic"),
+    aic = na_if(aic, "NULL")
+  ) %>%
+  unnest(cols = c("aic")) %>%
+  mutate(hatval = purrr::map(output, "estimates")) %>%
+  select(-output, -data, -hatval) %>%
+  dplyr::group_by(species, season) %>%
+  dplyr::mutate(delta_aic = aic - min(aic, na.rm = TRUE)) %>%
+  ungroup() %>%
+  mutate(species = str_to_sentence(species),
+         season = str_to_sentence(season)) %>%
+  rename_all(str_to_title)
+
+write_csv(full_trawl_aic, here("output", "aic_top_st_trawl.csv"))
+
   

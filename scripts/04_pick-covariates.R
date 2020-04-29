@@ -78,7 +78,24 @@ modchecks <- worked %>%
     ranef_n = sum(ranef)
   ) %>%
   ungroup()
-write_csv(modchecks, here("output", "aic_cov_diet.csv"))
+
+# Create full aic table
+full_covariate_aic <- allruns %>%
+  dplyr::mutate(
+    aic = purrr::map(output, "aic"),
+    aic = na_if(aic, "NULL")
+  ) %>%
+  unnest(cols = c("aic")) %>%
+  mutate(hatval = purrr::map(output, "estimates")) %>%
+  select(-output, -data, -hatval) %>%
+  dplyr::group_by(predator, season) %>%
+  dplyr::mutate(delta_aic = aic - min(aic, na.rm = TRUE)) %>%
+  ungroup() %>%
+  mutate(predator = str_to_sentence(predator),
+         season = str_to_sentence(season)) %>%
+  rename_all(str_to_title)
+
+write_csv(full_covariate_aic, here("output", "aic_cov_diet.csv"))
 
 
 # Write output for next phase of model selection
