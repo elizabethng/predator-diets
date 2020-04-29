@@ -415,7 +415,9 @@ diet_summary <- dietsetup %>%
   group_by(year, season, predator) %>%
   summarize(n_diet_tows = n(),
             n_stomachs = sum(n_stomachs),
-            prey_present = sum(n_w_prey)/n_stomachs)
+            prey_present = sum(n_w_prey)/n_stomachs) %>%
+  ungroup() %>%
+  mutate(year = as.character(year))
 
 # Join trawl data with diet data for final table
 full_summary <- full_join(trawl_summary, diet_summary, by = c("predator", "year", "season")) %>%
