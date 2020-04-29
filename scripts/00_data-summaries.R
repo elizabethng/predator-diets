@@ -288,3 +288,115 @@ filter(check, !is.na(year.y)) %>%
 # Nope, sort of all over. Ok I'm wasting time, just send these data to Jakub and ask.
 all_diet_no_trawls <- semi_join(all_diet_distinct, notrawls, by = c("cruise6", "station", "stratum"))
 write_csv(all_diet_no_trawls, path = here("data", "processed", "diets_missing_trawl.csv"))
+
+################################################################################
+# Do the quick and dirty data summarization -------------------------------
+# Instead of dropping rows, pivot wider like trawldat? Or work with rows and then join later
+# Quantities that I actually want in final table: 
+#     - number tows per year-season
+#     - percent tows with each predator present
+#     - given predators present, what percent had herring?
+
+library("tidyverse")
+library("here")
+
+# Load trawl data as all character data
+nohakedat <- read_csv(here("data", "raw", "Ng_OPS.txt"), col_types = cols(.default = "c"))
+withhake <- read_csv(here("data", "raw", "Ng_OPS_urophycis_tenuis.txt"), col_types = cols(.default = "c"))
+
+rawtrawl <- bind_cols(nohakedat, withhake[, 16]) 
+
+trawldat <- rawtrawl %>%
+  filter(!(as.numeric(LAT) > 37.5 & as.numeric(LON) < -75.6)) %>%
+  filter(!(as.numeric(LAT) < 34.5 & as.numeric(LON) > -75.5)) %>%
+  rename(
+    herring_kg = CLUPEA_HARENGUS_WT,
+    ATLANTIC_COD_wt = GADUS_MORHUA_WT,
+    SILVER_HAKE_wt = MERLUCCIUS_BILINEARIS_WT,
+    SPINY_DOGFISH_wt = SQUALUS_ACANTHIAS_WT,
+    GOOSEFISH_wt = LOPHIUS_AMERICANUS_WT,
+    WHITE_HAKE_wt = UROPHYCIS_TENUIS_WT
+  ) %>%
+  pivot_longer(
+    cols = contains("_wt"),
+    names_to = "predator",
+    values_to = "catch_kg"
+  ) %>%
+  mutate(
+    predator = str_remove(predator, "_wt"),
+    predator = str_replace(predator, "_", " "),
+    predator = tolower(predator)
+  ) %>%
+  mutate(
+    catch_kg = ifelse(catch_kg == 0, 9999999999, catch_kg),
+    catch_kg = replace_na(catch_kg, 0),
+    catch_kg = ifelse(catch_kg == 9999999999, "present", catch_kg)
+  ) %>%
+  mutate(
+    herring_kg = ifelse(herring_kg == 0, 9999999999, herring_kg),
+    herring_kg = replace_na(herring_kg, 0),
+    herring_kg = ifelse(herring_kg == 9999999999, "present", herring_kg)
+  ) %>%
+rename_all(tolower)
+
+# Maybe don't need to group by year?
+trawl_summary <- trawldat %>%
+  mutate(herring_present = herring_kg !=0,
+         predator_present = catch_kg !=0,
+         both_present = ifelse(herring_present & predator_present, TRUE, FALSE)) %>%
+  mutate(season = ifelse(season == "FALL"|season == "SUMMER", "FALL", "SPRING")) %>%
+  group_by(year, season, predator) %>%
+  summarize(n_tows = n(),
+            pred_present = sum(predator_present)/n_tows,
+            both_present = sum(both_present)/n_tows) %>%
+  ungroup() %>%
+  mutate(season = str_to_title(season),
+         predator = str_to_sentence(predator))
+  
+# Load diet data as all character data and fix station and stratum codes
+rawdiet <- read_csv(here::here("data", "raw", "fr_diet.csv"), col_types = cols(.default = "c"))
+
+dietdat <- select(rawdiet, -X1) %>%
+  mutate(nzeros = 4 - nchar(station)) %>%
+  mutate(station = pmap_chr(list(nzeros, station), 
+                            function(a,b) paste0(paste0(rep(0, a), collapse = ""), b, collapse = ""))) %>%
+  mutate(nzeros = 5 - nchar(stratum)) %>%
+  mutate(stratum = pmap_chr(list(nzeros, stratum), 
+                            function(a,b) paste0(paste0(rep(0, a), collapse = ""), b, collapse = ""))) %>%
+  select(-nzeros) %>%
+  mutate(season = ifelse(season == "FALL"|season == "SUMMER", "FALL", "SPRING")) %>%
+  mutate(predator = str_to_sentence(pdcomnam))%>%
+  filter(predator %in% c("Atlantic cod", "Silver hake", "Spiny dogfish", "Goosefish", "White hake"))
+
+
+# Get number predator stomachs per tow by species and percent with prey present
+# I think I should average by tow, since that's my unit of inference
+# At end, get total number of stomachs and percent with positive prey
+# I can get more guidance if I need it.
+diet_summary <- dietdat %>%
+  mutate(prey_present = pyamtw != 0) %>%
+  group_by(cruise6, station, stratum, setdepth, year, season, predator) %>%
+  summarize(n_stomachs = n(),
+            n_w_prey = sum(prey_present)) %>% # per tow! could skip this, but keep incase I need it?
+  group_by(year, season, predator) %>%
+  summarize(n_stomachs = sum(n_stomachs),
+            prey_present = sum(n_w_prey)/n_stomachs) %>%
+  ungroup() %>%
+  mutate(season = str_to_sentence(season))
+
+# Join trawl data with diet data for final table
+full_summary <- full_join(trawl_summary, diet_summary, by = c("predator", "year", "season")) %>%
+  filter(!is.na(year))
+
+write_csv(full_summary, path = here("output", "data-summary.csv"))
+
+# Make an even smaller summary table
+small_summary <- full_summary %>% 
+  replace_na(list(n_stomachs = 0, prey_present = 0)) %>%
+  group_by(predator, season) %>%
+  summarize(n_tows = sum(n_tows),
+            pred_pres_avg = mean(pred_present),
+            both_pres_avg = mean(both_present),
+            n_stomachs = sum(n_stomachs),
+            prey_pres_avg = mean(prey_present))
+write_csv(small_summary, path = here("output", "data-summary-small.csv"))
