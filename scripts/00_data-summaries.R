@@ -379,14 +379,16 @@ diet_summary <- dietdat %>%
   summarize(n_stomachs = n(),
             n_w_prey = sum(prey_present)) %>% # per tow! could skip this, but keep incase I need it?
   group_by(year, season, predator) %>%
-  summarize(n_stomachs = sum(n_stomachs),
+  summarize(n_diet_tows = n(),
+            n_stomachs = sum(n_stomachs),
             prey_present = sum(n_w_prey)/n_stomachs) %>%
   ungroup() %>%
   mutate(season = str_to_sentence(season))
 
 # Join trawl data with diet data for final table
 full_summary <- full_join(trawl_summary, diet_summary, by = c("predator", "year", "season")) %>%
-  filter(!is.na(year))
+  filter(!is.na(year)) %>% 
+  replace_na(list(n_stomachs = 0, prey_present = 0))
 
 write_csv(full_summary, path = here("output", "data-summary.csv"))
 
@@ -400,3 +402,25 @@ small_summary <- full_summary %>%
             n_stomachs = sum(n_stomachs),
             prey_pres_avg = mean(prey_present))
 write_csv(small_summary, path = here("output", "data-summary-small.csv"))
+
+
+# Just realized I used all prey data, just look at my processed data to do these calcualtions
+dietsetup <- readr::read_rds(here("data", "processed", "dat_preds_all.rds")) %>%
+  dplyr::filter(predator %in% c("atlantic cod", "silver hake", "spiny dogfish", "goosefish", "white hake"))
+
+diet_summary <- dietsetup %>%
+  group_by(towid, year, season, predator) %>%
+  summarize(n_stomachs = n(),
+            n_w_prey = sum(pypres)) %>% # per tow! could skip this, but keep incase I need it?
+  group_by(year, season, predator) %>%
+  summarize(n_diet_tows = n(),
+            n_stomachs = sum(n_stomachs),
+            prey_present = sum(n_w_prey)/n_stomachs)
+
+# Join trawl data with diet data for final table
+full_summary <- full_join(trawl_summary, diet_summary, by = c("predator", "year", "season")) %>%
+  filter(!is.na(year)) %>% 
+  replace_na(list(n_stomachs = 0, prey_present = 0))
+
+write_csv(full_summary, path = here("output", "data-summary.csv"))
+
