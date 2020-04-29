@@ -417,12 +417,18 @@ diet_summary <- dietsetup %>%
             n_stomachs = sum(n_stomachs),
             prey_present = sum(n_w_prey)/n_stomachs) %>%
   ungroup() %>%
-  mutate(year = as.character(year))
+  mutate(season = str_to_sentence(season),
+         predator = str_to_sentence(predator),
+         year = as.character(year))
 
 # Join trawl data with diet data for final table
 full_summary <- full_join(trawl_summary, diet_summary, by = c("predator", "year", "season")) %>%
-  filter(!is.na(year)) %>% 
-  replace_na(list(n_stomachs = 0, prey_present = 0))
+  replace_na(list(n_diet_tows = 0, n_stomachs = 0, prey_present = 0)) %>%
+  select(predator, season, year, contains("_")) %>%
+  arrange(
+    predator,
+    desc(season),
+    year)
 
 write_csv(full_summary, path = here("output", "data-summary.csv"))
 
