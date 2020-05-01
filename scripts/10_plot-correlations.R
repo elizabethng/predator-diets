@@ -243,3 +243,26 @@ p3 <- ggplot(overlap_stock_dat, aes(x = `Assessment index`, y = `Overlap index`)
 ggsave(plot = p3, here("output", "plots", "assessment-overlap-comp-1to1.pdf"), width = 4, height = 8, units = "in")
 
 
+
+# 4. Plot diet-index with overlap-index colors ----------------------------
+diet_overlap <- dietindexr %>%
+  mutate(predator = str_to_sentence(predator),
+         season = str_to_sentence(season)) %>%
+  right_join(diet_overlap_dat, dietindexr, by = c("season", "predator", "year")) %>%
+  mutate(cv = density_se/density)
+
+ggplot(diet_overlap, aes(x = year, y = `Diet index`, color = `Overlap index`)) +
+         geom_point() +
+  scale_color_viridis_c(option = "C") +
+  geom_errorbar(aes(ymin = (`Diet index` - cv), 
+                    ymax = (`Diet index` + cv), 
+                    color = `Overlap index`),
+                width = 0) +
+  facet_grid(season ~ predator) +
+  theme_bw() +
+  theme(# legend.position = c(0.8, 0.2),
+        panel.grid.major = element_blank(),
+        panel.grid.minor = element_blank(),
+        strip.background = element_blank())
+
+
