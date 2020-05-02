@@ -11,6 +11,9 @@ library("here")
 
 use_assessment <- TRUE
 
+overlap_cv <- 0.02877875 # from test-repo
+assessment_cv <- 0.02
+
 # Load data and format for combining
 dietindexr <- read_rds(here::here("output", "index_diet.rds"))
 overlapindexr <- read_rds(here::here("output", "index_overlap.rds"))
@@ -76,6 +79,7 @@ ggsave(here("output", "plots", "index-ts.pdf"), width = 8.5, height = 4)
 
 # 0. Scale and rename -----------------------------------------------------
 diet_index <- dietindexr %>%
+  mutate(cv_diet = density_se/density) %>%
   filter(!is.na(density)) %>%
   group_by(season, predator) %>%
   mutate(diet_index = scale(density)[,1]) %>%
@@ -83,6 +87,7 @@ diet_index <- dietindexr %>%
   ungroup()
 
 overlap_index <- overlapindexr %>%
+  mutate(cv_overlap = overlap_cv) %>%
   group_by(season, predator) %>%
   mutate(overlap_index = scale(`Overlap index`)[,1]) %>%
   select(-`Overlap index`) %>%
@@ -97,7 +102,9 @@ if(use_assessment == TRUE){
     select(-`SSB (mt)`) %>%
     rename(year = Year) %>%
     expand_grid(pred_seas, .) %>%
-    ungroup()
+    ungroup() %>%
+    mutate(cv_assessment = assessment_cv)
+  
 }else{
   stock_index <- herringdatr %>%
     select(season, 
@@ -109,8 +116,12 @@ if(use_assessment == TRUE){
 }
 
 
-plim <- max(c(diet_index$diet_index, overlap_index$overlap_index, stock_index$stock_index))
-nlim <- min(c(diet_index$diet_index, overlap_index$overlap_index, stock_index$stock_index))
+plim <- max(c(diet_index$diet_index + diet_index$cv_diet,
+              overlap_index$overlap_index + overlap_index$cv_overlap,
+              stock_index$stock_index + stock_index$cv_assessment))
+nlim <- min(c(diet_index$diet_index + diet_index$cv_diet,
+              overlap_index$overlap_index + overlap_index$cv_overlap,
+              stock_index$stock_index + stock_index$cv_assessment))
 
 
 # 1. Format data for plotting ---------------------------------------------
@@ -122,7 +133,9 @@ diet_overlap_dat <- inner_join(diet_index, overlap_index, by = c("season", "pred
   mutate(predator = str_to_sentence(predator),
          season = str_to_sentence(season)) %>%
   group_by(season, predator) %>%
-  mutate(Correlation = cor(`Diet index`, `Overlap index`))
+  mutate(Correlation = cor(`Diet index`, `Overlap index`)) %>%
+  mutate(cv_d = cv_diet*`Diet index`,
+         cv_o = cv_overlap*`Overlap index`)
 
 if(use_assessment == TRUE){
   # Diet index vs assessment index
@@ -132,7 +145,9 @@ if(use_assessment == TRUE){
     mutate(predator = str_to_sentence(predator),
            season = str_to_sentence(season)) %>%
     group_by(season, predator) %>%
-    mutate(Correlation = cor(`Diet index`, `Assessment index`))
+    mutate(Correlation = cor(`Diet index`, `Assessment index`)) %>%
+    mutate(cv_d = cv_diet*`Diet index`,
+           cv_a = cv_assessment*`Assessment index`)
   
   # Overlap index vs assessment index
   overlap_stock_dat <- inner_join(overlap_index, stock_index, by = c("season", "predator", "year")) %>%
@@ -141,7 +156,9 @@ if(use_assessment == TRUE){
     mutate(predator = str_to_sentence(predator),
            season = str_to_sentence(season)) %>%
     group_by(season, predator) %>%
-    mutate(Correlation = cor(`Overlap index`, `Assessment index`))
+    mutate(Correlation = cor(`Overlap index`, `Assessment index`)) %>%
+    mutate(cv_o = cv_overlap*`Overlap index`,
+           cv_a = cv_assessment*`Assessment index`)
 }else{
   # Diet index vs herring index
   diet_stock_dat <- inner_join(diet_index, stock_index, by = c("season", "year")) %>%
@@ -193,9 +210,20 @@ all_cor <- bind_rows(list(docor, dacor, oacor)) %>%
 hjust_c = -0.2 # -0.2
 vjust_c = -11 # -14.2
 
-p1 <- ggplot(diet_overlap_dat, aes(x = `Overlap index`, y = `Diet index`)) +
+#   geom_errorbar(aes(ymin = (Density - density_se), 
+#                     ymax = (Density + density_se)),
+#                 width = 0) 
+
+p1 <- ggplot(diet_overlap_dat, aes(x = `Overlap index`, 
+                                   y = `Diet index`,
+                                   xmin = (`Overlap index` - `Overlap index`*cv_overlap),
+                                   xmax = (`Overlap index` + `Overlap index`*cv_overlap),
+                                   ymin = (`Diet index` - `Diet index`*cv_diet), 
+                                   ymax = (`Diet index` + `Diet index`*cv_diet))) +
   geom_smooth(method = "lm", se = FALSE, color = "grey") +
   geom_point() +
+  geom_errorbarh(height = 0) +
+  geom_errorbar(width = 0) +
   geom_text(data = docor, 
             aes(x = -Inf, y = -Inf, label = correlation), 
             hjust   = hjust_c,
@@ -209,9 +237,16 @@ p1 <- ggplot(diet_overlap_dat, aes(x = `Overlap index`, y = `Diet index`)) +
         strip.background = element_blank())
 ggsave(plot = p1, here("output", "plots", "overlap-diet-comp-1to1.pdf"), width = 4, height = 8, units = "in")
 
-p2 <- ggplot(diet_stock_dat, aes(x = `Assessment index`, y = `Diet index`)) +
+p2 <- ggplot(diet_stock_dat, aes(x = `Assessment index`, 
+                                 y = `Diet index`,
+                                 xmin = (`Assessment index` - `Assessment index`*cv_assessment),
+                                 xmax = (`Assessment index` + `Assessment index`*cv_assessment),
+                                 ymin = (`Diet index` - `Diet index`*cv_diet), 
+                                 ymax = (`Diet index` + `Diet index`*cv_diet))) +
   geom_smooth(method = "lm", se = FALSE, color = "grey") +
   geom_point() +
+  geom_errorbarh(height = 0) +
+  geom_errorbar(width = 0) +
   geom_text(data = dacor, 
             aes(x = -Inf, y = -Inf, label = correlation), 
             hjust   = hjust_c,
@@ -226,9 +261,16 @@ p2 <- ggplot(diet_stock_dat, aes(x = `Assessment index`, y = `Diet index`)) +
 ggsave(plot = p2, here("output", "plots", "assessment-diet-comp-1to1.pdf"), width = 4, height = 8, units = "in")
 
 
-p3 <- ggplot(overlap_stock_dat, aes(x = `Assessment index`, y = `Overlap index`)) +
+p3 <- ggplot(overlap_stock_dat, aes(x = `Assessment index`, 
+                                    y = `Overlap index`,
+                                    xmin = (`Assessment index` - `Assessment index`*cv_assessment),
+                                    xmax = (`Assessment index` + `Assessment index`*cv_assessment),
+                                    ymin = (`Overlap index` - `Overlap index`*cv_overlap), 
+                                    ymax = (`Overlap index` + `Overlap index`*cv_overlap))) +
   geom_smooth(method = "lm", se = FALSE, color = "grey") +
   geom_point() +
+  geom_errorbarh(height = 0) +
+  geom_errorbar(width = 0) +
   geom_text(data = oacor, 
             aes(x = -Inf, y = -Inf, label = correlation), 
             hjust   = hjust_c,
@@ -264,5 +306,3 @@ ggplot(diet_overlap, aes(x = year, y = `Diet index`, color = `Overlap index`)) +
         panel.grid.major = element_blank(),
         panel.grid.minor = element_blank(),
         strip.background = element_blank())
-
-
