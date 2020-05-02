@@ -216,10 +216,10 @@ vjust_c = -11 # -14.2
 
 p1 <- ggplot(diet_overlap_dat, aes(x = `Overlap index`, 
                                    y = `Diet index`,
-                                   xmin = (`Overlap index` - `Overlap index`*cv_overlap),
-                                   xmax = (`Overlap index` + `Overlap index`*cv_overlap),
-                                   ymin = (`Diet index` - `Diet index`*cv_diet), 
-                                   ymax = (`Diet index` + `Diet index`*cv_diet))) +
+                                   xmin = (`Overlap index` - cv_o),
+                                   xmax = (`Overlap index` + cv_o),
+                                   ymin = (`Diet index` - cv_d), 
+                                   ymax = (`Diet index` + cv_d))) +
   geom_smooth(method = "lm", se = FALSE, color = "grey") +
   geom_point() +
   geom_errorbarh(height = 0) +
@@ -229,7 +229,10 @@ p1 <- ggplot(diet_overlap_dat, aes(x = `Overlap index`,
             hjust   = hjust_c,
             vjust   = vjust_c,
             inherit.aes = FALSE) +
-  coord_fixed(ratio = diff(range(diet_overlap_dat$`Overlap index`))/diff(range(diet_overlap_dat$`Diet index`))) +
+  coord_fixed(ratio = diff(range(c(diet_overlap_dat$`Overlap index` - diet_overlap_dat$cv_o,
+                                   diet_overlap_dat$`Overlap index` + diet_overlap_dat$cv_o))/diff(
+                                     range(c(diet_overlap_dat$`Diet index` - diet_overlap_dat$cv_d,
+                                             diet_overlap_dat$`Diet index` + diet_overlap_dat$cv_d))))) +
   facet_grid(predator ~ season) +
   theme_bw()+
   theme(panel.grid.major = element_blank(),
@@ -252,7 +255,10 @@ p2 <- ggplot(diet_stock_dat, aes(x = `Assessment index`,
             hjust   = hjust_c,
             vjust   = vjust_c,
             inherit.aes = FALSE) +
-  coord_fixed(ratio = diff(range(diet_stock_dat$`Assessment index`))/diff(range(diet_stock_dat$`Diet index`))) +
+  coord_fixed(ratio = diff(range(c(diet_stock_dat$`Assessment index` - diet_stock_dat$cv_a,
+                                   diet_stock_dat$`Assessment index` + diet_stock_dat$cv_a))/diff(
+                                     range(c(diet_stock_dat$`Diet index` - diet_stock_dat$cv_d,
+                                             diet_stock_dat$`Diet index` + diet_stock_dat$cv_d))))) +
   facet_grid(predator ~ season) +
   theme_bw()+
   theme(panel.grid.major = element_blank(),
@@ -276,7 +282,11 @@ p3 <- ggplot(overlap_stock_dat, aes(x = `Assessment index`,
             hjust   = hjust_c,
             vjust   = vjust_c,
             inherit.aes = FALSE) +
-  coord_fixed(ratio = diff(range(overlap_stock_dat$`Assessment index`))/diff(range(overlap_stock_dat$`Overlap index`))) +
+  coord_fixed(ratio = diff(range(c(overlap_stock_dat$`Assessment index` - overlap_stock_dat$cv_a,
+                                   overlap_stock_dat$`Assessment index` + overlap_stock_dat$cv_a))/diff(
+                                     range(c(overlap_stock_dat$`Overlap index` - overlap_stock_dat$cv_o,
+                                             overlap_stock_dat$`Overlap index` + overlap_stock_dat$cv_o))))) +
+  
   facet_grid(predator ~ season) +
   theme_bw()+
   theme(panel.grid.major = element_blank(),
