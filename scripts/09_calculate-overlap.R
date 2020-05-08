@@ -70,7 +70,8 @@ ggplot(plot_annualindex, aes(x = Year, y = `Overlap index`, color = Season)) +
   scale_color_manual(values = c(scales::muted("blue", l = 50, c = 100), scales::muted("red", l = 50, c = 100))) +
   facet_wrap(~predator) +
   theme_bw() +
-  theme(panel.grid.major = element_blank(),
+  theme(legend.position = c(0.8, 0.2),
+    panel.grid.major = element_blank(),
         panel.grid.minor = element_blank(),
         strip.background = element_blank())
 ggsave(here("output", "plots", "overlap-index-ts.pdf"),
