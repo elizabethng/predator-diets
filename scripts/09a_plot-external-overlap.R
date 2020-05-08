@@ -16,6 +16,7 @@ ggplot(plot_annualindex, aes(x = Year, y = Estimate, color = Season, fill = Seas
   scale_color_manual(aesthetics = c("color", "fill"),
                      values = c(scales::muted("blue", l = 50, c = 100), scales::muted("red", l = 50, c = 100))) +
   facet_wrap(~predator) +
+  ylab("Overlap index") +
   theme_bw() +
   theme(legend.position = c(0.8, 0.2),
         panel.grid.major = element_blank(),
