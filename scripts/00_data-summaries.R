@@ -18,12 +18,36 @@ source(here("functions", "process_trawl_data.R"))
 source(here("functions", "process_diet_data.R"))
 
 # Raw data ----------------------------------------------------------------
-dietraw <- readr::read_rds(here("data", "processed", "dat_preds_all.rds")) %>%
+dietraw_0 <- readr::read_rds(here("data", "processed", "dat_preds_all.rds")) 
+
+# What percent of total stomach contents observed is from my 5 predators?
+ms <- dietraw_0 %>% mutate(my_pred = ifelse(predator %in% c("atlantic cod", "silver hake", "spiny dogfish", "goosefish", "white hake"),
+                                  TRUE, FALSE)) %>%
+  group_by(my_pred) %>%
+  summarize(tot_py_w = sum(pyamtw, na.rm = FALSE),
+            n_preds = n())
+# weight
+347570/(347570 + 47674)
+# number
+177937/(111533 + 177937)
+
+dietraw <- dietraw_0 %>%
   dplyr::filter(predator %in% c("atlantic cod", "silver hake", "spiny dogfish", "goosefish", "white hake"))
 
 trawlraw <- readr::read_rds(here("data", "processed", "dat_trawl.rds"))
 
 
+# Mean dates for spring and fall surveys ----------------------------------
+md <- dietraw %>%
+  select(towid, month, day, year, season) %>%
+  distinct() %>%
+  drop_na() %>%
+  mutate(date = lubridate::ymd(paste(2000, month, day))) %>% # need to use a leap year
+  group_by(season) %>%
+  summarize(mean = mean(date),
+            median = median(date),
+            min = min(date),
+            max = max(date))
 
 # Processed data ----------------------------------------------------------
 dietsetup <- readr::read_rds(here("data", "processed", "dat_preds_all.rds")) %>%
