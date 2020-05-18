@@ -323,3 +323,12 @@ ggplot(diet_overlap, aes(x = year, y = `Diet index`, color = `Overlap index`)) +
         panel.grid.minor = element_blank(),
         strip.background = element_blank())
 
+
+# 5. Play with lm fit -----------------------------------------------------
+
+
+
+
+
+
+
