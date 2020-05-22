@@ -1,4 +1,5 @@
-# Make map of diet index using discretized space and quantile color scale
+# Make map of diet index (DENSITY not area expanded)
+# using discretized space and quantile color scale
 # Based on hex grid calculation for overlap
 
 # Outline
