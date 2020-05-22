@@ -16,10 +16,10 @@ source(here("functions", "make_run_name.R"))
 Version <- FishStatsUtils::get_latest_version()
 safe_run_mod <- purrr::safely(run_mod_SE)
 
-debug(run_mod_SE)
+# debug(run_mod_SE)
 
 # Set VAST output location
-diagnostic_folder <- file.path("D:", "Dropbox", "Predator_Diets", "output", "VAST")
+diagnostic_folder <- file.path("D:", "Dropbox", "Predator_Diets", "output", "VAST-SE")
 
 
 # Diet Data ---------------------------------------------------------------
@@ -43,4 +43,4 @@ dietrun <- dietrun %>%
          run_fast = FALSE),
     safe_run_mod))
 
-readr::write_rds(dietrun, path = here("output", "top_final_diet.rds"))
+readr::write_rds(dietrun, path = here("output", "top_se_diet.rds"))
