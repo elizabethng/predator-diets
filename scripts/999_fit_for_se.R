@@ -1,4 +1,6 @@
 ### Run models to get SE!
+## Could easily add this option to run_mod, but may have to make a separate workflow
+## because Option[2] (get ses) takes a really long time for fine_scale = TRUE
 
 
 library("tidyverse")
