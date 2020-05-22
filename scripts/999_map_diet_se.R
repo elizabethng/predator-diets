@@ -18,34 +18,92 @@ library("sf")
 
 
 # 0. Load data ------------------------------------------------------------
-topdiets <- readr::read_rds(here::here("output", "top_final_diet.rds"))
-
+# topdiets <- readr::read_rds(here::here("output", "top_final_diet.rds"))
 northamerica <- ne_countries(continent = "north america",
                              scale = "large",
                              returnclass = "sf")
 
-locations <- topdiets$output[[1]]$result$knot_density[, c("Lon", "Lat")] %>%
-  rename(lon = Lon, lat = Lat)
+dietse <- readr::read_rds(path = here("output", "top_se_diet.rds"))
 
-knot_diets <- topdiets %>%
+# I think I want to match these all within each species...
+fine_scale_loc <- dietse$output[[1]]$result$fine_scale_locs
+knot_centers <- dietse$output[[1]]$result$map_log_index_gcy_est[, 1:2] %>%
+  rownames_to_column("xi2")
+
+knot_index_se <- dietse %>%
   dplyr::select(season, predator, output) %>%
   dplyr::mutate(output = purrr::map(output, "result")) %>%
-  dplyr::mutate(output = purrr::map(output, "knot_density"))
+  dplyr::mutate(output = purrr::map(output, "map_log_index_gcy_se"))
 
-finescale_data <- knot_diets %>%
+# Do it for one entry
+poop$output[[1]]$map_log_index_gcy_est %>% rownames_to_column("x2i")
+p1 <- poop$output[[1]]$map_log_index_gcy_se %>% rownames_to_column("x2i")
+# And then this is where the data explode
+left_join(poop$output[[1]]$fine_scale_locs, p1, by = "x2i")
+# and then pivot wider by year... and then this is what I want to be plotting
+
+# Do it for the list table
+jj <- dietse %>%
+  dplyr::select(season, predator, output) %>%
+  dplyr::mutate(output = purrr::map(output, "result")) %>%
+  unnest_wider(output) %>%
+  mutate(map_log_index_gcy_est = map(map_log_index_gcy_est, ~ rownames_to_column(.x, "x2i")),
+         map_log_index_gcy_se = map(map_log_index_gcy_se, ~ rownames_to_column(.x, "x2i"))) %>%
+  mutate(map_log_index_gcy_est = map(map_log_index_gcy_est, ~ mutate(.x, x2i = as.integer(x2i))),
+         map_log_index_gcy_se = map(map_log_index_gcy_se, ~ mutate(.x, x2i = as.integer(x2i)))) %>%
+  mutate(fine_index = map2(fine_scale_locs, map_log_index_gcy_est, ~ left_join(.x, .y, by = "x2i")),
+         fine_index_se = map2(fine_scale_locs, map_log_index_gcy_se, ~ left_join(.x, .y, by = "x2i"))) %>%
+  select(season, predator, fine_index, fine_index_se) %>%
+  pivot_longer(cols = c(fine_index, fine_index_se), names_to = "est", values_to = "value") %>% # also could move this up in chain and reduce the doubling up on stuff
+  mutate(value = map(value, ~ pivot_longer(.x,
+                                           cols = starts_with("density_"), 
+                                           names_to = "year", 
+                                           values_to = "value")),
+         value = map(value, ~ mutate(.x,
+                                     year = gsub("density_", "", year),
+                                     year = as.numeric(year)))) # put pivot longer inside here
+  
+jjj <- unnest(jj, value)
+
+filter(jjj, season == "fall", predator == "atlantic cod", year == 2000) %>%
+  sample_n(1000) %>%
+  ggplot(aes(x = Lon, y = Lat, color = value)) +
+  geom_point() +
+  facet_grid(~ est)
+
+
+
+knot_index_est <- dietse %>%
+  dplyr::select(season, predator, output) %>%
+  dplyr::mutate(output = purrr::map(output, "result")) %>%
+  dplyr::mutate(output = purrr::map(output, "map_log_index_gcy_est"))
+
+finescale_se <- knot_index_se %>%
   unnest(output) %>%
-  select(-Include) %>%
-  rename(knot = x2i,
-         lat = Lat,
-         lon = Lon) %>%
-  pivot_longer(cols = starts_with("density_"), names_to = "year", values_to = "density") %>%
+  pivot_longer(cols = starts_with("density_"), names_to = "year", values_to = "SE") %>%
   mutate(year = gsub("density_", "", year),
          year = as.numeric(year))
+
+finescale_est <- knot_index_est %>%
+  unnest(output) %>%
+  pivot_longer(cols = starts_with("density_"), names_to = "year", values_to = "log_index") %>%
+  mutate(year = gsub("density_", "", year),
+         year = as.numeric(year))
+
+all_dat <- full_join(finescale_est, finescale_se, by = c("season", "predator", "E_km", "N_km", "year"))
 
 finescale_locs <- finescale_data %>% 
   st_as_sf(coords = c("lon", "lat"), crs = 4326) %>%
   mutate(predator = str_to_sentence(predator),
          season = str_to_sentence(season))
+
+
+# Map with knot areas -----------------------------------------------------
+
+
+
+
+
 
 
 # 1. Generate grid ----------------------------------
