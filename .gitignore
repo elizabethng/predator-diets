@@ -2,6 +2,7 @@
 output/
 data/
 test-run/2020-05-28_overdispersion/
+test-run/2020-05-29_no_overdispersion/
 
 # History files
 .Rhistory
