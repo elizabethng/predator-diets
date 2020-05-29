@@ -1,6 +1,7 @@
 # Data and Results folder
 output/
 data/
+test-run/2020-05-28_overdispersion/
 
 # History files
 .Rhistory
