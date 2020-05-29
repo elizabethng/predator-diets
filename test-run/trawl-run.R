@@ -13,7 +13,7 @@ trawlsetup <- readr::read_rds(here("data", "processed", "dat_trawl.rds"))
 
 trawlsmall <- filter(
   trawlsetup, 
-  year %in% 2006:2015,
+  # year %in% 2006:2015,
   species %in% c("atlantic cod"),
   season == "fall") %>%
   drop_na()
@@ -21,9 +21,9 @@ trawlsmall <- filter(
 
 
 # 0. Create output directory ----------------------------------------------
-# Date <- Sys.Date()
-Date <- "2020-05-28"
-DateFile <- paste0(here("test-run", paste0(Date, "_overdispersion")), "/")  # format needed for VAST directories to work properly?
+Date <- Sys.Date()
+# Date <- "2020-05-28"
+DateFile <- paste0(here("test-run", paste0(Date)), "/")  # format needed for VAST directories to work properly?
 dir.create(DateFile)
 
 
@@ -52,7 +52,7 @@ use_aniso <- FALSE
 use_bias_correct <- FALSE
 
 # Mesh Settings 
-n_x <- c(50, 100, 250, 500, 1000, 2000)[1] # Number of stations
+n_x <- c(50, 100, 250, 500, 1000, 2000)[2] # Number of stations
 grid_size_km <- 50
 Method <- c("Grid", "Mesh", "Spherical_mesh")[2]
 Kmeans_Config <- list("randomseed" = 1, "nstart" = 100, "iter.max" = 1e3)
@@ -79,8 +79,8 @@ RhoConfig <- c(
 # 4 AR1
 
 OverdispersionConfig <- c(
-  "Eta1" = 1,       # used for vessel effects
-  "Eta2" = 1
+  "Eta1" = 0,       # used for vessel effects
+  "Eta2" = 0
 )
 
 ObsModel <- c(
@@ -117,7 +117,7 @@ Options <- c(
 # 2. Set up extrapolation -------------------------------------------------
 Extrapolation_List <- FishStatsUtils::make_extrapolation_info(
   Region = "northwest_atlantic",
-  strata.limits = read_rds(here("configuration-files", "strata_limits_subset.rds"))
+  strata.limits = read_rds(here("test-run", "strata_limits_subset.rds"))
 )
 
 Spatial_List <- FishStatsUtils::make_spatial_info(
@@ -166,7 +166,7 @@ TmbData <- VAST::make_data(
   "a_i" = Data_Geostat$AreaSwept_km2,
   "t_iz" = Data_Geostat$Year,
   "c_iz" = Data_Geostat$Species_num, # category = species
-  # "v_i" = Data_Geostat$Vessel_num,
+  "v_i" = Data_Geostat$Vessel_num,
   "FieldConfig" = FieldConfig,
   "spatial_list" = Spatial_List,
   "ObsModel_ez" = ObsModel,
@@ -174,8 +174,8 @@ TmbData <- VAST::make_data(
   "RhoConfig" = RhoConfig,
   "Aniso" = use_aniso,
   "Options" = Options,
-  "Version" =  Version,
-  "overlap_zz" = overlap_zz
+  "Version" =  Version
+  # "overlap_zz" = overlap_zz
 )
 
 
@@ -322,16 +322,16 @@ plot_range_index(
   category_names = levels(Data_Geostat$Species), 
   Year_Set = Year_Set)
 
-plot_range_edge(
-  Obj = Obj,
-  Report = Report,
-  TmbData = TmbData, 
-  Sdreport = Opt[["SD"]], 
-  Znames = colnames(TmbData$Z_xm),
-  PlotDir = DateFile, 
-  category_names = levels(Data_Geostat$Species), 
-  Year_Set = Year_Set,
-  Years2Include = Years2Include)
+# plot_range_edge(
+#   Obj = Obj,
+#   Report = Report,
+#   TmbData = TmbData, 
+#   Sdreport = Opt[["SD"]], 
+#   Znames = colnames(TmbData$Z_xm),
+#   PlotDir = DateFile, 
+#   category_names = levels(Data_Geostat$Species), 
+#   Year_Set = Year_Set,
+#   Years2Include = Years2Include)
 
 # Error in sample_variable(Sdreport = Sdreport, Obj = Obj, variable_name = "D_gcy",  : 
 # jointPrecision not present in Sdreport; please re-run with `getJointPrecision=TRUE`
@@ -339,16 +339,16 @@ plot_range_edge(
 # Plot factors
 # Finally, we can inspect the factor-decomposition for community-level patterns.
 
-Factors <- plot_factors(
-  Report = Report,
-  ParHat = Obj$env$parList(), 
-  Data = TmbData, 
-  SD = Opt$SD,
-  mapdetails_list = MapDetails_List,
-  Year_Set = Year_Set, 
-  category_names = levels(Data_Geostat$Species), 
-  plotdir=DateFile,
-  RotationMethod = "PCA" )
+# Factors <- plot_factors(
+#   Report = Report,
+#   ParHat = Obj$env$parList(), 
+#   Data = TmbData, 
+#   SD = Opt$SD,
+#   mapdetails_list = MapDetails_List,
+#   Year_Set = Year_Set, 
+#   category_names = levels(Data_Geostat$Species), 
+#   plotdir=DateFile,
+#   RotationMethod = "PCA" )
 
 # Cov_List <- FishStatsUtils::summarize_covariance( 
 #   Report = Report, 
@@ -368,57 +368,57 @@ Factors <- plot_factors(
 # 6. Extract quantities of interest ---------------------------------------
 # Get overlap metric
 # Report$overlap_z
-SD <- TMB::summary.sdreport(Opt$SD)
-overlap <- SD[which(rownames(SD) == "overlap_z"),c("Estimate", "Std. Error")]
-
-overlap_ts <- as_tibble(overlap) %>%
-  mutate(Year = unique(Data_Geostat$Year))
-
-ggplot(overlap_ts, aes(x = Year, y = Estimate)) +
-  geom_point() +
-  geom_errorbar(aes(ymin = Estimate - `Std. Error`,
-                    ymax = Estimate + `Std. Error`)) +
-  theme_bw()
+# SD <- TMB::summary.sdreport(Opt$SD)
+# overlap <- SD[which(rownames(SD) == "overlap_z"),c("Estimate", "Std. Error")]
+# 
+# overlap_ts <- as_tibble(overlap) %>%
+#   mutate(Year = unique(Data_Geostat$Year))
+# 
+# ggplot(overlap_ts, aes(x = Year, y = Estimate)) +
+#   geom_point() +
+#   geom_errorbar(aes(ymin = Estimate - `Std. Error`,
+#                     ymax = Estimate + `Std. Error`)) +
+#   theme_bw()
 
 
 # Annual index values with SE
-my_index <- Index$Table 
+# my_index <- Index$Table 
 
 # Get locations and standard errors for spatial density
 # Will automatically account for different dimensions of D_gcy depending on whether finescale is true
 # But now D_gcy has two columns for each array for 2 categories.
 
 
-density_dat <- matrix(as.vector(Report$D_gcy), nrow = dim(Report$D_gcy)[1], ncol = dim(Report$D_gcy)[3], byrow = FALSE)
-colnames(density_dat) <- paste0("density_", Year_Set)
-density <- as_tibble(density_dat)
+# density_dat <- matrix(as.vector(Report$D_gcy), nrow = dim(Report$D_gcy)[1], ncol = dim(Report$D_gcy)[3], byrow = FALSE)
+# colnames(density_dat) <- paste0("density_", Year_Set)
+# density <- as_tibble(density_dat)
 
 # Locations
 # (but will probably only output this at the end when finescale = TRUE)
-if(use_fine_scale == TRUE){
-  locs <- as_tibble(MapDetails_List$PlotDF) # this is always every point loc  
-}else{
-  locs <- as_tibble(Spatial_List$MeshList$loc_x) # note these are UTM (zone 19 I think)
-}
+# if(use_fine_scale == TRUE){
+#   locs <- as_tibble(MapDetails_List$PlotDF) # this is always every point loc  
+# }else{
+#   locs <- as_tibble(Spatial_List$MeshList$loc_x) # note these are UTM (zone 19 I think)
+# }
 
 # Wide data
 # Sacrifice tidiness for efficiency with obs
-map_dat <- bind_cols(locs, density)
-
-readr::write_csv(map_dat, file.path(DateFile, "my_map_dat.csv"))
-
-SD[which(rownames(SD) == "Index_cyl"),c("Estimate", "Std. Error")]
-SD[which(rownames(SD) == "Index_gcyl"),c("Estimate", "Std. Error")]
+# map_dat <- bind_cols(locs, density)
+# 
+# readr::write_csv(map_dat, file.path(DateFile, "my_map_dat.csv"))
+# 
+# SD[which(rownames(SD) == "Index_cyl"),c("Estimate", "Std. Error")]
+# SD[which(rownames(SD) == "Index_gcyl"),c("Estimate", "Std. Error")]
 
 
 
 ###!!!
 # UTM output for plotting
-Dens_DF <- data.frame(
-  Density = as.vector(Dens_xt), # might need to revisit, now a two column array
-  Year = Year_Set[col(Dens_xt)],
-  E_km = Spatial_List$MeshList$loc_x[row(Dens_xt),'E_km'],
-  N_km = Spatial_List$MeshList$loc_x[row(Dens_xt),'N_km'])
+# Dens_DF <- data.frame(
+#   Density = as.vector(Dens_xt), # might need to revisit, now a two column array
+#   Year = Year_Set[col(Dens_xt)],
+#   E_km = Spatial_List$MeshList$loc_x[row(Dens_xt),'E_km'],
+#   N_km = Spatial_List$MeshList$loc_x[row(Dens_xt),'N_km'])
 # write_csv(Dens_DF, paste0(DateFile, "Dens_DF.txt"))
 
 
