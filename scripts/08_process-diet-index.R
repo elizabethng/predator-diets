@@ -27,8 +27,7 @@ dietindex <- topdiets %>%
   select(-exclude_reason)
   # mutate(density_cv = ) # hmm I need n, but what is that here??
 write_rds(dietindex, path = here("output", "index_diet.rds"))
-
-
+# dietindex <- read_rds(here("output", "index_diet.rds"))
 
 # Plot diet-based abundance index -----------------------------------------
 
@@ -51,7 +50,7 @@ p <- ggplot(plot_dietindex, aes(x = Year, y = Density, color = Season)) +
                     color = Season),
                 width = 0) +
   facet_wrap(~ predator, scales = "free_y") +
-  labs(y = "Mass of Atlantic herring in predator stomachs") +
+  labs(y = "Diet index") +
   theme_bw() +
   theme(legend.position = c(0.8, 0.2),
         panel.grid.major = element_blank(),
