@@ -63,6 +63,54 @@ if(use_assessment == FALSE){
       scales::muted("red", l = 50, c = 100))) +
     theme_bw()
   
+  # Distinguish between different types (don't include the spatiotemproal index, i.e. VAST fit to herring biomass)
+  abundance_indices %>%
+    ungroup() %>%
+    mutate(name = ifelse(name == "fall", "st herring fall", name)) %>%
+    mutate(name = ifelse(name == "spring", "st herring spring", name)) %>%
+  ggplot(aes(x = Year, y = value_z, group = name, color = name)) +
+    geom_point() +
+    facet_grid(source ~.) +
+    geom_line(size = 1, alpha = 0.5) +
+    scale_color_manual(
+      values = c(
+        "Jan.1 Biomass (mt)" = "dodgerblue4", # "Jan.1 Biomass (mt)"
+        "Catch (mt)" = "dodgerblue2", # "Catch (mt)"
+        "SSB (mt)" = "lightskyblue1", # "SSB (mt)"
+        "atlantic cod fall" = "chartreuse4",# "atlantic cod fall"
+        "atlantic cod spring"= "chartreuse1", # "atlantic cod spring"
+        "goosefish fall" = "darkseagreen4",# "goosefish fall"
+        "goosefish spring" = "darkseagreen",# "goosefish spring"
+        "silver hake fall" = "olivedrab4" ,# "silver hake fall"
+        "silver hake spring" = "olivedrab", # "silver hake spring"
+        "spiny dogfish fall" = "seagreen4", # "spiny dogfish fall"
+        "spiny dogfish spring" = "seagreen4",# "spiny dogfish spring"
+        "white hake fall"= "royalblue4",# "white hake fall"
+        "white hake spring" = "royalblue", # "white hake spring"
+        "st herring fall" = "purple4", # "st herring fall"
+        "st herring spring" = "purple"# "st herring spring"
+      ),
+      breaks = c(
+        "Jan.1 Biomass (mt)", 
+        "Catch (mt)", 
+        "SSB (mt)", 
+        "atlantic cod fall", 
+        "atlantic cod spring", 
+        "goosefish fall", 
+        "goosefish spring", 
+        "silver hake fall", 
+        "silver hake spring", 
+        "spiny dogfish fall", 
+        "spiny dogfish spring",
+        "white hake fall", 
+        "white hake spring",
+        "st herring fall", 
+        "st herring spring")
+    ) +
+    theme_bw()
+  ggsave(here("output", "plots", "index-ts-multipanel.pdf"), width = 8.5, height = 12)
+  
+  
   mean_diets <- filter(abundance_indices, source == "diet index") %>%
     group_by(Year, source) %>%
     summarize(value_z = mean(value_z, na.rm = TRUE)) %>%
