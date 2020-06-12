@@ -49,6 +49,28 @@ finescale_results <- results %>%
 write_rds(finescale_results, path = here("output", "finescale_overlap.rds"))
 
 
+# Do for Schoeners D
+D_rows <- nrow(preddat$density[[1]])
+schoeners_wide <- left_join(preddat, preydat, by = "season") %>%
+  rename(predator = species.x,
+         preddens = density.x,
+         preydens = density.y) %>%
+  select(-species.y) %>%
+  mutate(D = pmap(list(preddens, preydens), `-`)) %>% # difference of relative abundance
+  mutate(D = map(D, abs)) %>%                         # absolute values
+  mutate(D = map(D, ~ 1/D_rows - 0.5*.)) %>%          # 1/m - 1.5*D (1/m is to bring 1 inside summation)
+  select(-preddens, -preydens)
+
+results_D <- schoeners_wide %>%
+  mutate(annual_index = pmap(list(D), colSums)) %>%
+  mutate(average_spatial = pmap(list(D), rowSums))
+
+# Join back location data to results and save output for use in making maps
+finescale_results_D <- results_D %>%
+  mutate(D = map(D, ~ bind_cols(locdat$output[[1]][,1:3], .x)))
+write_rds(finescale_results_D, path = here("output", "finescale_overlap_schoeners.rds"))
+
+
 # 2. Plot Annual Index ---------------------------------------------------------
 annualindex <- results %>%
   select(season, predator, annual_index) %>%
@@ -78,6 +100,35 @@ ggsave(here("output", "plots", "overlap-index-ts.pdf"),
        width = 9, height = 5, units = "in")
 write_rds(annualindex, path = here::here("output", "index_overlap.rds"))
 
+
+# 2.1 Plot Annual Index for Schoener's D ----------------------------------
+annualindex_D <- results_D %>%
+  select(season, predator, annual_index) %>%
+  mutate(annual_index = pmap(list(annual_index), enframe)) %>%
+  unnest(cols = c(annual_index)) %>%
+  rename(year = name, D = value) %>%
+  mutate(year = gsub("density_", "", year),
+         year = as.numeric(year)) %>%
+  rename("Overlap index" = D) 
+
+plot_annualindex_D <- annualindex_D %>%
+  rename(Season = season, Year = year) %>%
+  mutate(predator = str_to_sentence(predator),
+         Season = str_to_sentence(Season))
+
+ggplot(plot_annualindex_D, aes(x = Year, y = `Overlap index`, color = Season)) +
+  geom_point() +
+  geom_line() +
+  scale_color_manual(values = c(scales::muted("blue", l = 50, c = 100), scales::muted("red", l = 50, c = 100))) +
+  facet_wrap(~predator) +
+  theme_bw() +
+  theme(legend.position = c(0.8, 0.2),
+        panel.grid.major = element_blank(),
+        panel.grid.minor = element_blank(),
+        strip.background = element_blank())
+# ggsave(here("output", "plots", "overlap-index-ts.pdf"),
+#        width = 9, height = 5, units = "in")
+# write_rds(annualindex, path = here::here("output", "index_overlap.rds"))
 
 
 # 3. Permutation test for CIs ---------------------------------------------
