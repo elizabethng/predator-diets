@@ -18,6 +18,16 @@ library("sf")
 
 ### For Schoeners D
 
+# Why is this backwards??
+poop <- filter(overlap, season == "fall", predator == "atlantic cod") %>%
+  select(D) %>%
+  unnest(D) %>%
+  # mutate(average = )
+
+
+
+
+
 # 0. Load data ------------------------------------------------------------
 overlap <- readr::read_rds(here("output", "finescale_overlap_schoeners.rds"))
 
@@ -27,8 +37,6 @@ northamerica <- ne_countries(continent = "north america",
 
 locations <- overlap$D[[1]][, c("Lon", "Lat")] %>%
   rename(lon = Lon, lat = Lat)
-
-
 
 knot_diets <- overlap %>%
   dplyr::select(season, predator, D)
@@ -77,6 +85,12 @@ nonspat <- as.data.frame(grid_dat) %>%
 
 # 4.1. Get relative average index ---------------------------------------------------
 # Average across years then normalize between predators
+scalefun <- function(x){
+  x_bar <- mean(x, na.rm = TRUE)
+  x_sd  <- sd(x, na.rm = TRUE)
+  x_scaled <- (x - x_bar)/x_sd
+  return(x_scaled)
+}
 
 annual_dat <- nonspat %>%
   ungroup() %>%
@@ -84,7 +98,8 @@ annual_dat <- nonspat %>%
   summarize(density_annual_avg = mean(density_grid, na.rm = TRUE)) %>% # avg by year
   ungroup() %>% 
   group_by(predator, season) %>%
-  mutate(scaled_density = scale(density_annual_avg)[,1]) # normalize within species/season
+  mutate(scaled_density = scalefun(density_annual_avg))
+  # mutate(scaled_density = scale(density_annual_avg)[,1]) # normalize within species/season
 
 densitymap <- left_join(grid, annual_dat, by = "id") %>% 
   drop_na() 
@@ -96,7 +111,6 @@ densitymap <- left_join(grid, annual_dat, by = "id") %>%
 
 # Do a check for new break values
 quantile(densitymap$density_annual_avg)
-quantile(densitymap$scaled_density, prob = 0.85)
 quantile(densitymap$scaled_density)
 
 # Make pretty breaks for (normalized) relative density based roughly on quantiles

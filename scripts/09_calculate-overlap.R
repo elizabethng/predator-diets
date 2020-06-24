@@ -29,28 +29,33 @@ normdat <- densdat %>%
 preydat <- filter(normdat, species == "atlantic herring")
 preddat <- filter(normdat, species != "atlantic herring")
 
-widedat <- left_join(preddat, preydat, by = "season") %>%
-  rename(predator = species.x,
-         preddens = density.x,
-         preydens = density.y) %>%
-  select(-species.y) %>%
-  mutate(bhat = pmap(list(preddens, preydens), `*`)) %>%
-  mutate(bhat = pmap(list(bhat), sqrt)) %>%
-  select(-preddens, -preydens)
-
-# Annual Index: column sums
-results <- widedat %>%
-  mutate(annual_index = pmap(list(bhat), colSums)) %>%
-  mutate(average_spatial = pmap(list(bhat), rowSums))
-
-# Join back location data to results and save output for use in making maps
-finescale_results <- results %>%
-  mutate(bhat = map(bhat, ~ bind_cols(locdat$output[[1]][,1:3], .x)))
-write_rds(finescale_results, path = here("output", "finescale_overlap.rds"))
+if(FALSE){ # bhat calculation
+  widedat <- left_join(preddat, preydat, by = "season") %>%
+    rename(predator = species.x,
+           preddens = density.x,
+           preydens = density.y) %>%
+    select(-species.y) %>%
+    mutate(bhat = pmap(list(preddens, preydens), `*`)) %>%
+    mutate(bhat = pmap(list(bhat), sqrt)) %>%
+    select(-preddens, -preydens)
+  
+  # Annual Index: column sums
+  results <- widedat %>%
+    mutate(annual_index = pmap(list(bhat), colSums)) %>%
+    mutate(average_spatial = pmap(list(bhat), rowSums))
+  
+  # Join back location data to results and save output for use in making maps
+  finescale_results <- results %>%
+    mutate(bhat = map(bhat, ~ bind_cols(locdat$output[[1]][,1:3], .x)))
+  write_rds(finescale_results, path = here("output", "finescale_overlap.rds"))
+  
+}
 
 
 # Do for Schoeners D
-D_rows <- nrow(preddat$density[[1]])
+D_rows <- nrow(preddat$density[[1]]) # number of locations
+D_cols <- ncol(preddat$density[[1]]) # number of years
+
 schoeners_wide <- left_join(preddat, preydat, by = "season") %>%
   rename(predator = species.x,
          preddens = density.x,
@@ -63,7 +68,7 @@ schoeners_wide <- left_join(preddat, preydat, by = "season") %>%
 
 results_D <- schoeners_wide %>%
   mutate(annual_index = pmap(list(D), colSums)) %>%
-  mutate(average_spatial = pmap(list(D), rowSums))
+  mutate(average_spatial = pmap(list(D), rowSums)) # rowSums
 
 # Join back location data to results and save output for use in making maps
 finescale_results_D <- results_D %>%
