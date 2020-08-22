@@ -7,7 +7,8 @@ library("VAST")
 # Need to be able to re-fit model to link dll before simulating. 
 
 # Next steps
-# [ ] Get simple example running for fall Atlantic Cod
+# [x] Get simple example running for fall Atlantic Cod
+# [x] Find coordinates for simulated data
 # [ ] Bundle and save components needed to re-run model outside of this project
 #     [ ] Use save? Bundle into a list and write_rds?
 # [ ] Run simple example for fall Atlantic herring
@@ -96,7 +97,6 @@ simdat <- simulate_data(fit_orig, type = 3)
 names(simdat)
 
 # Reconstruct the data frame
-names(example$sampling_data)
 simdat_df <- data.frame(
   Catch_kg = simdat$b_i,
   Year = simdat$t_i,
@@ -116,7 +116,7 @@ length(simdat$D_i)  # might be an average?
 as.vector(simdat$D_gct) %>% length()
 
 MapDetails_List <- FishStatsUtils::make_map_info(
-  Region = example$Region,
+  Region = settings$Region,
   Extrapolation_List = fit_orig$extrapolation_list,
   spatial_list = fit_orig$spatial_list,
   NN_Extrap = fit_orig$spatial_list$PolygonList$NN_Extrap,
@@ -124,19 +124,17 @@ MapDetails_List <- FishStatsUtils::make_map_info(
   Include = (fit_orig$extrapolation_list[["Area_km2_x"]] > 0 &
                fit_orig$extrapolation_list[["a_el"]][, 1] > 0))
 
-# Get locations and standard errors for spatial density
-# Will automatically account for different dimensions of D_gcy depending on whether finescale is true
-Year_Set <- seq(min(example$sampling_data[,'Year']), max(example$sampling_data[,'Year']))
+# Get locations of finescale predictions
 density_dat <- matrix(as.vector(simdat$D_gct), 
                       nrow = dim(simdat$D_gct)[1], 
                       ncol = dim(simdat$D_gct)[3], 
                       byrow = FALSE)
-colnames(density_dat) <- paste0("density_", Year_Set)
+colnames(density_dat) <- paste0("density_", fit_orig$year_labels)
 density <- as_tibble(density_dat)
 
-# Locations
-# locs <- as_tibble(fit_orig$spatial_list$MeshList$loc_x ) # ended up with 2k knot locations instead of 100?
-locs <- as_tibble(MapDetails_List$PlotDF) # because finescale is on (?)
+# Locations for finescale points
+# locs <- as_tibble(fit_orig$spatial_list$MeshList$loc_x ) # locations if finescale == FALSE
+locs <- as_tibble(MapDetails_List$PlotDF)
 
 # Wide data
 # Sacrifice tidiness for efficiency with obs
@@ -155,6 +153,6 @@ filter(long_map, year == 1995) %>%
   geom_point()
 
 # For comparison
-filter(example$sampling_data, Year == 1995) %>%
+filter(trawlrun$processed_data[[1]], Year == 1995) %>%
   ggplot(aes(x = Lon, y = Lat, color = Catch_KG)) +
   geom_point()
