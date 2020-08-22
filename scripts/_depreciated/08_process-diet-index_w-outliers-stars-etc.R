@@ -276,11 +276,11 @@ ggplot() +
 # d = st_dimensions(station = st_as_sfc(stations), time = dates)
 # (aq = st_as_stars(list(PM10 = air), dimensions = d))
 
-
-st_as_sf(average_diet, coords = c("lon", "lat"), crs = 4326)
-poop <- st_dimensions(coords = st_as_sf(select(average_diet,-c("predator", "season", "density_avg_z")), coords = c("lon", "lat"), crs = 4326)),
-                      season = average_diet$season,
-                      predator = average_diet$predator)
+# issue in code here
+# st_as_sf(average_diet, coords = c("lon", "lat"), crs = 4326)
+# poop <- st_dimensions(coords = st_as_sf(select(average_diet,-c("predator", "season", "density_avg_z")), coords = c("lon", "lat"), crs = 4326)),
+#                       season = average_diet$season,
+#                       predator = average_diet$predator)
 
 # Diet index timeseries plots ---------------------------------------------
 

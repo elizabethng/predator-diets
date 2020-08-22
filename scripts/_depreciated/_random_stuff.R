@@ -28,6 +28,7 @@ if (plot_num == 3) {
   if ("dpred_ktp" %in% names(Report)) 
     Array_xct = aperm(Report$dpred_ktp[, , cI], 
                       c(1, 3, 2))
+}
 
 if (Nknots < Inf) {
   NN_plot = stats::kmeans(x = PlotDF[, c("Lon", "Lat")], 
