@@ -74,7 +74,7 @@ settings <- make_settings(n_x = 100,
 
 # Run model ---------------------------------------------------------------
 
-fit_orig <- fit_model("settings" = settings, 
+fit_call <- expression(fit_model("settings" = settings, 
                       "Lat_i" = trawlrun$processed_data[[1]]$Lat,
                       "Lon_i" = trawlrun$processed_data[[1]]$Lon, 
                       "t_i" = trawlrun$processed_data[[1]]$Year,
@@ -83,10 +83,31 @@ fit_orig <- fit_model("settings" = settings,
                       "a_i" = trawlrun$processed_data[[1]]$AreaSwept_km2, 
                       "v_i" = trawlrun$processed_data[[1]]$Vessel,
                       "getJointPrecision" = TRUE, # Needed for simulating data
-                      "working_dir" = working_dir)
+                      "working_dir" = working_dir))
+fit_orig <- eval(fit_call)
 
-write_rds(fit_orig, path = here::here("prep-for-simulation", "output", "fit_orig.rds"))
+# fit_orig <- fit_model("settings" = settings, 
+#                       "Lat_i" = trawlrun$processed_data[[1]]$Lat,
+#                       "Lon_i" = trawlrun$processed_data[[1]]$Lon, 
+#                       "t_i" = trawlrun$processed_data[[1]]$Year,
+#                       "c_i" = rep(0,nrow(trawlrun$processed_data[[1]])), 
+#                       "b_i" = trawlrun$processed_data[[1]]$Catch_KG,
+#                       "a_i" = trawlrun$processed_data[[1]]$AreaSwept_km2, 
+#                       "v_i" = trawlrun$processed_data[[1]]$Vessel,
+#                       "getJointPrecision" = TRUE, # Needed for simulating data
+#                       "working_dir" = working_dir)
 
+# write_rds(fit_orig, path = here::here("prep-for-simulation", "output", "fit_orig.rds"))
+
+# Gather and save elements needed to run outside of this folder
+run_fall_cod <- list(
+  dat = trawlrun,
+  strata_limits = strata.limits,
+  settings = settings,
+  fit_call = fit_call
+)
+
+write_rds(run_fall_cod, path = here::here("prep-for-simulation", "output", "run_fall_cod.rds"))
 
 
 # Simulate data -----------------------------------------------------------
