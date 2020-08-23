@@ -9,40 +9,37 @@ library("VAST")
 # Next steps
 # [x] Get simple example running for fall Atlantic Cod
 # [x] Find coordinates for simulated data
-# [ ] Bundle and save components needed to re-run model outside of this project
-#     [ ] Use save? Bundle into a list and write_rds?
-# [ ] Run simple example for fall Atlantic herring
-# [ ] Bundle output to run outside of project
+# [x] Bundle and save components needed to re-run model outside of this project
+#     [-] Use save? Bundle into a list and write_rds?
+# [x] Figure out why it's not detecting existing kmeans output --> recalculates in make_extrapolation_info because of small nubmer of data points
+# [-] Give informative start values from previously fitted model (how to pass those?) -- could probably just pass them with start.par-type argument, but not worth it right now, pretty fast and only need to run twice
+# [x] Run simple example for fall Atlantic herring
+# [x] Bundle output to run outside of project
 
+# later could work this to output both and push choice further down stream
+my_species <- c("atlantic cod", "atlantic herring")[1]
+save_output <- FALSE
 
 # Load data ---------------------------------------------------------------
 
 # Set output folder
 working_dir <- here::here("prep-for-simulation", "output")
 
+# Load strata limits
+source(here::here("configuration-files", "strata_limits_subset.R"))
+
 # Load data and model to run
 trawlrun <- read_rds(here::here("output", "top_st_trawl.rds")) %>%
   select(-output, -model) %>%
-  filter(species == "atlantic cod", season == "fall")
+  filter(species == my_species, season == "fall")
 
-# Load strata limits
-source(here::here("configuration-files", "strata_limits_subset.R"))
 
 
 # Model settings ----------------------------------------------------------
 
-# ORIGINAL OPTIONS
-# Top Atlantic Cod fall model
-# Poisson-link gamma model with independent years and 
-# spatiotemporal random effects in both predictors
-
-# use_REML <- TRUE
-# use_fine_scale <- TRUE
-# use_bias_correct <- FALSE
-# Method = "Mesh"
-# grid_size_km = 50
-# n_x = 100
-# Kmeans_Config = list( "randomseed" = 1, "nstart" = 100, "iter.max" = 1e3 )
+# Simplified from original to avoid throwing errors. Does not match
+# top models from predator-diets paper. Need to evaluate in future.
+# epsilon value in first predictor was going to 0 for Atlantic cod.
 
 settings <- make_settings(n_x = 100, 
                           Region = "northwest_atlantic", 
@@ -53,22 +50,7 @@ settings <- make_settings(n_x = 100,
                             "Omega1"   = 1,   # number of spatial variation factors (0, 1, AR1)
                             "Epsilon1" = 0,   # number of spatio-temporal factors
                             "Omega2"   = 1,
-                            "Epsilon2" = 0
-                          ),
-                          # RhoConfig = c(
-                          #   "Beta1" = 0,      # temporal structure on years (intercepts) 
-                          #   "Beta2" = 0, 
-                          #   "Epsilon1" = 0,   # temporal structure on spatio-temporal variation
-                          #   "Epsilon2" = 0
-                          # ),
-                          # OverdispersionConfig = c(
-                          #   "Eta1" = 0,       # used for vessel effects
-                          #   "Eta2" = 0
-                          # ),
-                          # ObsModel = c(       # c(2,1) poisson-link gamma
-                          #   "PosDist" = 2,   
-                          #   "Link"    = 1
-                          # ),
+                            "Epsilon2" = 0),
                           bias.correct = FALSE,
                           use_anisotropy = FALSE)
 
@@ -83,36 +65,25 @@ fit_call <- expression(fit_model("settings" = settings,
                       "a_i" = trawlrun$processed_data[[1]]$AreaSwept_km2, 
                       "v_i" = trawlrun$processed_data[[1]]$Vessel,
                       "getJointPrecision" = TRUE, # Needed for simulating data
-                      "working_dir" = working_dir))
+                      "working_dir" = working_dir,
+                      "DirPath" = paste0(working_dir, "/"))) # this may cause errors outside this repo?
 fit_orig <- eval(fit_call)
 
-# fit_orig <- fit_model("settings" = settings, 
-#                       "Lat_i" = trawlrun$processed_data[[1]]$Lat,
-#                       "Lon_i" = trawlrun$processed_data[[1]]$Lon, 
-#                       "t_i" = trawlrun$processed_data[[1]]$Year,
-#                       "c_i" = rep(0,nrow(trawlrun$processed_data[[1]])), 
-#                       "b_i" = trawlrun$processed_data[[1]]$Catch_KG,
-#                       "a_i" = trawlrun$processed_data[[1]]$AreaSwept_km2, 
-#                       "v_i" = trawlrun$processed_data[[1]]$Vessel,
-#                       "getJointPrecision" = TRUE, # Needed for simulating data
-#                       "working_dir" = working_dir)
-
-# write_rds(fit_orig, path = here::here("prep-for-simulation", "output", "fit_orig.rds"))
-
 # Gather and save elements needed to run outside of this folder
-run_fall_cod <- list(
-  dat = trawlrun,
+run_components <- list(
+  trawlrun = trawlrun,
   strata_limits = strata.limits,
   settings = settings,
   fit_call = fit_call
 )
 
-write_rds(run_fall_cod, path = here::here("prep-for-simulation", "output", "run_fall_cod.rds"))
+if(save_output){
+  write_rds(run_components, path = here::here("prep-for-simulation", "output", 
+                                              paste0("run_fall_", gsub("atlantic ", "", my_species), ".rds")))
+}
 
 
 # Simulate data -----------------------------------------------------------
-fit_orig <- read_rds(path = here::here("prep-for-simulation", "output", "fit_orig.rds"))
-
 # Simulate new data
 simdat <- simulate_data(fit_orig, type = 3)
 names(simdat)
