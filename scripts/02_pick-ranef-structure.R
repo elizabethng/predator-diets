@@ -33,27 +33,50 @@ allruns <- dietrun %>%
                    run_name,
                    output_file_loc)) %>%
   dplyr::mutate(
-    converged = purrr::map_chr(output, "converged")) # Some errors were passed (non numerical argument)
-    # converged = ifelse(converged %in% c("TRUE", "FALSE"), converged, NA) 
-    # )  
+    converged = purrr::map_chr(output, "converged")) # converged = ifelse(converged %in% c("TRUE", "FALSE"), converged, NA) 
 
 # Error messages get caught before going to output$error
 failed <- allruns %>%
   filter(converged != "TRUE")
-  # filter(is.na(converged) | converged == FALSE)
 
-# Process models without errors
+# Models that "failed to converge" due to Hessian issues
+bad_hessians <- bind_rows(
+dietrun %>%  # 3 have errors that were were passed too early (non numerical argument)
+  dplyr::mutate(
+    errors = purrr::map(output,"error"), 
+    worked = purrr::map_lgl(errors, is.null)
+  ) %>% filter(worked == FALSE) %>%
+  mutate(errors = as.character(errors)) %>%
+  dplyr::mutate(
+    model = basename(config_file_loc), 
+    model = gsub(".R", "", model)
+  ) %>%
+  select(predator, season, model, use_aniso, errors),
+filter(failed, converged != FALSE) %>% # 6 more caught in convergence check
+  select(predator, season, model, use_aniso, errors = converged)
+)
+  
+# Models that failed to converge, but should converge if newton steps is increased
+# (won't affect parameter estimates or AIC in any appreciable amount)
+# So do want to include these in model selection
+need_newton_steps <- filter(failed, converged == FALSE) %>%
+  select(predator, season, model, use_aniso) %>%
+  mutate(errors = "converged == FALSE")
+
+
+# Process models without errors (including convergence == FALSE)
 worked <- allruns %>%
+  filter(converged %in% c(TRUE, FALSE)) %>%
   dplyr::mutate(
     aic = purrr::map(output, "aic"),
     aic = na_if(aic, "NULL")
   ) %>%
   unnest(cols = c("aic")) %>%
-  filter(converged == TRUE) %>%
-  filter(!is.na(converged)) %>%
   mutate(hatval = purrr::map(output, "estimates")) %>%
   select(-output, -data) 
 
+# Not updated to reflect bad hessian models in bad_hessians vs
+# models needing a few more newton steps in need_newton_steps
 if(add_identifiability_check == TRUE){
   # Load convergence-checked models
   checkrun <- read_rds(here("output", "select_st_diet_fix.rds")) %>%
@@ -120,8 +143,7 @@ if(add_identifiability_check == TRUE){
 
 # Write output for next phase of model selection
 topmods <- modchecks %>%
-  filter(delta_aic < 2,
-         ranef_ok == TRUE) %>%
+  filter(delta_aic < 2) %>%
   group_by(predator, season) %>%
   top_n(-1, wt = ranef_n) %>%
   top_n(-1, wt = use_aniso) %>%
@@ -152,7 +174,8 @@ badmod_data <- dietrun %>%
     model = basename(config_file_loc), 
     model = gsub(".R", "", model)
   ) %>%
-  inner_join(failed, by = c("predator", "season", "model", "use_aniso"))
+  inner_join(bind_rows(bad_hessians, need_newton_steps), 
+             by = c("predator", "season", "model", "use_aniso"))
 write_rds(badmod_data, here("output", "bad_st_diet.rds"))
 
 

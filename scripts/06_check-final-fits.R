@@ -4,7 +4,7 @@
 # final models fit with REML. 
 
 # Save results for use by next script to do model 
-# selction for covaraites.
+# selection for covariates.
 
 library("tidyverse")
 library("here")
