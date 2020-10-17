@@ -77,6 +77,25 @@ run_mod <- function(covar_columns = NA,
       "Options" = Options,
       "Version" =  Version
     )
+  }else if(covar_columns == "vessel"){
+    # Make a design matrix for fixed effects of Vessel
+    Q_ik <- model.matrix(Catch_KG ~ Vessel, Data_Geostat) # may need to strip attributes
+    
+    TmbData <- VAST::make_data(
+      "b_i" = Data_Geostat$Catch_KG,
+      "a_i" = Data_Geostat$AreaSwept_km2,
+      "t_iz" = Data_Geostat$Year,
+      "c_iz" = rep(0, nrow(Data_Geostat)),
+      "FieldConfig" = FieldConfig,
+      "spatial_list" = Spatial_List,
+      "ObsModel_ez" = ObsModel,
+      "OverdispersionConfig" = OverdispersionConfig,
+      "RhoConfig" = RhoConfig,
+      "Aniso" = use_aniso,
+      "Q_ik" = Q_ik, 
+      "Options" = Options,
+      "Version" =  Version
+    )
   }else{
     # Make matrix of covariates
     covar_columns_vec <- stringr::str_split(covar_columns, " ", simplify = TRUE)[1,]
@@ -208,6 +227,10 @@ run_mod <- function(covar_columns = NA,
   # Full Output ------------------------------------------
   
   if(run_fast == FALSE){
+    # Save final parameter estimates
+    write_rds(Opt, paste0(DateFile, "/opt.rds"))
+    write_rds(Report, paste0(DateFile, "/Report.rds"))
+    
     # Get region-specific settings for plots
     MapDetails_List <- FishStatsUtils::make_map_info(
       Region = "northwest_atlantic",
@@ -231,6 +254,12 @@ run_mod <- function(covar_columns = NA,
       DirName = paste0(DateFile, "/"),
       use_biascorr = TRUE)    
     
+    # Positive model
+    Q <- FishStatsUtils::plot_quantile_diagnostic(
+      TmbData = TmbData,
+      Report = Report,
+      DateFile = DateFile)
+    
     if(FALSE){  # Don't run these plots that take a very long time
     # Data
     FishStatsUtils::plot_data(
@@ -244,13 +273,6 @@ run_mod <- function(covar_columns = NA,
       Report = Report,
       Data_Geostat = Data_Geostat,
       DirName = DateFile)
-    
-    # Positive model
-    Q <- FishStatsUtils::plot_quantile_diagnostic(
-      TmbData = TmbData,
-      Report = Report,
-      DateFile = DateFile)
-    
     
     # Map of residuals
     residual <- FishStatsUtils::plot_residuals(
