@@ -1,3 +1,6 @@
+# .renv files until I decide whether to keep
+renv/
+
 # Data and Results folder
 output/
 data/
