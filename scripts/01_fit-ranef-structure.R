@@ -1,5 +1,5 @@
 # Fit models for spatio-temporal random effect model selection
-# using oversaturated covariates and REML.
+# using over-saturated covariates and REML.
 
 library("tidyverse")
 library("here")
@@ -22,6 +22,7 @@ safe_run_mod <- purrr::safely(run_mod)     # [ ] move into run_mod function?
 # Set VAST output location
 diagnostic_folder <- file.path("D:", "Dropbox", "Predator_Diets", "output", "VAST")
 
+debug(run_mod)
 
 # Diet Data ---------------------------------------------------------------
 # Filter and process data
@@ -101,12 +102,13 @@ if(test == TRUE){
 
 # Add in model options (covariates, config_files)
 use_aniso <- c(TRUE, FALSE)
-covar_columns <- NA
+covar_columns <- "vessel_change"
 config_file_loc <- map2_chr("configuration-files", 
-                            c("gamma_ind-yrs_st-full.R", 
-                              "gamma_ind-yrs_st-pres.R", 
+                            c("gamma_ind-yrs_st-none.R",
                               "gamma_ind-yrs_s0-pres.R",
-                              "gamma_ind-yrs_st-none.R"),
+                              "gamma_ind-yrs_st-pres.R", 
+                              "gamma_ind-yrs_st-full.R"
+                              ),
                             here)
 
 trawlrun <- tidyr::expand_grid(trawlsetup, covar_columns, use_aniso, config_file_loc)
