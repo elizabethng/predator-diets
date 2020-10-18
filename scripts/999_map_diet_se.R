@@ -45,12 +45,13 @@ for(pred in unique(plot_specs$predator)){
     for(est in unique(plot_specs$estimate)){
       tmpdat <- filter(plot_data, predator == pred & season == seas & estimate == est)
   
-      tmpplot <- ggplot(tmpdat, aes(x = Lon, y = Lat, color = value)) +
-        geom_point() +
-        scale_color_viridis_c() +
+      tmpplot <- ggplot(tmpdat, aes(x = Lon, y = Lat, z = value)) +
+        stat_summary_hex() +
+        # geom_point() +
+        scale_fill_viridis_c() +
         facet_wrap(~year) +
-        labs(color = est) +
-        ggtitle(label = paste(pred, seas)) +
+        labs(fill = est) +
+        ggtitle(label = paste(str_to_sentence(pred), seas, sep = "-")) +
         theme_classic()
       
       ggsave(plot = tmpplot, 
