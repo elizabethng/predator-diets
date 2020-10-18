@@ -96,6 +96,27 @@ run_mod <- function(covar_columns = NA,
       "Options" = Options,
       "Version" =  Version
     )
+  }else if(covar_columns == "vessel_change"){
+    # Make a design matrix for >2008 and  <2009 vessel change
+    Q_ik <- Data_Geostat %>% 
+      mutate(post_2008_ = Year > 2008) %>% 
+      model.matrix(Catch_KG ~ post_2008_, .)
+    
+    TmbData <- VAST::make_data(
+      "b_i" = Data_Geostat$Catch_KG,
+      "a_i" = Data_Geostat$AreaSwept_km2,
+      "t_iz" = Data_Geostat$Year,
+      "c_iz" = rep(0, nrow(Data_Geostat)),
+      "FieldConfig" = FieldConfig,
+      "spatial_list" = Spatial_List,
+      "ObsModel_ez" = ObsModel,
+      "OverdispersionConfig" = OverdispersionConfig,
+      "RhoConfig" = RhoConfig,
+      "Aniso" = use_aniso,
+      "Q_ik" = Q_ik, 
+      "Options" = Options,
+      "Version" =  Version
+    )
   }else{
     # Make matrix of covariates
     covar_columns_vec <- stringr::str_split(covar_columns, " ", simplify = TRUE)[1,]
