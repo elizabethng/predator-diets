@@ -75,6 +75,34 @@ finescale_results_D <- results_D %>%
   mutate(D = map(D, ~ bind_cols(locdat$output[[1]][,1:3], .x)))
 write_rds(finescale_results_D, path = here("output", "finescale_overlap_schoeners.rds"))
 
+# Alternative overlap metrics
+tmpdat <-left_join(preddat, preydat, by = "season") %>%
+  rename(predator = species.x,
+         preddens = density.x,
+         preydens = density.y) %>%
+  select(-species.y)
+
+# None of the densities are less than 0, so I'd have to set some threshold
+# Should be based on probability of occurrence, but since I don't have that,
+# use lower quartile of density in each year
+
+is_present <- function(dat){
+  lcb <- quantile(dat, probs = c(0.25))
+  presence <- dat > lcb
+  return(presence)
+}     
+
+
+# Which locations have presence?
+jj <- tmpdat %>%
+  mutate(pred_pres = map(preddens, ~ map_df(.x, is_present)),
+         prey_pres = map(preddens, ~ map_df(.x, is_present)),
+         both_pres = map2(pred_pres, prey_pres, ~ .x*.y),
+         overlap = map(both_pres, ~ colSums(.x)))
+  
+
+         
+
 
 # 2. Plot Annual Index ---------------------------------------------------------
 annualindex <- results %>%
