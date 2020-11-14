@@ -13,6 +13,7 @@
 # [ ] What else?
 #    - Diagnostic plot
 #    - Final parameter estimates
+#    - R1_gcy for trawl models (probability of encounter)
 
 library("tidyverse")
 library("here")
@@ -57,14 +58,13 @@ dietrun <- dietrun %>%
 readr::write_rds(dietrun, path = here("output", "top_final_diet.rds"))
 
 # Trawl Data ---------------------------------------------------------------
-# [ ] vessel change here will likely go away once I re-run pipeline
-# Load top models, change output file location, and add vessel
+# Load top models, change output file location, and add vessel effect if desired
 trawlrun <- read_rds(here("output", "top_st_trawl.rds")) %>%
   select(-output, -model) %>%
   mutate(output_file_loc = gsub(" ", "-", species),
          output_file_loc = paste0("trawl_", season, "_", output_file_loc),
          output_file_loc = here("output", "diagnostics", output_file_loc)) %>%
-  mutate(covar_columns = "vessel")
+  mutate(covar_columns = NA)
 
 
 # Run the model
@@ -78,7 +78,7 @@ trawlrun <- trawlrun %>%
          output_file_loc,
          check_identifiable = FALSE,
          use_REML = TRUE,
-         run_fast = FALSEs),
+         run_fast = FALSE),
     safe_run_mod))
 
 readr::write_rds(trawlrun, path = here("output", "top_final_trawl.rds"))
