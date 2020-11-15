@@ -52,12 +52,100 @@ alldat <- left_join(probdat, locdat, by = c("season", "species")) %>%
   group_by(season, species) %>%
   transmute(data = map2(output, prob, ~ bind_cols(.x, .y))) %>%
   unnest(data) %>%
-  pivot_longer(cols = starts_with("prob_"), names_to = "year", values_to = "prob") %>%
-  mutate(year = gsub("prob_", "", year))
+  pivot_longer(
+    cols = starts_with("prob_"), 
+    names_to = "year",
+    # names_transform = list(year = readr::parse_integer(year)), # not available in this version? 
+    values_to = "prob") %>%
+  mutate(
+    year = gsub("prob_", "", year),
+    year = as.numeric(year)
+  )
+
+is_present <- function(dat){
+  lcb <- quantile(dat, probs = c(0.25))
+  presence <- dat > lcb
+  return(presence)
+}     
+
+presdat <- alldat %>%
+  group_by(season, species, year) %>%
+  mutate(present = is_present(prob))
+
+# Check that calculations were correct
+summarize(presdat, n = n(), pres = sum(present))
+
+# Want to pivot out the herring observations
+# Or could just append to everything??
+# Try with small data first
+testdat <- sample_frac(presdat, 0.1)
+matchdat <- testdat %>%
+  mutate(type = ifelse(species == "atlantic herring", "prey", "pred")) %>%
+  group_by(season, type) %>%
+  nest() %>%
+  pivot_wider(id_cols = season, names_from = type, values_from = data) %>%
+  mutate(combo = map2(pred, prey, ~left_join(.x, .y, 
+                                             by = c("year", "x2i"), 
+                                             suffix = c("_pred", "_prey"))))
+
+matchdat <- presdat %>%
+  mutate(type = ifelse(species == "atlantic herring", "prey", "pred")) %>%
+  group_by(season, type) %>%
+  nest() %>%
+  pivot_wider(id_cols = season, names_from = type, values_from = data) %>%
+  mutate(
+    combo = map2(pred, prey, ~left_join(.x, .y, 
+                                             by = c("year", "x2i"), 
+                                             suffix = c("_pred", "_prey")))
+    )
+
+overlapdat <- matchdat %>%
+  select(season, combo) %>%
+  unnest("combo") %>%
+  mutate(present_both = present_prey*present_pred) %>%
+  group_by(year, season, species_pred) %>%
+  summarize(
+    prey_val = sum(present_prey),
+    overlap_val = sum(present_both),
+    overlap_metric = overlap_val/prey_val
+  ) %>%
+  ungroup() %>%
+  mutate(year = as.numeric(year))
+
+ggplot(overlapdat, aes(x = year, y = overlap_metric, color = season)) +
+  geom_line() +
+  facet_wrap(~ species_pred) +
+  theme_bw()
+
+
+# Check locations [need to fix, useful for intermediate overlapdat]
+locdiffs <- overlapdat %>%
+  mutate(
+    Lat_del = Lat_prey - Lat_pred,
+    Lon_del = Lon_prey - Lon_pred
+  ) %>%
+  select(x2i, Lat_del, Lon_del, year) %>%
+  filter(year == 1973)
+summary(locdiffs$Lat_del)
+summary(locdiffs$Lon_del)
 
 
 
 # Do for one --------------------------------------------------------------
+# Get herring data and cod data
+spring_herring <- read_rds(here("output", "diagnostics", "trawl_spring_atlantic-herring", "Report.rds"))
+spring_cod <- read_rds(here("output", "diagnostics", "trawl_spring_atlantic-cod", "Report.rds"))
+
+# Get locations and years from regular data output
+trawlmods <- readr::read_rds(here::here("output", "top_final_trawl.rds"))
+
+# Extract location level densities
+locdat <- trawlmods %>%
+  dplyr::select(season, species, output) %>%
+  dplyr::mutate(output = purrr::map(output, "result")) %>% 
+  dplyr::mutate(output = purrr::map(output, "knot_density"))
+
+
 # Do for herring
 hr <- spring_herring %>%
   pluck("R1_gcy")
@@ -173,3 +261,31 @@ ggplot(res3, aes(x = year, y = overlap_metric)) +
 # 
 # select(jj, season, predator, overlap) %>% 
 #   unnest(overlap)
+
+
+# Not sure this is the same as calculation with all the data
+checkdat <- res3 %>%
+  mutate(season = "check", species_pred = "atlantic cod") %>%
+  bind_rows(overlapdat)
+
+ggplot(checkdat, aes(x = year, y = overlap_metric, color = season)) +
+  geom_line(alpha = 0.5) +
+  facet_wrap(~ species_pred) +
+  theme_bw()
+# Looks good!!
+
+# Scratch -----------------------------------------------------------------
+
+# Figure out partial pivot_wider
+n_obs <-  2
+mydat <- tibble(
+  id = c(rep("a", n_obs), rep("b", n_obs), rep("c", n_obs)),
+  obs = rep(1:n_obs, 3), 
+  trt = c(rep("ref", n_obs), rep("grp", 2*n_obs)),
+  val = c(rpois(n_obs, 1), rpois(n_obs, 6), rpois(n_obs, 5))
+)
+
+# want to pivot wider so both groups get compared to reference
+mydat %>%
+  group_by(id, obs) %>%
+  pivot_wider(names_from = trt, values_from = val)
