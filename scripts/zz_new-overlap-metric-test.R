@@ -82,28 +82,15 @@ presdat <- alldat %>%
 # Check that calculations were correct
 summarize(presdat, n = n(), pres = sum(present))
 
-# Want to pivot out the herring observations
-# Or could just append to everything??
-# Try with small data first
-testdat <- sample_frac(presdat, 0.1)
-matchdat <- testdat %>%
-  mutate(type = ifelse(species == "atlantic herring", "prey", "pred")) %>%
-  group_by(season, type) %>%
-  nest() %>%
-  pivot_wider(id_cols = season, names_from = type, values_from = data) %>%
-  mutate(combo = map2(pred, prey, ~left_join(.x, .y, 
-                                             by = c("year", "x2i"), 
-                                             suffix = c("_pred", "_prey"))))
-
+# Want to pivot out the herring observations to compare pred to prey
+# useful approach of adding an indicator column
 matchdat <- presdat %>%
   mutate(type = ifelse(species == "atlantic herring", "prey", "pred")) %>%
   group_by(season, type) %>%
   nest() %>%
   pivot_wider(id_cols = season, names_from = type, values_from = data) %>%
   mutate(
-    combo = map2(pred, prey, ~left_join(.x, .y, 
-                                             by = c("year", "x2i"), 
-                                             suffix = c("_pred", "_prey")))
+    combo = map2(pred, prey, ~ left_join(.x, .y, by = c("year", "x2i"), suffix = c("_pred", "_prey")))
     )
 
 overlapdat <- matchdat %>%
