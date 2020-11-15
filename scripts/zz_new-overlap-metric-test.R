@@ -1,4 +1,4 @@
-# Get probability of encoutner values from Report.rds and calculate
+# Get probability of encounter values from Report.rds and calculate
 # overlap index based on probability of co-occurrence
 
 # I thought I implemented an example of this somewhere for the 
@@ -9,6 +9,25 @@ library("here")
 
 
 # Load data --------------------------------------------------------------
+# Read in Report results and exctract first predictor
+
+probdat <- tibble(
+  locs = here("output", "diagnostics") %>%
+    dir()
+) %>%
+  filter(str_starts(locs, "trawl_")) %>%
+  mutate(path = here("output", "diagnostics", locs, "Report.rds")) %>%
+  rowwise() %>%
+  mutate(data = list(read_rds(path))) %>%
+  ungroup() %>%
+  mutate(prob = map(data, ~pluck(.x, "R1_gcy")))
+
+mylist <- vector("list", nrow(outloc))
+
+for(i in 1:nrow(outloc)){
+  mylist[[i]] <- read_rds(outloc$path[[i]])
+}
+
 
 # Get herring data and cod data
 spring_herring <- read_rds(here("output", "diagnostics", "trawl_spring_atlantic-herring", "Report.rds"))
