@@ -9,9 +9,9 @@ library("here")
 
 
 # Load data --------------------------------------------------------------
-# Read in Report results and exctract first predictor
+# Read in Report results and extract first predictor
 
-probdat <- tibble(
+reportdat <- tibble(
   locs = here("output", "diagnostics") %>%
     dir()
 ) %>%
@@ -20,32 +20,44 @@ probdat <- tibble(
   rowwise() %>%
   mutate(data = list(read_rds(path))) %>%
   ungroup() %>%
-  mutate(prob = map(data, ~pluck(.x, "R1_gcy")))
-
-mylist <- vector("list", nrow(outloc))
-
-for(i in 1:nrow(outloc)){
-  mylist[[i]] <- read_rds(outloc$path[[i]])
-}
-
-
-# Get herring data and cod data
-spring_herring <- read_rds(here("output", "diagnostics", "trawl_spring_atlantic-herring", "Report.rds"))
-spring_cod <- read_rds(here("output", "diagnostics", "trawl_spring_atlantic-cod", "Report.rds"))
+  mutate(prob = map(data, ~pluck(.x, "R1_gcy"))) %>%
+  separate(locs, c(NA, "season", "species"), sep = "_") %>%
+  mutate(species = gsub("-", " ", species))
 
 # Get locations and years from regular data output
-trawlmods <- readr::read_rds(here::here("output", "top_final_trawl.rds"))
-
-# Extract location level densities
-locdat <- trawlmods %>%
-  dplyr::select(season, species, output) %>%
-  dplyr::mutate(output = purrr::map(output, "result")) %>% 
-  dplyr::mutate(output = purrr::map(output, "knot_density"))
+locdat <- read_rds(here("output", "top_final_trawl.rds")) %>%
+  select(season, species, output) %>%
+  mutate(output = map(output, "result"), 
+         output = map(output, "knot_density"),
+         output = map(output, ~ select(.x, Lat, Lon, x2i, Include)))
 
 
 # Get encounter probabilities ---------------------------------------------
 # Need to look at estimated probability of encounter (r_1)
 
+# Format the array of probabilities
+format_prob_array <- function(ar, years = 1973:2015){
+  dat <- ar[1:dim(ar)[1], , 1:dim(ar)[3]]
+  colnames(dat) <- paste0("prob_", years)
+  out <- as_tibble(dat)
+  return(out)
+}
+
+probdat <- reportdat %>%
+  select(season, species, prob) %>%
+  mutate(prob = map(prob, format_prob_array))
+
+# Add location data
+alldat <- left_join(probdat, locdat, by = c("season", "species")) %>%
+  group_by(season, species) %>%
+  transmute(data = map2(output, prob, ~ bind_cols(.x, .y))) %>%
+  unnest(data) %>%
+  pivot_longer(cols = starts_with("prob_"), names_to = "year", values_to = "prob") %>%
+  mutate(year = gsub("prob_", "", year))
+
+
+
+# Do for one --------------------------------------------------------------
 # Do for herring
 hr <- spring_herring %>%
   pluck("R1_gcy")
