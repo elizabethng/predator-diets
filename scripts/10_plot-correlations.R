@@ -4,11 +4,12 @@
 # 3. plot one to one of overlap and assessment
 
 # Add herring, then add error bars
-# for plotting attemps, can just add arbitraty SE to overlap index?
+# for plotting attempts, can just add arbitrary SE to overlap index?
 
 library("tidyverse")
 library("here")
 
+save_output <- FALSE
 use_assessment <- TRUE
 
 overlap_cv <- 0.02877875 # from test-repo
@@ -21,6 +22,18 @@ overlapindexr <- read_rds(here("output", "EXTERNAL_schoeners_D.rds")) %>%
   mutate(predator = tolower(predator), season = tolower(season)) # read_rds(here::here("output", "index_overlap.rds"))
 assessdatr <- readxl::read_xlsx(here("data", "raw", "TimeSeries.xlsx"))
 
+# Try with new area overlap suggested by reviewer
+overlapindexr <- read_rds(here("output", "area-overlap.rds")) %>%
+  mutate(overlap_se = 0.16) %>%
+  rename(
+    season = Season, 
+    year = Year, 
+    overlap = Estimate
+    ) %>%
+  mutate(
+    predator = tolower(predator), 
+    season = tolower(season)
+    )
 
 
 # Plot indices as time-series ---------------------------------------------
@@ -108,7 +121,10 @@ if(use_assessment == FALSE){
         "st herring spring")
     ) +
     theme_bw()
-  ggsave(here("output", "plots", "index-ts-multipanel.pdf"), width = 8.5, height = 12)
+  if(save_output){
+    ggsave(here("output", "plots", "index-ts-multipanel.pdf"), width = 8.5, height = 12)  
+  }
+  
   
   
   mean_diets <- filter(abundance_indices, source == "diet index") %>%
@@ -126,7 +142,9 @@ if(use_assessment == FALSE){
       "grey",
       scales::muted("red", l = 50, c = 100))) +
     theme_bw()
-  ggsave(here("output", "plots", "index-ts.pdf"), width = 8.5, height = 4)
+  if(save_output){
+    ggsave(here("output", "plots", "index-ts.pdf"), width = 8.5, height = 4) 
+  }
 }
 
 
@@ -144,7 +162,7 @@ overlap_index <- overlapindexr %>%
   mutate(cv_overlap = overlap_se/overlap) %>%
   group_by(season, predator) %>%
   mutate(overlap_index = scale(overlap)[,1]) %>%
-  select(-overlap, -lcb, -ucb) %>%
+  # select(-overlap, -lcb, -ucb) %>%
   ungroup()
 
 if(use_assessment == TRUE){
@@ -292,7 +310,10 @@ p1 <- ggplot(diet_overlap_dat, aes(x = `Overlap index`,
   theme(panel.grid.major = element_blank(),
         panel.grid.minor = element_blank(),
         strip.background = element_blank())
-ggsave(plot = p1, here("output", "plots", "overlap-diet-comp-1to1.pdf"), width = 4, height = 8, units = "in")
+if(save_output){
+  ggsave(plot = p1, here("output", "plots", "overlap-diet-comp-1to1.pdf"), width = 4, height = 8, units = "in")  
+}
+
 
 p2 <- ggplot(diet_stock_dat, aes(x = `Assessment index`, 
                                  y = `Diet index`,
@@ -318,7 +339,10 @@ p2 <- ggplot(diet_stock_dat, aes(x = `Assessment index`,
   theme(panel.grid.major = element_blank(),
         panel.grid.minor = element_blank(),
         strip.background = element_blank())
-ggsave(plot = p2, here("output", "plots", "assessment-diet-comp-1to1.pdf"), width = 4, height = 8, units = "in")
+if(save_output){
+  ggsave(plot = p2, here("output", "plots", "assessment-diet-comp-1to1.pdf"), width = 4, height = 8, units = "in")  
+}
+
 
 
 p3 <- ggplot(overlap_stock_dat, aes(x = `Assessment index`, 
@@ -346,7 +370,10 @@ p3 <- ggplot(overlap_stock_dat, aes(x = `Assessment index`,
   theme(panel.grid.major = element_blank(),
         panel.grid.minor = element_blank(),
         strip.background = element_blank())
-ggsave(plot = p3, here("output", "plots", "assessment-overlap-comp-1to1.pdf"), width = 4, height = 8, units = "in")
+if(save_output){
+  ggsave(plot = p3, here("output", "plots", "assessment-overlap-comp-1to1.pdf"), width = 4, height = 8, units = "in")  
+}
+
 
 
 
