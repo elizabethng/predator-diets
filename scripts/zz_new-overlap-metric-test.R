@@ -31,6 +31,13 @@ locdat <- read_rds(here("output", "top_final_trawl.rds")) %>%
          output = map(output, "knot_density"),
          output = map(output, ~ select(.x, Lat, Lon, x2i, Include)))
 
+# How even are the knot areas?
+locdat %>%
+  unnest("output") %>%
+  pull(x2i) %>%
+  unique() %>%
+  length()
+# In finescale, one knot = one point, so areas are equal. 
 
 # Get encounter probabilities ---------------------------------------------
 # Need to look at estimated probability of encounter (r_1)
@@ -129,7 +136,8 @@ output <- overlapdat %>%
     Estimate = overlap_metric,
     Year = year
   )
-  
+write_rds(output, here("output", "area-overlap.rds"))  
+
 # Quick comparison to Schoeners D (currently in paper)
 EXTERNAL_schoeners_D <- readRDS("C:/Users/Elizabeth Ng/Documents/GitHub/predator-diets/output/EXTERNAL_schoeners_D.rds")
 
@@ -137,7 +145,8 @@ bind_rows(list(area_overlap = output, schoeners_D =  EXTERNAL_schoeners_D), .id 
   select(method, predator, Season, Estimate, Year) %>%
   ggplot(aes(x = Year, y = Estimate, color = method)) +
   geom_line() +
-  facet_grid(Season ~ predator)
+  facet_grid(Season ~ predator) +
+  theme_bw()
 
 # Check locations [need to fix, useful for intermediate overlapdat]
 locdiffs <- overlapdat %>%
