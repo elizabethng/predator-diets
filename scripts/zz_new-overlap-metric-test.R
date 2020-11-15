@@ -117,6 +117,27 @@ ggplot(overlapdat, aes(x = year, y = overlap_metric, color = season)) +
   facet_wrap(~ species_pred) +
   theme_bw()
 
+# Format overlap calculation and save output
+output <- overlapdat %>%
+  mutate(
+    season = str_to_sentence(season),
+    species_pred = str_to_sentence(species_pred)
+  ) %>%
+  select(
+    predator = species_pred,
+    Season = season,
+    Estimate = overlap_metric,
+    Year = year
+  )
+  
+# Quick comparison to Schoeners D (currently in paper)
+EXTERNAL_schoeners_D <- readRDS("C:/Users/Elizabeth Ng/Documents/GitHub/predator-diets/output/EXTERNAL_schoeners_D.rds")
+
+bind_rows(list(area_overlap = output, schoeners_D =  EXTERNAL_schoeners_D), .id = "method") %>%
+  select(method, predator, Season, Estimate, Year) %>%
+  ggplot(aes(x = Year, y = Estimate, color = method)) +
+  geom_line() +
+  facet_grid(Season ~ predator)
 
 # Check locations [need to fix, useful for intermediate overlapdat]
 locdiffs <- overlapdat %>%
