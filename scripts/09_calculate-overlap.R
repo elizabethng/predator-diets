@@ -3,6 +3,7 @@
 library("tidyverse")
 library("here")
 
+use_bhat <- FALSE
 
 # 0. Load data ------------------------------------------------------------
 trawlmods <- readr::read_rds(here::here("output", "top_final_trawl.rds"))
@@ -29,7 +30,7 @@ normdat <- densdat %>%
 preydat <- filter(normdat, species == "atlantic herring")
 preddat <- filter(normdat, species != "atlantic herring")
 
-if(FALSE){ # bhat calculation
+if(use_bhat){ # bhat calculation
   widedat <- left_join(preddat, preydat, by = "season") %>%
     rename(predator = species.x,
            preddens = density.x,
@@ -75,64 +76,38 @@ finescale_results_D <- results_D %>%
   mutate(D = map(D, ~ bind_cols(locdat$output[[1]][,1:3], .x)))
 write_rds(finescale_results_D, path = here("output", "finescale_overlap_schoeners.rds"))
 
-# Alternative overlap metrics
-tmpdat <-left_join(preddat, preydat, by = "season") %>%
-  rename(predator = species.x,
-         preddens = density.x,
-         preydens = density.y) %>%
-  select(-species.y)
-
-# None of the densities are less than 0, so I'd have to set some threshold
-# Should be based on probability of occurrence, but since I don't have that,
-# use lower quartile of density in each year
-
-is_present <- function(dat){
-  lcb <- quantile(dat, probs = c(0.25))
-  presence <- dat > lcb
-  return(presence)
-}     
-
-
-# Which locations have presence?
-jj <- tmpdat %>%
-  mutate(pred_pres = map(preddens, ~ map_df(.x, is_present)),
-         prey_pres = map(preddens, ~ map_df(.x, is_present)),
-         both_pres = map2(pred_pres, prey_pres, ~ .x*.y),
-         overlap = map(both_pres, ~ colSums(.x)))
-  
-
-         
 
 
 # 2. Plot Annual Index ---------------------------------------------------------
-annualindex <- results %>%
-  select(season, predator, annual_index) %>%
-  mutate(annual_index = pmap(list(annual_index), enframe)) %>%
-  unnest(cols = c(annual_index)) %>%
-  rename(year = name, bhat = value) %>%
-  mutate(year = gsub("density_", "", year),
-         year = as.numeric(year)) %>%
-  rename("Overlap index" = bhat) 
-
-plot_annualindex <- annualindex %>%
-  rename(Season = season, Year = year) %>%
-  mutate(predator = str_to_sentence(predator),
-         Season = str_to_sentence(Season))
-
-ggplot(plot_annualindex, aes(x = Year, y = `Overlap index`, color = Season)) +
-  geom_point() +
-  geom_line() +
-  scale_color_manual(values = c(scales::muted("blue", l = 50, c = 100), scales::muted("red", l = 50, c = 100))) +
-  facet_wrap(~predator) +
-  theme_bw() +
-  theme(legend.position = c(0.8, 0.2),
-    panel.grid.major = element_blank(),
-        panel.grid.minor = element_blank(),
-        strip.background = element_blank())
-ggsave(here("output", "plots", "overlap-index-ts.pdf"),
-       width = 9, height = 5, units = "in")
-write_rds(annualindex, path = here::here("output", "index_overlap.rds"))
-
+if(use_bhat){
+  annualindex <- results %>%
+    select(season, predator, annual_index) %>%
+    mutate(annual_index = pmap(list(annual_index), enframe)) %>%
+    unnest(cols = c(annual_index)) %>%
+    rename(year = bhat = value) %>%
+    mutate(year = gsub("density_", "", year),
+           year = as.numeric(year)) %>%
+    rename("Overlap index" = bhat) 
+  
+  plot_annualindex <- annualindex %>%
+    rename(Season = season, Year = year) %>%
+    mutate(predator = str_to_sentence(predator),
+           Season = str_to_sentence(Season))
+  
+  ggplot(plot_annualindex, aes(x = Year, y = `Overlap index`, color = Season)) +
+    geom_point() +
+    geom_line() +
+    scale_color_manual(values = c(scales::muted("blue", l = 50, c = 100), scales::muted("red", l = 50, c = 100))) +
+    facet_wrap(~predator) +
+    theme_bw() +
+    theme(legend.position = c(0.8, 0.2),
+          panel.grid.major = element_blank(),
+          panel.grid.minor = element_blank(),
+          strip.background = element_blank())
+  ggsave(here("output", "plots", "overlap-index-ts.pdf"),
+         width = 9, height = 5, units = "in")
+  write_rds(annualindex, path = here::here("output", "index_overlap.rds"))
+}
 
 # 2.1 Plot Annual Index for Schoener's D ----------------------------------
 annualindex_D <- results_D %>%
