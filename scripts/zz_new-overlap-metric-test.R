@@ -7,6 +7,9 @@
 library("tidyverse")
 library("here")
 
+# To Do
+# [ ] 
+
 
 # Load data --------------------------------------------------------------
 # Read in Report results and extract first predictor
@@ -93,10 +96,12 @@ matchdat <- presdat %>%
     combo = map2(pred, prey, ~ left_join(.x, .y, by = c("year", "x2i"), suffix = c("_pred", "_prey")))
     )
 
-overlapdat <- matchdat %>%
+overlapdat_finescale <- matchdat %>%
   select(season, combo) %>%
   unnest("combo") %>%
-  mutate(present_both = present_prey*present_pred) %>%
+  mutate(present_both = present_prey*present_pred) 
+
+overlapdat <- overlapdat_finescale %>%
   group_by(year, season, species_pred) %>%
   summarize(
     prey_val = sum(present_prey),
@@ -111,6 +116,12 @@ ggplot(overlapdat, aes(x = year, y = overlap_metric, color = season)) +
   facet_wrap(~ species_pred) +
   theme_bw()
 
+ggplot(overlapdat, aes(x = year, y = overlap_metric, color = species_pred)) +
+  geom_line() +
+  facet_wrap(~ season) +
+  theme_bw()
+
+
 # Format overlap calculation and save output
 output <- overlapdat %>%
   mutate(
@@ -124,6 +135,59 @@ output <- overlapdat %>%
     Year = year
   )
 write_rds(output, here("output", "area-overlap.rds"))  
+
+
+# Map overlap metrics -----------------------------------------------------
+# Gut check one year
+long_finescale <- overlapdat_finescale %>%
+  mutate(
+    present = ifelse(
+      present_pred & present_prey, "both", ifelse(
+        present_pred, "predator", ifelse(
+          present_prey, "prey", "neither")))
+    ) %>%
+  select(season, 
+         predator = species_pred, 
+         Lat = Lat_pred, 
+         Lon = Lon_pred, 
+         year,
+         Include_pred,
+         Include_prey,
+         present)
+
+long_finescale %>%
+  filter(predator == "atlantic cod", season == "fall", year == 1980) %>%
+  filter(Include_pred, Include_prey) %>%
+  ggplot(aes(x = Lat, y = Lon, color = present)) +
+  geom_point(aes(color = (!Include_pred)&(!Include_prey))) +
+  geom_point()
+
+# So if I use this categorical approach, it doesn't seem like it makes sense to
+# average the values. What is an average of having overlap in one year and not
+# in the next?? Could count somehow, majority of years with overlap, majority
+# without? But that doesn't seem to make sense. 
+
+long_finescale %>%
+  filter(predator == "atlantic cod", season == "fall", year %in% 1980:1990) %>%
+  filter(Include_pred, Include_prey) %>%
+  ggplot(aes(x = Lon, y = Lat, color = present)) +
+  geom_point() +
+  facet_wrap(~ year) +
+  theme_minimal()
+  
+# Looks pretty consistent over time, how many sites actually change between years?
+long_finescale %>%
+  filter(Include_pred, Include_prey) %>%
+  group_by(season, predator, Lat, Lon)
+  
+ggplot(aes(x = Lon, y = Lat, z = present)) +
+  stat_summary_hex() +
+  scale_fill_viridis_c()
+
+# On fine-scale only
+aa_overlapdat_finescale <- aa_overlapdat_finescale %>%
+  group_by(season, species_pred, )
+
 
 # Quick comparison to Schoeners D (currently in paper)
 EXTERNAL_schoeners_D <- readRDS("C:/Users/Elizabeth Ng/Documents/GitHub/predator-diets/output/EXTERNAL_schoeners_D.rds")
