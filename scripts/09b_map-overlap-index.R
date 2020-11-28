@@ -7,7 +7,7 @@
 # 2. Assign observations at fine-scale level to grid cells
 # 3. Average density for each cell (per pred/season/year)
 # 4. Plot annually averaged diet index
-#    - Average accross years
+#    - Average across years
 #    - Find pretty breaks for relative index scale and make map
 # 5. Plot time-series for each predator
 
@@ -19,11 +19,12 @@ library("sf")
 ### For Schoeners D
 
 # Why is this backwards??
-poop <- filter(overlap, season == "fall", predator == "atlantic cod") %>%
-  select(D) %>%
-  unnest(D) %>%
-  # mutate(average = )
+# poop <- filter(overlap, season == "fall", predator == "atlantic cod") %>%
+#   select(D) %>%
+#   unnest(D) %>%
+#   mutate(average = )
 
+# [ ] Seems like calculation is backwatds from what I would have expected with Bhat
 
 
 
@@ -143,8 +144,31 @@ densitymap$brks <- cut(densitymap$scaled_density,
 
 brks_scale <- levels(densitymap$brks)
 
+ggplot() +
+  geom_sf(data = filter(densitymap, predator == "Goosefish"), 
+          aes(fill = scaled_density, color = scaled_density), lwd = 0) +
+  facet_grid(season ~ predator, switch = "y") +
+  geom_sf(data = northamerica, color = "white", fill = "grey", lwd = 0.1, inherit.aes = FALSE) +
+  coord_sf(xlim = c(-79.5, -65.5), ylim = c(32.5, 45.5)) +
+  theme(panel.grid.major = element_line(color = "white"),
+        panel.background = element_blank(),
+        axis.title.x = element_blank(),
+        axis.text.x = element_blank(),
+        axis.ticks.x = element_blank(),
+        axis.title.y = element_blank(),
+        axis.text.y = element_blank(),
+        axis.ticks.y = element_blank(),
+        strip.background = element_blank(),
+        legend.position = "bottom")
+
+mr <- densitymap %>%
+  filter(predator == "Goosefish", season == "Fall") %>%
+  select(scaled_density) %>%
+  stars::st_rasterize()
+plot(mr)
+
 q <- ggplot() +
-  geom_sf(data = densitymap, aes(fill = brks, color = brks), lwd = 0) +
+  geom_sf(data = filter(densitymap, predator == "Goosefish"), aes(fill = brks, color = brks), lwd = 0) +
   facet_grid(season ~ predator, switch = "y") +
   geom_sf(data = northamerica, color = "white", fill = "grey", lwd = 0.1, inherit.aes = FALSE) +
   coord_sf(xlim = c(-79.5, -65.5), ylim = c(32.5, 45.5)) +
@@ -159,41 +183,41 @@ q <- ggplot() +
         strip.background = element_blank(),
         legend.position = "bottom") +
   scale_fill_manual(
-    values = viridis::viridis(6),
-    breaks = brks_scale,
-    name = "Relative overlap",
-    drop = FALSE,
-    guide = guide_legend(
-      direction = "horizontal",
-      reverse = FALSE,
-      keywidth = unit(70*abs(diff(brks))/(maxVal - minVal), units = "mm"), # key height prop to distance between values
-      keyheight = unit(2, units = "mm"),
-      title.position = "top",
-      title.hjust = 0.5,
-      label.position = "bottom",
-      label.hjust = 1,
-      nrow = 1,
-      byrow = TRUE
-    )
-  ) +
+    values = viridis::viridis(6), # direction = -1),
+    breaks = brks_scale) + #,
+  #   name = "Relative overlap",
+  #   drop = FALSE,
+  #   guide = guide_legend(
+  #     direction = "horizontal",
+  #     reverse = FALSE,
+  #     keywidth = unit(70*abs(diff(brks))/(maxVal - minVal), units = "mm"), # key height prop to distance between values
+  #     keyheight = unit(2, units = "mm"),
+  #     title.position = "top",
+  #     title.hjust = 0.5,
+  #     label.position = "bottom",
+  #     label.hjust = 1,
+  #     nrow = 1,
+  #     byrow = TRUE
+  #   )
+  # ) +
   scale_color_manual(
-    values = viridis::viridis(6),
-    breaks = brks_scale,
-    name = "Relative overlap",
-    drop = FALSE,
-    guide = guide_legend(
-      direction = "horizontal",
-      reverse = FALSE,
-      keywidth = unit(70*abs(diff(brks))/(maxVal - minVal), units = "mm"), # key height prop to distance between values
-      keyheight = unit(2, units = "mm"),
-      title.position = "top",
-      title.hjust = 0.5,
-      label.position = "bottom",
-      label.hjust = 1,
-      nrow = 1,
-      byrow = TRUE
-    )
-  )
+    values = viridis::viridis(6), # direction = -1),
+    breaks = brks_scale) #,
+  #   name = "Relative overlap",
+  #   drop = FALSE,
+  #   guide = guide_legend(
+  #     direction = "horizontal",
+  #     reverse = FALSE,
+  #     keywidth = unit(70*abs(diff(brks))/(maxVal - minVal), units = "mm"), # key height prop to distance between values
+  #     keyheight = unit(2, units = "mm"),
+  #     title.position = "top",
+  #     title.hjust = 0.5,
+  #     label.position = "bottom",
+  #     label.hjust = 1,
+  #     nrow = 1,
+  #     byrow = TRUE
+  #   )
+  # )
 q
 
 ggsave(plot = q, 
