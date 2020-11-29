@@ -13,6 +13,14 @@ library("here")
 # [-] Need to add text describing which sites I removed (and justify that)
 # [X] Calculate annually-average overlap (starting with prob of occurrence) --> just did overlap not/overlap for simplicity
 # [ ] Can I get CIs for this overlap metric?
+# [X] Check whether Report has SEs for R_gcy -- no
+# [X] Check in opt -- no
+
+# How to use variance of a proportion to bootstrap CIs?
+# Would be ideal to grid, because there are a lot of points to do for finescale!
+# All the individual probabilities are so small though, will any be 1?
+# Well, some of the predicted probs are 1, so maybe I'll have the opposite problem
+# What I need is a beta distribution using the SE and the probability
 
 # Load data --------------------------------------------------------------
 # Read in Report results and extract first predictor
