@@ -6,9 +6,87 @@ library("here")
 set.seed(234)
 
 # Load data ---------------------------------------------------------------
-rawdat <- read_rds(here("scripts", "new_overlap-calculation", "overlap-data_finescale.rds"))
+tdat <- read_rds(here("scripts", "new_overlap-calculation", "overlap-data_finescale.rds")) %>%
+  ungroup() %>%
+  select(
+    season,
+    predator = species_pred,
+    year,
+    lat = Lat_pred,
+    lon = Lon_pred,
+    prob_pred,
+    prob_prey
+  )
+
+# Wrap simulation in a function -------------------------------------------
+simulate_overlap <- function(dat, n_sims){
+  simdat <- expand_grid(sim_id = 1:n_sims, dat)
+  
+  # Determine range overlap for each simulation, relative to prey
+  # Actual annual metric is proportion of prey area overlapped by predator area
+  simres <- simdat %>%
+    mutate(
+      present_pred = rbinom(n = length(prob_pred), size = 1, prob = prob_pred),
+      present_prey = rbinom(n = length(prob_prey), size = 1, prob = prob_prey),
+      present_both = (present_pred & present_prey)
+    )
+  
+  simro <- simres %>%
+    # group_by(sim_id, season, predator, year) %>%
+    summarize(
+      prey_val = sum(present_prey),
+      overlap_val = sum(present_both),
+      overlap_metric = overlap_val/prey_val
+    )
+  
+  # Annual range overlap (use percentiles of observed metric)
+  annual_ro <- simro %>% 
+    # group_by(season, predator, year) %>%
+    summarize(
+      range_overlap = median(overlap_metric),
+      lcb = quantile(overlap_metric, probs = 0.025),
+      ucb = quantile(overlap_metric, probs = 0.975)
+    )
+  
+  return(list(finescale = simres, annual = annual_ro))
+}
+
+# Example
+# jjdat <- filter(tdat, predator == "atlantic cod", year %in% 1985:1995) %>%
+#   group_by(season, predator, year) %>%
+#   nest()
+# jj <- jjdat %>%
+#   mutate(results = map(data, ~simulate_overlap(.x, n_sims = 10)))
+# 
+# jj %>% 
+#   unnest_wider(results) %>%
+#   unnest_wider(annual)
 
 
+# Apply simulation function to data ---------------------------------------
+# Memory allocation error for 100 sims, could split into separate sims?
+# Easier to split by species I think
+fundat <- tdat %>%
+  group_by(season, predator, year) %>%
+  nest()
+
+# system.time(
+#   jj <- fundat %>% # filter(fundat, season == "fall", predator == "atlantic cod") %>%
+#     mutate(results = map(data, ~simulate_overlap(.x, n_sims = 100))) # %>%
+#     # write_rds(here("scripts", "new_overlap-calculation", "output", "test.rds"))
+# )
+
+system.time(
+  for(sea in unique(fundat$season)){
+    for(spp in unique(fundat$predator)){
+      filter(fundat, season == sea, predator == spp) %>%
+        mutate(results = map(data, ~simulate_overlap(.x, n_sims = 100))) %>%
+        write_rds(
+          here("scripts", "new_overlap-calculation", "output", paste0(spp, "_", sea, ".rds"))
+        )
+    }
+  }
+)
 # Try for one year --------------------------------------------------------
 # Use a small test data set
 tdat <- rawdat %>%
@@ -23,20 +101,6 @@ tdat <- rawdat %>%
     prob_pred,
     prob_prey
   )
-
-# Set up simulation
-n_sims <- 10
-
-simdat <- expand_grid(sim_id = 1:n_sims, tdat)
-
-system.time(
-simres <- simdat %>%
-  mutate(
-    present_pred = rbinom(n = length(prob_pred), size = 1, prob = prob_pred),
-    present_prey = rbinom(n = length(prob_prey), size = 1, prob = prob_prey)
-  )
-)
-# 13.31 s for 134,637,300*2 random number generations
 
 # Determine range overlap for each simulation, relative to prey
 # Actual annual metric is proportion of prey area overlapped by predator area
@@ -64,55 +128,20 @@ annual_ro <- simro %>%
   )
 
 
-# Wrap simulation in a function -------------------------------------------
-simulate_overlap <- function(dat, n_sims){
-  simdat <- expand_grid(sim_id = 1:n_sims, dat)
-  
-  # Determine range overlap for each simulation, relative to prey
-  # Actual annual metric is proportion of prey area overlapped by predator area
-  simres <- simdat %>%
-    mutate(
-      present_pred = rbinom(n = length(prob_pred), size = 1, prob = prob_pred),
-      present_prey = rbinom(n = length(prob_prey), size = 1, prob = prob_prey),
-      present_both = (present_pred & present_prey)
-    )
+# Set up simulation
+n_sims <- 10
 
-  simro <- simres %>%
-    # group_by(sim_id, season, predator, year) %>%
-    summarize(
-      prey_val = sum(present_prey),
-      overlap_val = sum(present_both),
-      overlap_metric = overlap_val/prey_val
-    )
-  
-  # Annual range overlap (use percentiles of observed metric)
-  annual_ro <- simro %>% 
-    # group_by(season, predator, year) %>%
-    summarize(
-      range_overlap = median(overlap_metric),
-      lcb = quantile(overlap_metric, probs = 0.025),
-      ucb = quantile(overlap_metric, probs = 0.975)
-    )
-  
-  return(list(finescale = simres, annual = annual_ro))
-}
+simdat <- expand_grid(sim_id = 1:n_sims, tdat)
 
-# Example
-jjdat <- filter(tdat, predator == "atlantic cod", year %in% 1985:1995) %>%
-  group_by(season, predator, year) %>%
-  nest()
-jj <- jjdat %>%
-  mutate(results = map(data, ~simulate_overlap(.x, n_sims = 10)))
+system.time(
+simres <- simdat %>%
+  mutate(
+    present_pred = rbinom(n = length(prob_pred), size = 1, prob = prob_pred),
+    present_prey = rbinom(n = length(prob_prey), size = 1, prob = prob_prey)
+  )
+)
+# 13.31 s for 134,637,300*2 random number generations
 
-jj %>% 
-  unnest_wider(results) %>%
-  unnest_wider(annual)
-
-# Try for small
-fundat <- tdat %>%
-  group_by(season, predator, year) %>%
-  nest() %>%
-  mutate(results = map(data, ~simulate_overlap(.x, n_sims = 10)))
 
 
 
