@@ -8,8 +8,11 @@ library("tidyverse")
 library("here")
 
 # To Do
-# [ ] 
-
+# [X] Recalculate index without southern sites
+# [-] If I remove those, need to remove from everything else -- perhaps fine to keep
+# [-] Need to add text describing which sites I removed (and justify that)
+# [X] Calculate annually-average overlap (starting with prob of occurrence) --> just did overlap not/overlap for simplicity
+# [ ] Can I get CIs for this overlap metric?
 
 # Load data --------------------------------------------------------------
 # Read in Report results and extract first predictor
@@ -96,12 +99,15 @@ matchdat <- presdat %>%
     combo = map2(pred, prey, ~ left_join(.x, .y, by = c("year", "x2i"), suffix = c("_pred", "_prey")))
     )
 
+
+# Identify areas of overlap -----------------------------------------------
 overlapdat_finescale <- matchdat %>%
   select(season, combo) %>%
   unnest("combo") %>%
   mutate(present_both = present_prey*present_pred) 
 
 overlapdat <- overlapdat_finescale %>%
+  filter(Include_pred, Include_prey) %>%
   group_by(year, season, species_pred) %>%
   summarize(
     prey_val = sum(present_prey),
@@ -114,6 +120,7 @@ overlapdat <- overlapdat_finescale %>%
 ggplot(overlapdat, aes(x = year, y = overlap_metric, color = season)) +
   geom_line() +
   facet_wrap(~ species_pred) +
+  coord_cartesian(ylim = c(0, 1)) +
   theme_bw()
 
 ggplot(overlapdat, aes(x = year, y = overlap_metric, color = species_pred)) +
@@ -135,6 +142,7 @@ output <- overlapdat %>%
     Year = year
   )
 write_rds(output, here("output", "area-overlap.rds"))  
+
 
 
 # Map overlap metrics -----------------------------------------------------
@@ -175,19 +183,52 @@ long_finescale %>%
   facet_wrap(~ year) +
   theme_minimal()
   
+# Function for finding mode
+getmode <- function(v) {
+  uniqv <- unique(v)
+  uniqv[which.max(tabulate(match(v, uniqv)))]
+}
+
 # Looks pretty consistent over time, how many sites actually change between years?
-long_finescale %>%
-  filter(Include_pred, Include_prey) %>%
-  group_by(season, predator, Lat, Lon)
-  
-ggplot(aes(x = Lon, y = Lat, z = present)) +
+sumdat <- long_finescale %>%
+  # filter(Include_pred, Include_prey) %>% # could also make these NA
+  mutate(present_num = ifelse(
+    present == "neither", 0, ifelse(
+     present == "predator", 1, ifelse(
+       present == "prey", 2, 3)))) %>%
+  group_by(season, predator, Lat, Lon) %>%
+  summarize(
+    present_mean = mean(present_num),
+    present_var = var(present_num),
+    present_mode = getmode(present)
+  )
+
+ggplot(sumdat, aes(x = Lon, y = Lat, z = present_num)) +
   stat_summary_hex() +
-  scale_fill_viridis_c()
+  scale_fill_viridis_c() +
+  facet_wrap(season ~ predator)
 
-# On fine-scale only
-aa_overlapdat_finescale <- aa_overlapdat_finescale %>%
-  group_by(season, species_pred, )
+jj <- sumdat %>%
+  mutate(present_mode_num = ifelse(
+    present_mode == "neither", 0, ifelse(
+      present_mode == "predator", 1, ifelse(
+        present_mode == "prey", 2, 3))))
+ggplot(jj, aes(x = Lon, y = Lat, z = present_mode_num)) +
+  stat_summary_hex(bins = 60, fun = function(x) getmode(x)) +
+  scale_fill_viridis_c() +
+  facet_grid(season ~ predator)
 
+# Or just show where they overlap? Less complicated
+long_finescale %>%
+  mutate(present_num = ifelse(present == "both", 1, 0)) %>%
+  ggplot(aes(x = Lon, y = Lat, z = present_num)) +
+  stat_summary_hex(bins = 50, fun = mean) +
+  # stat_summary_hex(bins = 50, fun = function(x) getmode(x)) +
+  scale_fill_viridis_c() +
+  facet_grid(season ~ predator) +
+  theme_minimal()
+  
+# Comparisons and checks --------------------------------------------------
 
 # Quick comparison to Schoeners D (currently in paper)
 EXTERNAL_schoeners_D <- readRDS("C:/Users/Elizabeth Ng/Documents/GitHub/predator-diets/output/EXTERNAL_schoeners_D.rds")
