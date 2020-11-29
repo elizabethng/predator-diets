@@ -78,7 +78,7 @@ simulate_overlap <- function(dat, n_sims){
     )
 
   simro <- simres %>%
-    group_by(sim_id, season, predator, year) %>%
+    # group_by(sim_id, season, predator, year) %>%
     summarize(
       prey_val = sum(present_prey),
       overlap_val = sum(present_both),
@@ -87,7 +87,7 @@ simulate_overlap <- function(dat, n_sims){
   
   # Annual range overlap (use percentiles of observed metric)
   annual_ro <- simro %>% 
-    group_by(season, predator, year) %>%
+    # group_by(season, predator, year) %>%
     summarize(
       range_overlap = median(overlap_metric),
       lcb = quantile(overlap_metric, probs = 0.025),
@@ -96,6 +96,24 @@ simulate_overlap <- function(dat, n_sims){
   
   return(list(finescale = simres, annual = annual_ro))
 }
+
+# Example
+jjdat <- filter(tdat, predator == "atlantic cod", year %in% 1985:1995) %>%
+  group_by(season, predator, year) %>%
+  nest()
+jj <- jjdat %>%
+  mutate(results = map(data, ~simulate_overlap(.x, n_sims = 10)))
+
+jj %>% 
+  unnest_wider(results) %>%
+  unnest_wider(annual)
+
+# Try for small
+fundat <- tdat %>%
+  group_by(season, predator, year) %>%
+  nest() %>%
+  mutate(results = map(data, ~simulate_overlap(.x, n_sims = 10)))
+
 
 
 # Plot annual range overlap ------------------------------------------------------------
