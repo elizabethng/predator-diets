@@ -24,7 +24,7 @@ library("sf")
 #   unnest(D) %>%
 #   mutate(average = )
 
-# [ ] Seems like calculation is backwatds from what I would have expected with Bhat
+# [ ] Seems like calculation is backwards from what I would have expected with Bhat
 
 
 
