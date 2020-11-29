@@ -58,5 +58,5 @@ ggplot(plotdat, aes(x = year, y = range_overlap, color = Season, fill = Season))
         panel.grid.major = element_blank(),
         panel.grid.minor = element_blank(),
         strip.background = element_blank())
-ggsave(here("output", "plots", "overlap-index-ts_range-overlap.pdf"),
-       width = 9, height = 5, units = "in")
+
+
