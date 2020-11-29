@@ -76,6 +76,9 @@ fundat <- tdat %>%
 #     # write_rds(here("scripts", "new_overlap-calculation", "output", "test.rds"))
 # )
 
+rm(tdat)
+gc()
+
 system.time(
   for(sea in unique(fundat$season)){
     for(spp in unique(fundat$predator)){
@@ -87,6 +90,7 @@ system.time(
     }
   }
 )
+
 # Try for one year --------------------------------------------------------
 # Use a small test data set
 tdat <- rawdat %>%
