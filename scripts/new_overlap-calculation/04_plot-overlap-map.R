@@ -52,7 +52,6 @@ northamerica <- ne_countries(
   returnclass = "sf"
 )
 
-
 locations <- rawres %>%
   select(lat, lon) %>%
   distinct() %>%
@@ -62,7 +61,7 @@ finescale_locs <- rawres %>%
   st_as_sf(coords = c("lon", "lat"), crs = 4326)
 
 # Generate grid
-grid <- spatialdat %>%
+grid <- locations %>%
   st_combine() %>%
   st_convex_hull() %>%
   st_make_grid(n = c(50, 50), square = FALSE)
@@ -119,18 +118,4 @@ ggplot() +
         strip.background = element_blank(),
         legend.position = "bottom")
 
-
-
-# Iterate for one ---------------------------------------------------------
-res <- read_rds(here("scripts", "new_overlap-calculation", "output", "atlantic cod_fall.rds"))
-jj <- res$results[[1]]$finescale %>%
-  group_by(lat, lon) %>%
-  summarize(overlap = mean(present_both))
-ggplot(jj, aes(x = lon, y = lat, color = overlap)) +
-  geom_point()
-
-ggplot(jj, aes(x = lon, y = lat, z = overlap)) +
-  stat_summary_hex(bins = 60) +
-  scale_fill_viridis_c() 
-  # facet_grid(season ~ predator)
 
