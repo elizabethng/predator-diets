@@ -40,78 +40,74 @@ rawres <- here("scripts", "new_overlap-calculation", "output") %>%
   rowwise() %>%
   mutate(
     results = list(get_sim_average(here("scripts", "new_overlap-calculation", "output", filenames)))
-  )
-
-
-# Format and plot ---------------------------------------------------------
-plotdat <- rawres %>%
+  ) %>%
   unnest(results) %>%
   select(-filenames)
 
-# %>%
-#   mutate(
-#     season = str_to_sentence(season),
-#     predator = str_to_sentence(predator)
-#   ) %>%
-#   rename(
-#     Season = season
-#   )
-
 
 # Plot using sf -----------------------------------------------------------
-northamerica <- ne_countries(continent = "north america",
-                             scale = "large",
-                             returnclass = "sf")
+northamerica <- ne_countries(
+  continent = "north america",
+  scale = "large",
+  returnclass = "sf"
+)
 
-locations <- plotdat %>%
+
+locations <- rawres %>%
   select(lat, lon) %>%
-  distinct()
+  distinct() %>%
+  st_as_sf(coords = c("lon", "lat"), crs = 4326) 
 
-finescale_locs <- plotdat %>% 
-  st_as_sf(coords = c("lon", "lat"), crs = 4326) %>%
-  mutate(predator = str_to_sentence(predator),
-         season = str_to_sentence(season))
+finescale_locs <- rawres %>% 
+  st_as_sf(coords = c("lon", "lat"), crs = 4326)
 
-
-# 1. Generate grid ----------------------------------
-spatialdat <- st_as_sf(locations, coords = c("lon", "lat"), crs = 4326) 
-
+# Generate grid
 grid <- spatialdat %>%
   st_combine() %>%
   st_convex_hull() %>%
   st_make_grid(n = c(50, 50), square = FALSE)
 
-grid <- st_sf(id = 1:length(grid), geometry = grid)
+# Assign each observation to grid cell
+grid_dat <- st_join(
+  st_sf(id = 1:length(grid), geometry = grid),
+  finescale_locs,
+  join = st_contains
+)
 
-
-
-# 2. Assign each observation to grid cell --------------------------------------------------------
-grid_dat <- st_join(grid, finescale_locs, join = st_contains)
-
-
-# 3. Average overlap within cells ----------------------------------------
-# Calculate average density within cells (for each year/season/species)
-# Using grid cell data only
-# Using smaller data set, try averaging now
+# Average overlap within cells (for each year/season/species)
+# Can leave spatial when using smaller data set
 mean_ro <- grid_dat %>%
   group_by(id, season, predator) %>%
-  summarize(overlap = mean(overlap))
+  summarize(overlap = mean(overlap)) %>%
+  ungroup() %>%
+  filter(!is.na(predator)) 
+
+plotdat <- mean_ro %>%
+  mutate(
+    season = str_to_sentence(season),
+    predator = str_to_sentence(predator)
+  ) %>%
+  rename(
+    Season = season,
+    `Range overlap` = overlap
+  )
 
 
 # 4. Make map -------------------------------------------------------------
 ggplot() +
   geom_sf(
-    data = mean_ro,
-    aes(fill = overlap, color = overlap), 
+    data = plotdat,
+    aes(fill = `Range overlap`, color = `Range overlap`), 
     lwd = 0
   ) +
-  facet_grid(season ~ predator) + # , switch = "y") +
   geom_sf(
     data = northamerica, 
     color = "white", fill = "grey", lwd = 0.1, 
     inherit.aes = FALSE
     ) +
+  scale_fill_viridis_c(aesthetics = c("fill", "color")) +
   coord_sf(xlim = c(-79.5, -65.5), ylim = c(32.5, 45.5)) +
+  facet_grid(Season ~ predator) + # , switch = "y") +
   theme(panel.grid.major = element_line(color = "white"),
         panel.background = element_blank(),
         axis.title.x = element_blank(),
