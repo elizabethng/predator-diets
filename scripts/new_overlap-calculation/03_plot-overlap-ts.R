@@ -39,6 +39,7 @@ plotdat <- rawres %>%
   rename(
     Season = season
   )
+write_rds(plotdat, here::here("output", "index_range-overlap.rds"))
   
 ggplot(plotdat, aes(x = year, y = range_overlap, color = Season, fill = Season)) +
   geom_point() +
