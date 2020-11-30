@@ -5,19 +5,25 @@ library("tidyverse")
 library("here")
 
 
-# Load data --------------------------------------------------------------
-# Read in Report results and extract first predictor
-reportdat <- tibble(
-  locs = here("output", "diagnostics") %>%
-    dir()
-) %>%
-  slice(1) %>%
-  # filter(str_starts(locs, "trawl_")) %>%
-  mutate(path = here("output", "diagnostics", locs, "Report.rds")) %>%
-  rowwise() %>%
-  mutate(data = list(read_rds(path))) %>%
-  ungroup()
+# Functions ---------------------------------------------------------------
+# Extract and format SD report fixed effects results
+format_sd_report <- function(SD){
+  est <- SD$par.fixed
+  ses <- SD$cov.fixed %>% diag() %>% sqrt()
+  grd <- SD$gradient.fixed
+  
+  out <- tibble(
+    parameter = names(est),
+    estimate = est,
+    est_se = ses,
+    gradient = grd
+  )
+  
+  return(out)
+}
 
+# Load data --------------------------------------------------------------
+# Read in all opt output, which contain SD reports
 optdat <- tibble(
   locs = here("output", "diagnostics") %>%
     dir()
@@ -26,15 +32,14 @@ optdat <- tibble(
   rowwise() %>%
   mutate(data = list(read_rds(path))) %>%
   ungroup() %>%
-  mutate(data = map(data, "SD")) %>%
   mutate(
-    par.fixed = map(data, ~pluck(.x, "par.fixed")),
-    cov.fixed = map(data, ~pluck(.x, "cov.fixed")),
-    gradient.fixed = map(data, ~pluck(.x, "gradient.fixed"))
-    ) %>%
-  separate(locs, c(NA, "season", "species"), sep = "_") %>%
+    data = map(data, "SD"),
+    data = map(data, ~format_sd_report(.x))
+  ) %>%
+  separate(locs, c("model", "season", "species"), sep = "_") %>%
   mutate(species = gsub("-", " ", species)) %>%
-  select(-path, -data)
+  select(-path) %>%
+  unnest(data)
 
 
 # Write function to get output from each SD report ------------------------
