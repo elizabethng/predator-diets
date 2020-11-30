@@ -95,17 +95,17 @@ plotdat <- mean_ro %>%
 
 
 # 4. Make map -------------------------------------------------------------
-pretty_breaks <- seq(0, 1, 0.2)
+pretty_breaks <- seq(0, 1, 0.1)
 
 # compute labels
-labels <- c()
 maxVal <- 1
 minVal <- 0
 brks <- pretty_breaks
+labels <- c()
 for(idx in 1:length(brks)){
-  labels <- c(labels,round(brks[idx + 1], 2)) # round the labels (actually, only the extremes)
+  labels <- c(labels,round(brks[idx + 1], 2)) # round the labels (actually, only the extremes) 
 }
-labels <- labels[1:length(labels)-1] # get rid of Na
+labels <- labels[1:length(labels)-1] # get rid of NA
 
 # define a new variable on the data set just as above
 plotdat$brks <- cut(
@@ -117,7 +117,8 @@ plotdat$brks <- cut(
 brks_scale <- levels(plotdat$brks)
 
 q <- ggplot() +
-  geom_sf(data = plotdat, aes(fill = brks, color = brks), lwd = 0) +
+  geom_sf(data = plotdat, #filter(plotdat, predator == "Goosefish"), 
+          aes(fill = brks, color = brks), lwd = 0) +
   facet_grid(season ~ predator, switch = "y") +
   geom_sf(data = northamerica, color = "white", fill = "grey", lwd = 0.1, inherit.aes = FALSE) +
   coord_sf(xlim = c(-79.5, -65.5), ylim = c(32.5, 45.5)) +
@@ -132,9 +133,9 @@ q <- ggplot() +
         strip.background = element_blank(),
         legend.position = "bottom") +
   scale_fill_manual(
-    values = viridis::viridis(6), # direction = -1),
+    values = viridis::viridis(length(brks)-1), 
     breaks = brks_scale,
-    name = "Relative overlap",
+    name = "Average range overlap",
     drop = FALSE,
     guide = guide_legend(
       direction = "horizontal",
@@ -150,9 +151,9 @@ q <- ggplot() +
     )
   ) +
   scale_color_manual(
-    values = viridis::viridis(6), # direction = -1),
+    values = viridis::viridis(length(brks)-1),
     breaks = brks_scale,
-    name = "Relative overlap",
+    name = "Average range overlap",
     drop = FALSE,
     guide = guide_legend(
       direction = "horizontal",
@@ -168,12 +169,14 @@ q <- ggplot() +
     )
   )
 q
-
+ggsave(plot = q,
+       filename = here("output", "plots", "overlap-map_range-overlap.pdf"),
+       width = 7, height = 5, units = "in")
 
 ggplot() +
   geom_sf(
     data = plotdat,
-    aes(fill = `Range overlap`, color = `Range overlap`), 
+    aes(fill = overlap, color = overlap), 
     lwd = 0
   ) +
   geom_sf(
@@ -183,7 +186,7 @@ ggplot() +
     ) +
   scale_fill_viridis_c(aesthetics = c("fill", "color")) +
   coord_sf(xlim = c(-79.5, -65.5), ylim = c(32.5, 45.5)) +
-  facet_grid(Season ~ predator) + # , switch = "y") +
+  facet_grid(season ~ predator) + # , switch = "y") +
   theme(panel.grid.major = element_line(color = "white"),
         panel.background = element_blank(),
         axis.title.x = element_blank(),
