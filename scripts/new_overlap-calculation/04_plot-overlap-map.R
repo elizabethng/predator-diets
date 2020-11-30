@@ -85,14 +85,91 @@ plotdat <- mean_ro %>%
   mutate(
     season = str_to_sentence(season),
     predator = str_to_sentence(predator)
-  ) %>%
-  rename(
-    Season = season,
-    `Range overlap` = overlap
-  )
+  ) 
+
+# %>%
+#   rename(
+#     Season = season,
+#     `Range overlap` = overlap
+#   )
 
 
 # 4. Make map -------------------------------------------------------------
+pretty_breaks <- seq(0, 1, 0.2)
+
+# compute labels
+labels <- c()
+maxVal <- 1
+minVal <- 0
+brks <- pretty_breaks
+for(idx in 1:length(brks)){
+  labels <- c(labels,round(brks[idx + 1], 2)) # round the labels (actually, only the extremes)
+}
+labels <- labels[1:length(labels)-1] # get rid of Na
+
+# define a new variable on the data set just as above
+plotdat$brks <- cut(
+  plotdat$overlap, 
+  breaks = brks, 
+  include.lowest = TRUE, 
+  labels = labels)
+
+brks_scale <- levels(plotdat$brks)
+
+q <- ggplot() +
+  geom_sf(data = plotdat, aes(fill = brks, color = brks), lwd = 0) +
+  facet_grid(season ~ predator, switch = "y") +
+  geom_sf(data = northamerica, color = "white", fill = "grey", lwd = 0.1, inherit.aes = FALSE) +
+  coord_sf(xlim = c(-79.5, -65.5), ylim = c(32.5, 45.5)) +
+  theme(panel.grid.major = element_line(color = "white"),
+        panel.background = element_blank(),
+        axis.title.x = element_blank(),
+        axis.text.x = element_blank(),
+        axis.ticks.x = element_blank(),
+        axis.title.y = element_blank(),
+        axis.text.y = element_blank(),
+        axis.ticks.y = element_blank(),
+        strip.background = element_blank(),
+        legend.position = "bottom") +
+  scale_fill_manual(
+    values = viridis::viridis(6), # direction = -1),
+    breaks = brks_scale,
+    name = "Relative overlap",
+    drop = FALSE,
+    guide = guide_legend(
+      direction = "horizontal",
+      reverse = FALSE,
+      keywidth = unit(70*abs(diff(brks))/(maxVal - minVal), units = "mm"), # key height prop to distance between values
+      keyheight = unit(2, units = "mm"),
+      title.position = "top",
+      title.hjust = 0.5,
+      label.position = "bottom",
+      label.hjust = 1,
+      nrow = 1,
+      byrow = TRUE
+    )
+  ) +
+  scale_color_manual(
+    values = viridis::viridis(6), # direction = -1),
+    breaks = brks_scale,
+    name = "Relative overlap",
+    drop = FALSE,
+    guide = guide_legend(
+      direction = "horizontal",
+      reverse = FALSE,
+      keywidth = unit(70*abs(diff(brks))/(maxVal - minVal), units = "mm"), # key height prop to distance between values
+      keyheight = unit(2, units = "mm"),
+      title.position = "top",
+      title.hjust = 0.5,
+      label.position = "bottom",
+      label.hjust = 1,
+      nrow = 1,
+      byrow = TRUE
+    )
+  )
+q
+
+
 ggplot() +
   geom_sf(
     data = plotdat,
