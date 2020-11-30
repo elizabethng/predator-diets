@@ -1,8 +1,9 @@
 # Plot average map of results for range overlap
 
+library("rnaturalearth")
 library("tidyverse")
 library("here")
-
+library("sf")
 
 # Functions ---------------------------------------------------------------
 # Average across one year of simulations
@@ -38,9 +39,21 @@ rawres <- here("scripts", "new_overlap-calculation", "output") %>%
   rename(filenames = ".") %>%
   rowwise() %>%
   mutate(
-    results = list(get_year_effects(here("scripts", "new_overlap-calculation", "output", filenames)))
+    results = list(get_sim_average(here("scripts", "new_overlap-calculation", "output", filenames)))
   )
 
+
+# Format and plot ---------------------------------------------------------
+plotdat <- rawres %>%
+  unnest(results) %>%
+  select(-filenames) %>%
+  mutate(
+    season = str_to_sentence(season),
+    predator = str_to_sentence(predator)
+  ) %>%
+  rename(
+    Season = season
+  )
 
 # Iterate for one ---------------------------------------------------------
 res <- read_rds(here("scripts", "new_overlap-calculation", "output", "atlantic cod_fall.rds"))
