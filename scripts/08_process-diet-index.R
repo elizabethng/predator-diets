@@ -29,6 +29,7 @@ dietindex <- topdiets %>%
 write_rds(dietindex, path = here("output", "index_diet.rds"))
 # dietindex <- read_rds(here("output", "index_diet.rds"))
 
+
 # Plot diet-based abundance index -----------------------------------------
 
 plot_dietindex <- dietindex %>%
@@ -57,6 +58,65 @@ p <- ggplot(plot_dietindex, aes(x = Year, y = Density, color = Season)) +
         panel.grid.minor = element_blank(),
         strip.background = element_blank())
 ggsave(plot = p, filename = here("output", "plots", "diet-index-ts.pdf"), width = 9, height = 5, units = "in")
+
+
+# Format assessment data --------------------------------------------------
+assessdatr <- readxl::read_xlsx(here("data", "raw", "TimeSeries.xlsx"))
+pred_seas <- select(dietindex, predator, season) %>% 
+  distinct()
+
+stock_index <- assessdatr %>%
+  select(Year, `SSB (mt)`) %>%
+  mutate(stock_index = scale(`SSB (mt)`)[,1]) %>%
+  select(-`SSB (mt)`) %>%
+  rename(year = Year) %>%
+  expand_grid(pred_seas, .) %>%
+  ungroup() %>%
+  mutate(
+    predator = str_to_sentence(predator),
+    season = str_to_sentence(season)
+  ) %>% 
+  rename(
+    Year = year,
+    Season = season
+  )
+
+# Scale assessment index to match scale of diet data
+mean_dietindex <- plot_dietindex %>%
+  drop_na() %>%
+  group_by(predator) %>%
+  summarize(
+    mean = mean(Density)
+  )
+
+# Try multiplying by mean of diet index
+stock_scaled <- left_join(
+  stock_index, mean_dietindex, by = c("predator")
+  ) %>%
+  mutate(stock_scaled = stock_index*mean + mean)
+
+pp <- ggplot(plot_dietindex, aes(x = Year, y = Density, color = Season)) +
+  geom_line(
+    data = stock_scaled,
+    aes(x = Year, y = stock_scaled),
+    color = "darkgrey"
+  ) +
+  geom_point() +
+  scale_color_manual(values = c(scales::muted("blue", l = 50, c = 100), scales::muted("red", l = 50, c = 100))) +
+  geom_errorbar(aes(ymin = (Density - density_se), 
+                    ymax = (Density + density_se), 
+                    color = Season),
+                width = 0) +
+  facet_wrap(~ predator, scales = "free_y") +
+  labs(y = "Diet index") +
+  theme_bw() +
+  theme(legend.position = c(0.8, 0.2),
+        panel.grid.major = element_blank(),
+        panel.grid.minor = element_blank(),
+        strip.background = element_blank())
+ggsave(plot = pp, 
+       filename = here("output", "plots", "diet-index-ts_w-SSB.pdf"), 
+       width = 9, height = 5, units = "in")
 
 
 
