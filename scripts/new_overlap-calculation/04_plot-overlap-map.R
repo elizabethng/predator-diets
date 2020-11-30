@@ -5,18 +5,7 @@ library("here")
 
 
 # Functions ---------------------------------------------------------------
-# Function to read rds and extract year effect only (don't need locations for year)
-get_year_effects <- function(path){
-  res <- read_rds(path)
-  out <- res %>%
-    select(-data) %>%
-    mutate(results = map(results, "annual")) %>%
-    unnest(results)
-  return(out)
-}
-# jj <- get_year_effects(here("scripts", "new_overlap-calculation", "output", "atlantic cod_fall.rds"))
-
-# Process one year of simulations
+# Average across one year of simulations
 average_year <- function(dat){
   out <- dat %>%
     group_by(lat, lon) %>%
@@ -25,19 +14,22 @@ average_year <- function(dat){
   return(out)
 }
 
+# Function to read rds, average across simulations and years
 get_sim_average <- function(path){
   res <- read_rds(path)
   out <- res %>%
     select(-data) %>%
     mutate(results = map(results, "finescale")) %>%
     mutate(results = map(results, ~average_year(.x))) %>%
+    ungroup() %>%
     unnest(results) %>%
-    group_by(lat, lon) %>%
-    mutate(overlap = mean(overlap)) %>%
+    group_by(season, predator, lat, lon) %>%
+    summarize(overlap = mean(overlap)) %>%
     ungroup()
-  
   return(out)
 }
+# jj <- get_sim_average(here("scripts", "new_overlap-calculation", "output", "atlantic cod_fall.rds"))
+
 
 # Load results --------------------------------------------------------------
 rawres <- here("scripts", "new_overlap-calculation", "output") %>% 
