@@ -17,23 +17,13 @@ assessment_cv <- 0.02
 
 # Load data and format for combining
 dietindexr <- read_rds(here::here("output", "index_diet.rds"))
-overlapindexr <- read_rds(here("output", "EXTERNAL_schoeners_D.rds")) %>% 
-  rename(season = Season, year = Year, overlap = Estimate, overlap_se = `Std. Error`) %>%
-  mutate(predator = tolower(predator), season = tolower(season)) # read_rds(here::here("output", "index_overlap.rds"))
 assessdatr <- readxl::read_xlsx(here("data", "raw", "TimeSeries.xlsx"))
 
-# Try with new area overlap suggested by reviewer
-overlapindexr <- read_rds(here("output", "area-overlap.rds")) %>%
-  mutate(overlap_se = 0.16) %>%
-  rename(
-    season = Season, 
-    year = Year, 
-    overlap = Estimate
-    ) %>%
-  mutate(
-    predator = tolower(predator), 
-    season = tolower(season)
-    )
+# read_rds(here::here("output", "index_overlap.rds"))
+# read_rds(here("output", "EXTERNAL_schoeners_D.rds"))
+overlapindexr <- read_rds(here::here("output", "index_range-overlap.rds"))%>%  
+  rename(season = Season, overlap = range_overlap) %>%
+  mutate(predator = tolower(predator), season = tolower(season))
 
 
 # Plot indices as time-series ---------------------------------------------
@@ -159,10 +149,11 @@ diet_index <- dietindexr %>%
   ungroup()
 
 overlap_index <- overlapindexr %>%
-  mutate(cv_overlap = overlap_se/overlap) %>%
+  mutate(overlap_se = (ucb - lcb)/(2*1.96),
+         cv_overlap = overlap_se/overlap) %>%
   group_by(season, predator) %>%
   mutate(overlap_index = scale(overlap)[,1]) %>%
-  # select(-overlap, -lcb, -ucb) %>%
+  select(-overlap, -lcb, -ucb) %>%
   ungroup()
 
 if(use_assessment == TRUE){
@@ -311,7 +302,7 @@ p1 <- ggplot(diet_overlap_dat, aes(x = `Overlap index`,
         panel.grid.minor = element_blank(),
         strip.background = element_blank())
 if(save_output){
-  ggsave(plot = p1, here("output", "plots", "overlap-diet-comp-1to1.pdf"), width = 4, height = 8, units = "in")  
+  ggsave(plot = p1, here("output", "plots", "range-overlap-diet-comp-1to1.pdf"), width = 4, height = 8, units = "in")  
 }
 
 
