@@ -26,20 +26,56 @@ optdat$data[[1]]$SD$diag.cov.random
 
 ranefs <- tibble(
   name = names(optdat$data[[1]]$SD$par.random),
-  esimate = optdat$data[[1]]$SD$par.random,
-  variance = optdat$data[[1]]$SD$diag.cov.random
-) 
+  est = optdat$data[[1]]$SD$par.random,
+  var = optdat$data[[1]]$SD$diag.cov.random,
+) %>%
+  filter(str_detect(name, "1_"))
 
-comp1_var <- ranefs %>% 
-  filter(str_detect(name, "1_")) %>%
-  group_by(name) %>%
-  summarize(
-   n = n(),
-   mean_var = mean(variance),
-   sd_var = sd(variance),
-   min_var = min(variance),
-   max_var = max(variance)
+# Group by s and t?
+beta <- filter(ranefs, name == "beta1_ft") %>% mutate(t = 1:43)
+omega <- filter(ranefs, name == "Omegainput1_sf") %>% mutate(s = 1:160)
+epsilon <- filter(ranefs, name == "Epsiloninput1_sft") %>%
+  mutate(
+    s = rep(1:160, 43),
+    t = sort(rep(1:43, 160))
   )
+
+# Join data
+alldat <- left_join(epsilon, omega, by = "s", suffix = c("_epsilon", "_omega")) %>%
+  left_join(., beta, by = "t") %>%
+  rename(
+    name_beta = name,
+    est_beta = est,
+    var_beta = var
+  )
+
+deltadat <- alldat %>%
+  select(-starts_with("name_")) %>%
+  mutate(
+    y_hat = exp(est_beta + est_omega + est_epsilon),
+    var_sum = var_beta + var_omega + var_epsilon,
+    y_var = y_hat^2*var_sum,
+    y_se = sqrt(y_var)
+  )
+
+jj <- deltadat %>%
+  group_by(t) %>%
+  summarize(
+    y_se_mean = mean(y_se)
+  )
+ts.plot(jj$y_se_mean)
+
+# Alternatively, could get average sum of variances and multiply by each
+# probability in a given year
+pp <- deltadat %>%
+  group_by(t) %>%
+  summarize(
+    est_var = mean(var_sum)
+  )
+# Or super out of order, but use this for the final estimates
+
+ggplot(aes(x = t, y = est_var)) +
+  geom_line()
 
 # Only care about first component here
 # beta is one per year (1973-2015)
@@ -56,6 +92,9 @@ sum(comp1_var$mean_var) %>% sqrt()
 val <- 242.65632320 # sd of index
 log_val <- 0.14425792   # sd of log_index
 exp(log_val)
+
+# should get the variances before averaging, just unclear how the 160 locs match >30,000
+
 
 # Load data --------------------------------------------------------------
 # Read in Report results and extract first predictor
