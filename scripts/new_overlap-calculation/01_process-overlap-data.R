@@ -4,6 +4,59 @@ library("tidyverse")
 library("here")
 
 
+
+# Check for SDs -----------------------------------------------------------
+
+optdat <- tibble(
+  locs = here("output", "diagnostics") %>%
+    dir()
+) %>%
+  filter(str_starts(locs, "trawl_")) %>%
+  slice(1) %>%
+  mutate(path = here("output", "diagnostics", locs, "opt.rds")) %>%
+  rowwise() %>%
+  mutate(data = list(read_rds(path)))
+
+optdat$data[[1]]$SD$sd
+optdat$data[[1]]$SD$value
+
+optdat$data[[1]]$SD$par.fixed
+optdat$data[[1]]$SD$par.random
+optdat$data[[1]]$SD$diag.cov.random
+
+ranefs <- tibble(
+  name = names(optdat$data[[1]]$SD$par.random),
+  esimate = optdat$data[[1]]$SD$par.random,
+  variance = optdat$data[[1]]$SD$diag.cov.random
+) 
+
+comp1_var <- ranefs %>% 
+  filter(str_detect(name, "1_")) %>%
+  group_by(name) %>%
+  summarize(
+   n = n(),
+   mean_var = mean(variance),
+   sd_var = sd(variance),
+   min_var = min(variance),
+   max_var = max(variance)
+  )
+
+# Only care about first component here
+# beta is one per year (1973-2015)
+# Epsiloninput is one per year times 160 "knots"
+# Omegainput is one per year times 160 "knots"
+# Hacky, but maybe I can just use an average?
+# How do the 160 locations relate to the knots?
+
+# log(r1_gcy) = beta + omega + epsilon
+# so also need to exponentiate
+# r1_gcy = exp(beta + omega + epsilon) = exp(beta)*exp(omega)*exp(epsilon)
+sum(comp1_var$mean_var) %>% sqrt()
+
+val <- 242.65632320 # sd of index
+log_val <- 0.14425792   # sd of log_index
+exp(log_val)
+
 # Load data --------------------------------------------------------------
 # Read in Report results and extract first predictor
 reportdat <- tibble(
