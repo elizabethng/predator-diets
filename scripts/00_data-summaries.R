@@ -38,11 +38,26 @@ trawlraw <- readr::read_rds(here("data", "processed", "dat_trawl.rds"))
 
 
 # Mean dates for spring and fall surveys ----------------------------------
-md <- dietraw %>%
+survey_dates <- dietraw %>%
   select(towid, month, day, year, season) %>%
   distinct() %>%
   drop_na() %>%
-  mutate(date = lubridate::ymd(paste(2000, month, day))) %>% # need to use a leap year
+  mutate(date = lubridate::ymd(paste(2000, month, day))) # need to use a leap year
+
+ggplot(survey_dates, aes(x = date, fill = season)) +
+  geom_bar() +
+  geom_vline(xintercept = lubridate::ymd("2000-09-01"))
+
+# How many samples in "fall" before September?
+survey_dates %>%
+  filter(season == "fall") %>%
+  summarize(
+    n_summer = sum(date < lubridate::ymd("2000-09-01")),
+    n = n()
+  )
+100*654/8527
+
+md <- survey_dates %>%
   group_by(season) %>%
   summarize(mean = mean(date),
             median = median(date),
