@@ -23,7 +23,9 @@ assessdatr <- readxl::read_xlsx(here("data", "raw", "TimeSeries.xlsx"))
 # read_rds(here("output", "EXTERNAL_schoeners_D.rds"))
 overlapindexr <- read_rds(here::here("output", "index_range-overlap.rds"))%>%  
   rename(season = Season, overlap = range_overlap) %>%
-  mutate(predator = tolower(predator), season = tolower(season))
+  mutate(predator = tolower(predator), season = tolower(season)) %>%
+  select(-lcb, -ucb) %>%
+  rename(lcb = lcb_b, ucb = ucb_b)
 
 
 # Plot indices as time-series ---------------------------------------------
@@ -217,7 +219,7 @@ diet_index <- dietindexr %>%
   ungroup()
 
 overlap_index <- overlapindexr %>%
-  mutate(overlap_se = (ucb - lcb)/(2*1.96),
+  mutate(overlap_se = ro_sd,
          cv_overlap = overlap_se/overlap) %>%
   group_by(season, predator) %>%
   mutate(overlap_index = scale(overlap)[,1]) %>%
