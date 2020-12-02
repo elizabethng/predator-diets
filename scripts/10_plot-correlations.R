@@ -29,6 +29,8 @@ overlapindexr <- read_rds(here::here("output", "index_range-overlap.rds"))%>%
 
 
 # Plot indices as time-series ---------------------------------------------
+# [ ] This chunk creates appendix figure with index comparison. Should move it
+# into a new script and tidy up. 
 if(use_assessment == FALSE){
   # add my Atlantic herring index
   herringdatr <- readr::read_rds(here::here("output", "top_final_trawl.rds")) %>%
@@ -130,10 +132,19 @@ if(use_assessment == FALSE){
     geom_line() +
     ylab("Standardized value") +
     facet_wrap(~new_name_fac, ncol = 4) +
-    scale_color_viridis_d(end = 0.8) +
-    theme_minimal()
-# [ ] Move legend to unused space
-  # [ ] grab code from work to fix axes
+    scale_color_viridis_d(
+      name = "Index source",
+      end = 0.8
+      ) +
+    guides(colour = guide_legend(nrow = 1)) +
+    theme_bw() +
+    theme(
+      legend.position = c(0.6, 0.1),
+      panel.grid.major = element_blank(),
+      panel.grid.minor = element_blank(),
+      strip.background = element_blank()
+    )
+  
   ggsave(
     here("output", "plots", "index-ts-multipanel.pdf"), 
     width = 8.5, 
