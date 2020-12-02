@@ -36,10 +36,21 @@ if(use_assessment == FALSE){
     mutate(output = map(output, "index")) %>%
     unnest(output)
   
+  # Add in herring index used in stock assessment
+  assessindex <- readxl::read_xlsx(here("data", "raw", "HerringIndices.xlsx"))
+  
+  ggplot(
+    assessindex, 
+    aes(x = YEAR, y = INDEX)
+    ) +
+    geom_point()
+  
   abundance_indices <- pivot_longer(assessdatr, cols = -Year) %>%
     filter(name %in% c("SSB (mt)",
                        "Jan.1 Biomass (mt)",
-                       "Catch (mt)")) %>%
+                       "Catch (mt)",
+                       "Age-1 Recruitment (000s)")
+           ) %>%
     mutate(source = "assessment") %>%
     bind_rows(herringdatr %>%
                 mutate(source = "st index") %>%
@@ -54,24 +65,81 @@ if(use_assessment == FALSE){
                        source,
                        name,
                        value = density)) %>%
+    bind_rows(assessindex %>%
+                select(
+                  Year = YEAR,
+                  value = INDEX
+                  ) %>%
+                mutate(
+                  source = "Survey",
+                  name = "Atlantic herring"
+                )
+    ) %>%
     group_by(name) %>%
     mutate(value_z = scale(value)[,1])
   
-  ggplot(abundance_indices, aes(x = Year, y = value_z, group = name, color = source)) +
-    geom_point() +
-    geom_line(size = 1, alpha = 0.5) +
-    scale_color_manual(values = c(
-      scales::muted("blue", l = 50, c = 100), 
-      "grey",
-      scales::muted("red", l = 50, c = 100))) +
-    theme_bw()
+  # ggplot(abundance_indices, aes(x = Year, y = value_z, group = name, color = source)) +
+  #   geom_point() +
+  #   geom_line(size = 1, alpha = 0.5) +
+  #   scale_color_manual(values = c(
+  #     scales::muted("blue", l = 50, c = 100), 
+  #     "grey",
+  #     scales::muted("red", l = 50, c = 100))) +
+  #   theme_bw()
   
   # Distinguish between different types (don't include the spatiotemproal index, i.e. VAST fit to herring biomass)
-  abundance_indices %>%
+  jj <- abundance_indices %>%
     ungroup() %>%
     mutate(name = ifelse(name == "fall", "st herring fall", name)) %>%
-    mutate(name = ifelse(name == "spring", "st herring spring", name)) %>%
-  ggplot(aes(x = Year, y = value_z, group = name, color = name)) +
+    mutate(name = ifelse(name == "spring", "st herring spring", name))
+  
+  jj_formatted <- jj %>%
+    mutate(
+      new_name = gsub(" \\(mt\\)", "", name),
+      new_name = gsub("st ", "", new_name),
+      new_name = str_to_sentence(new_name),
+      new_name = gsub("Ssb", "SSB", new_name),
+      new_name = gsub(" \\(000s\\)", "", new_name),
+      new_name = gsub("spring", "(Spring)", new_name),
+      new_name = gsub("fall", "(Fall)", new_name),
+      new_name = gsub("Herring", "Atlantic herring", new_name)
+      ) %>%
+    mutate(
+      Index = gsub("st", "Spatio-temporal", source),
+      Index = gsub(" index", "", Index),
+      Index = str_to_sentence(Index)
+    ) 
+  # Change level of new_name
+  # assessment rec, SSB, jan, Catch,
+  # spatio temporal herring herring
+  # rest of diet inds.
+  forder <- c(
+    "Age-1 recruitment", "SSB", "Jan.1 biomass", "Catch", "Atlantic herring",
+    "Atlantic herring (Spring)", "Atlantic herring (Fall)", "Atlantic cod (Spring)", "Atlantic cod (Fall)",
+    "Goosefish (Spring)", "Goosefish (Fall)", "Silver hake (Spring)", "Silver hake (Fall)",
+    "Spiny dogfish (Spring)", "Spiny dogfish (Fall)", "White hake (Spring)", "White hake (Fall)")
+  plotdat <- jj_formatted %>%
+    mutate(
+      new_name_fac = factor(new_name, levels = forder)
+    )
+  
+  ggplot(plotdat, aes(x = Year, y = value_z, color = Index)) +
+    geom_point() +
+    geom_line() +
+    ylab("Standardized value") +
+    facet_wrap(~new_name_fac, ncol = 4) +
+    scale_color_viridis_d(end = 0.8) +
+    theme_minimal()
+# [ ] Move legend to unused space
+  # [ ] grab code from work to fix axes
+  ggsave(
+    here("output", "plots", "index-ts-multipanel.pdf"), 
+    width = 8.5, 
+    height = 12
+  )
+  
+  
+  ggplot(jj, aes(x = Year, y = value_z, group = name, color = name)) +
     geom_point() +
     facet_grid(source ~.) +
     geom_line(size = 1, alpha = 0.5) +
@@ -391,6 +459,9 @@ ggplot(diet_overlap, aes(x = year, y = `Diet index`, color = `Overlap index`)) +
 
 
 # 5. Play with lm fit -----------------------------------------------------
+
+
+# Re make appendix figure but nicer ---------------------------------------
 
 
 
