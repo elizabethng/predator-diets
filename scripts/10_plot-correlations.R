@@ -118,7 +118,7 @@ if(use_assessment == FALSE){
   # spatio temporal herring herring
   # rest of diet inds.
   forder <- c(
-    "Age-1 recruitment", "SSB", "Jan.1 biomass", "Catch", "Atlantic herring",
+    "Age-1 recruitment", "Jan.1 biomass", "SSB", "Catch", "Atlantic herring",
     "Atlantic herring (Spring)", "Atlantic herring (Fall)", "Atlantic cod (Spring)", "Atlantic cod (Fall)",
     "Goosefish (Spring)", "Goosefish (Fall)", "Silver hake (Spring)", "Silver hake (Fall)",
     "Spiny dogfish (Spring)", "Spiny dogfish (Fall)", "White hake (Spring)", "White hake (Fall)")
