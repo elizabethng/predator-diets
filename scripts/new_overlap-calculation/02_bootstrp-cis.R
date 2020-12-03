@@ -23,12 +23,30 @@ tdat <-
     prob_prey
   )
 
+
 # Wrap simulation in a function -------------------------------------------
+#' Determine range overlap based on simulation
+#'   
+#' Determine range overlap for each simulation, relative to prey.
+#' Actual annual metric is proportion of prey area overlapped by predator area
+#'
+#' @param dat data frame containing prob_pred and prob_prey
+#' @param n_sims number of simulations to use for calcuation
+#'
+#' @return
+
+#' @examples
+#' jjdat <- filter(tdat, predator == "atlantic cod", year %in% 1985:1995) %>%
+#'   group_by(season, predator, year) %>%
+#'   nest()
+#' jj <- jjdat %>%
+#'   mutate(results = map(data, ~simulate_overlap(.x, n_sims = 10)))
+#' jj %>%
+#'   unnest_wider(results) %>%
+#'   unnest_wider(annual)
 simulate_overlap <- function(dat, n_sims) {
   simdat <- expand_grid(sim_id = 1:n_sims, dat)
-  
-  # Determine range overlap for each simulation, relative to prey
-  # Actual annual metric is proportion of prey area overlapped by predator area
+
   simres <- simdat %>%
     mutate(
       present_pred = rbinom(
@@ -45,16 +63,15 @@ simulate_overlap <- function(dat, n_sims) {
     )
   
   simro <- simres %>%
-    group_by(sim_id) %>% # , season, predator, year) %>%
+    group_by(sim_id) %>% 
     summarize(
       prey_val = sum(present_prey),
       overlap_val = sum(present_both),
-      overlap_metric = overlap_val / prey_val
+      overlap_metric = overlap_val/prey_val
     )
   
   # Annual range overlap (use percentiles of observed metric)
   annual_ro <- simro %>%
-    # group_by(season, predator, year) %>%
     summarize(
       range_overlap = median(overlap_metric),
       lcb = quantile(overlap_metric, probs = 0.025),
@@ -64,16 +81,23 @@ simulate_overlap <- function(dat, n_sims) {
   return(list(finescale = simres, annual = annual_ro))
 }
 
-# # Example
-# jjdat <- filter(tdat, predator == "atlantic cod", year %in% 1985:1995) %>%
-#   group_by(season, predator, year) %>%
-#   nest()
-# jj <- jjdat %>%
-#   mutate(results = map(data, ~simulate_overlap(.x, n_sims = 10)))
-#
-# jj %>%
-#   unnest_wider(results) %>%
-#   unnest_wider(annual)
+
+# Quick comparison
+# Show that bootstrap approach is same as getting expected value by
+# multiplying prob_pred*prob_prey to get expected joint probability
+pp <- filter(tdat, predator == "atlantic cod", year %in% 1985:1995) %>%
+  mutate(range_overlap = prob_pred*prob_prey) %>%
+  group_by(season, predator, year) %>%
+  summarize(
+    range_overlap = sum(range_overlap)/sum(prob_prey)
+  )
+
+check <- jj %>%
+  unnest_wider(results) %>%
+  unnest_wider(annual) %>%
+  select(range_overlap) %>%
+  left_join(pp, by = c("season", "predator", "year"), suffix = c("_boot", "_calc")) %>%
+  mutate(diff = range_overlap_boot - range_overlap_calc)
 
 
 # Apply simulation function to data ---------------------------------------

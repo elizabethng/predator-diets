@@ -64,12 +64,42 @@ ggsave(here("output", "plots", "overlap-index-ts_range-overlap.pdf"),
 
 
 # Binomial CIs instead of bootstrap ---------------------------------------
+rawdat <- tdat <-
+  read_rds(here(
+    "scripts",
+    "new_overlap-calculation",
+    "overlap-data_finescale.rds"
+  )) %>%
+  ungroup() %>%
+  select(
+    season,
+    predator = species_pred,
+    year,
+    lat = Lat_pred,
+    lon = Lon_pred,
+    prob_pred,
+    prob_prey
+  )
+
+plotdat <- rawdat %>%
+  mutate(range_overlap = prob_pred*prob_prey) %>%
+  group_by(season, predator, year) %>%
+  summarize(
+    range_overlap = sum(range_overlap)/sum(prob_prey)
+  ) %>%
+  ungroup()
+
 binomdat <- plotdat %>%
   mutate(
     ro_sd = sqrt(range_overlap*(1 - range_overlap)/100), # for 100 bootstrap samples
     lcb_b = range_overlap - 1.96*ro_sd,
     ucb_b = range_overlap + 1.96*ro_sd
-  )
+  ) %>%
+  mutate(
+    season = str_to_sentence(season),
+    predator = str_to_sentence(predator)
+  ) %>%
+  rename(Season = season)
 
 ggplot(binomdat, aes(x = year, y = range_overlap, color = Season, fill = Season)) +
   geom_point() +
