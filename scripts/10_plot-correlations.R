@@ -241,9 +241,9 @@ if(use_assessment == TRUE){
   pred_seas <- select(diet_index, predator, season) %>% distinct()
   
   stock_index <- assessdatr %>%
-    select(Year, `SSB (mt)`) %>%
-    mutate(stock_index = scale(`SSB (mt)`)[,1]) %>%
-    select(-`SSB (mt)`) %>%
+    select(Year, `Jan.1 Biomass (mt)`) %>%
+    mutate(stock_index = scale(`Jan.1 Biomass (mt)`)[,1]) %>%
+    select(-`Jan.1 Biomass (mt)`) %>%
     rename(year = Year) %>%
     expand_grid(pred_seas, .) %>%
     ungroup() %>%

@@ -31,7 +31,6 @@ write_rds(dietindex, path = here("output", "index_diet.rds"))
 
 
 # Plot diet-based abundance index -----------------------------------------
-
 plot_dietindex <- dietindex %>%
   rename(
     Year = year,
@@ -66,9 +65,9 @@ pred_seas <- select(dietindex, predator, season) %>%
   distinct()
 
 stock_index <- assessdatr %>%
-  select(Year, `SSB (mt)`) %>%
-  mutate(stock_index = scale(`SSB (mt)`)[,1]) %>%
-  select(-`SSB (mt)`) %>%
+  select(Year, `Jan.1 Biomass (mt)`) %>%
+  mutate(stock_index = scale(`Jan.1 Biomass (mt)`)[,1]) %>%
+  select(-`Jan.1 Biomass (mt)`) %>%
   rename(year = Year) %>%
   expand_grid(pred_seas, .) %>%
   ungroup() %>%
@@ -86,20 +85,21 @@ mean_dietindex <- plot_dietindex %>%
   drop_na() %>%
   group_by(predator) %>%
   summarize(
-    mean = mean(Density)
+    mean = mean(Density),
+    sd = sd(Density)
   )
 
 # Try multiplying by mean of diet index
 stock_scaled <- left_join(
   stock_index, mean_dietindex, by = c("predator")
   ) %>%
-  mutate(stock_scaled = stock_index*mean + mean)
+  mutate(stock_scaled = stock_index*sd + mean)
 
 pp <- ggplot(plot_dietindex, aes(x = Year, y = Density, color = Season)) +
   geom_line(
     data = stock_scaled,
     aes(x = Year, y = stock_scaled),
-    color = "darkgrey"
+    color = "grey60"
   ) +
   geom_point() +
   scale_color_manual(values = c(scales::muted("blue", l = 50, c = 100), scales::muted("red", l = 50, c = 100))) +
@@ -114,6 +114,7 @@ pp <- ggplot(plot_dietindex, aes(x = Year, y = Density, color = Season)) +
         panel.grid.major = element_blank(),
         panel.grid.minor = element_blank(),
         strip.background = element_blank())
+pp
 ggsave(plot = pp, 
        filename = here("output", "plots", "diet-index-ts_w-SSB.pdf"), 
        width = 9, height = 5, units = "in")
