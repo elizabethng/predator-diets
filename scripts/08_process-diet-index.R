@@ -27,15 +27,28 @@ dietindex <- topdiets %>%
 write_rds(dietindex, path = here("output", "index_diet.rds"))
 
 
+# Format index for plotting -----------------------------------------------
+plot_dietindex <- dietindex %>%
+  rename(
+    Year = year,
+    Season = season,
+    Density = density
+  ) %>%
+  mutate(
+    predator = str_to_sentence(predator), 
+    Season = str_to_sentence(Season)
+  )
+
+
 # Format assessment data --------------------------------------------------
 assessdatr <- readxl::read_xlsx(here("data", "raw", "TimeSeries.xlsx"))
 pred_seas <- select(dietindex, predator, season) %>% 
   distinct()
 
 stock_index <- assessdatr %>%
-  select(Year, `Jan.1 Biomass (mt)`) %>%
-  mutate(stock_index = scale(`Jan.1 Biomass (mt)`)[,1]) %>%
-  select(-`Jan.1 Biomass (mt)`) %>%
+  select(Year, `SSB (mt)`) %>%
+  mutate(stock_index = scale(`SSB (mt)`)[,1]) %>%
+  select(-`SSB (mt)`) %>%
   rename(year = Year) %>%
   expand_grid(pred_seas, .) %>%
   ungroup() %>%
