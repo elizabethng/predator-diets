@@ -104,9 +104,8 @@ overlapdat <- overlapdat_finescale %>%
   mutate(year = as.numeric(year))
 
 
-
 # Summary Plots -----------------------------------------------------------
-
+# [ ] Delete, don't think I use these
 ggplot(overlapdat, aes(x = year, y = overlap_metric, color = season)) +
   geom_line() +
   facet_wrap(~ species_pred) +
@@ -117,7 +116,6 @@ ggplot(overlapdat, aes(x = year, y = overlap_metric, color = species_pred)) +
   geom_line() +
   facet_wrap(~ season) +
   theme_bw()
-
 
 # Format overlap calculation and save output
 output <- overlapdat %>%
