@@ -40,9 +40,9 @@ overlap_index <- overlapindexr %>%
 pred_seas <- select(diet_index, predator, season) %>% distinct()
 
 stock_index <- assessdatr %>%
-  select(Year, `Jan.1 Biomass (mt)`) %>%
-  mutate(stock_index = scale(`Jan.1 Biomass (mt)`)[,1]) %>%
-  select(-`Jan.1 Biomass (mt)`) %>%
+  select(Year, `SSB (mt)`) %>%
+  mutate(stock_index = scale(`SSB (mt)`)[,1]) %>%
+  select(-`SSB (mt)`) %>%
   rename(year = Year) %>%
   expand_grid(pred_seas, .) %>%
   ungroup() %>%
