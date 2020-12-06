@@ -6,6 +6,7 @@ output/
 data/
 test-run/2020-05-28_overdispersion/
 test-run/2020-05-29_no_overdispersion/
+scripts/new_overlap-calculation/*.rds
 
 # History files
 .Rhistory
@@ -46,4 +47,3 @@ vignettes/*.pdf
 # Shiny token, see https://shiny.rstudio.com/articles/shinyapps.html
 rsconnect/
 .Rproj.user
-
