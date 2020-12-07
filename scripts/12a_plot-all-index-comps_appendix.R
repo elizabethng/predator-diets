@@ -94,6 +94,7 @@ plotdat <- formatted_names %>%
   )
 
 ggplot(plotdat, aes(x = Year, y = value_z, color = Index)) +
+  geom_vline(xintercept = 2009, color = "grey") +
   geom_point() +
   geom_line() +
   ylab("Standardized value") +
@@ -114,6 +115,7 @@ ggplot(plotdat, aes(x = Year, y = value_z, color = Index)) +
 ggsave(
   here("output", "plots", "index-ts-multipanel.pdf"), 
   width = 8.5, 
-  height = 12
+  height = 8,
+  units = "in"
 )
 
