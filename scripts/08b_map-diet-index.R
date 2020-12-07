@@ -145,7 +145,7 @@ q <- ggplot() +
   scale_fill_manual(
     values = viridis::viridis(6),
     breaks = brks_scale,
-    name = "Relative mass of Atlantic herring in predator stomachs",
+    name = "Relative mass of Atlantic herring",
     drop = FALSE,
     guide = guide_legend(
       direction = "horizontal",
@@ -163,7 +163,7 @@ q <- ggplot() +
   scale_color_manual(
     values = viridis::viridis(6),
     breaks = brks_scale,
-    name = "Relative mass of Atlantic herring in predator stomachs",
+    name = "Relative mass of Atlantic herring",
     drop = FALSE,
     guide = guide_legend(
       direction = "horizontal",
@@ -182,7 +182,9 @@ q
 
 ggsave(plot = q, 
        filename = here("output", "plots", "diet-map-quantile.pdf"), 
-       width = 7, height = 5, units = "in")
+       width = 170, 
+       height = 95, 
+       units = "mm")
 
 
 # 5. Plot time series for each predator -----------------------------------

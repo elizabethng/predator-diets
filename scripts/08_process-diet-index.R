@@ -25,7 +25,7 @@ dietindex <- topdiets %>%
          density_se = ifelse(is.na(exclude_reason), density_se, NA)) %>%
   select(-exclude_reason)
 write_rds(dietindex, path = here("output", "index_diet.rds"))
-
+# dietindex <- read_rds(path = here("output", "index_diet.rds"))
 
 # Format index for plotting -----------------------------------------------
 plot_dietindex <- dietindex %>%
@@ -37,6 +37,10 @@ plot_dietindex <- dietindex %>%
   mutate(
     predator = str_to_sentence(predator), 
     Season = str_to_sentence(Season)
+  ) %>%
+  mutate(
+    Density = Density/100,
+    density_se = density_se/100
   )
 
 
@@ -86,20 +90,27 @@ pp <- ggplot(plot_dietindex, aes(x = Year, y = Density, color = Season)) +
     color = "grey60"
   ) +
   geom_point() +
-  scale_color_manual(values = c(scales::muted("blue", l = 50, c = 100), scales::muted("red", l = 50, c = 100))) +
+  scale_color_manual(
+    values = c(scales::muted("blue", l = 50, c = 100), 
+               scales::muted("red", l = 50, c = 100))
+    ) +
   geom_errorbar(aes(ymin = (Density - density_se), 
                     ymax = (Density + density_se), 
                     color = Season),
                 width = 0) +
+  scale_x_continuous(breaks = c(1970, 1990, 2010)) +
   facet_wrap(~ predator, scales = "free_y") +
   labs(y = "Diet index") +
   theme_bw() +
   theme(legend.position = c(0.8, 0.2),
         panel.grid.major = element_blank(),
         panel.grid.minor = element_blank(),
-        strip.background = element_blank())
+        strip.background = element_blank()) 
+  # theme(axis.text.x = element_text(angle = 45, hjust=1))
 pp
 ggsave(plot = pp, 
        filename = here("output", "plots", "diet-index-ts_w-SSB.pdf"), 
-       width = 9, height = 5, units = "in")
+       width = 170, 
+       height = 95, 
+       units = "mm")
 

@@ -46,12 +46,6 @@ rawres <- here("scripts", "new_overlap-calculation", "output") %>%
 
 
 # Plot using sf -----------------------------------------------------------
-northamerica <- ne_countries(
-  continent = "north america",
-  scale = "large",
-  returnclass = "sf"
-)
-
 locations <- rawres %>%
   select(lat, lon) %>%
   distinct() %>%
@@ -86,21 +80,22 @@ plotdat <- mean_ro %>%
     season = str_to_sentence(season),
     predator = str_to_sentence(predator)
   ) 
+# write_rds(plotdat, here::here("output", "map_range-overlap.rds"))
+# plotdat <- read_rds(here::here("output", "map_range-overlap.rds"))
 
-# %>%
-#   rename(
-#     Season = season,
-#     `Range overlap` = overlap
-#   )
-
+northamerica <- ne_countries(
+  continent = "north america",
+  scale = "large",
+  returnclass = "sf"
+)
 
 # 4. Make map -------------------------------------------------------------
-pretty_breaks <- seq(0, 1, 0.1)
+# pretty_breaks <- seq(0, 1, 0.1)
 
 # compute labels
-maxVal <- 1
-minVal <- 0
-brks <- pretty_breaks
+maxVal <- max(plotdat$overlap)
+minVal <- min(plotdat$overlap)
+brks <- seq(minVal, maxVal, 0.1)# pretty_breaks
 labels <- c()
 for(idx in 1:length(brks)){
   labels <- c(labels,round(brks[idx + 1], 2)) # round the labels (actually, only the extremes) 
@@ -171,8 +166,12 @@ q <- ggplot() +
 q
 ggsave(plot = q,
        filename = here("output", "plots", "overlap-map_range-overlap.pdf"),
-       width = 7, height = 5, units = "in")
+       width = 170, 
+       height = 95, 
+       units = "mm")
 
+
+# Compare to default continuous color scale
 ggplot() +
   geom_sf(
     data = plotdat,

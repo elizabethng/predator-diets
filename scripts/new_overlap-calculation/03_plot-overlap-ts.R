@@ -40,6 +40,8 @@ plotdat <- rawres %>%
     Season = season
   )
 # write_rds(plotdat, here::here("output", "index_range-overlap.rds"))
+# plotdat <- read_rds(here::here("output", "index_range-overlap.rds"))
+
   
 ggplot(plotdat, aes(x = year, y = range_overlap, color = Season, fill = Season)) +
   geom_point() +
@@ -60,12 +62,13 @@ ggplot(plotdat, aes(x = year, y = range_overlap, color = Season, fill = Season))
         panel.grid.minor = element_blank(),
         strip.background = element_blank())
 ggsave(here("output", "plots", "overlap-index-ts_range-overlap.pdf"),
-       width = 9, height = 5, units = "in")
+       width = 9, 
+       height = 5, 
+       units = "in")
 
 
 # Binomial CIs instead of bootstrap ---------------------------------------
-rawdat <- tdat <-
-  read_rds(here(
+rawdat <- read_rds(here(
     "scripts",
     "new_overlap-calculation",
     "overlap-data_finescale.rds"
@@ -112,6 +115,7 @@ ggplot(binomdat, aes(x = year, y = range_overlap, color = Season, fill = Season)
     values = c(scales::muted("blue", l = 50, c = 100), 
                scales::muted("red", l = 50, c = 100))
   ) +
+  xlab("Year") +
   ylab("Range overlap") +
   facet_wrap(~predator) +
   theme_bw() +
@@ -121,6 +125,8 @@ ggplot(binomdat, aes(x = year, y = range_overlap, color = Season, fill = Season)
         strip.background = element_blank())
 
 ggsave(here("output", "plots", "overlap-index-ts_range-overlap.pdf"),
-       width = 9, height = 5, units = "in")
+       width = 170, 
+       height = 95, 
+       units = "mm")
 
 write_rds(binomdat, here::here("output", "index_range-overlap.rds"))

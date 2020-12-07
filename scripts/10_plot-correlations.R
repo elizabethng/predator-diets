@@ -110,8 +110,8 @@ all_cor <- bind_rows(list(docor, dacor, oacor)) %>%
 
 # 4. Make plots --------------------------------------------------------------
 # Adjust label spacing for output
-hjust_c = -0.2 # -0.2
-vjust_c = -11 # -14.2
+hjust_c = -0.1
+vjust_c = -8.9
 
 p1 <- ggplot(
   diet_overlap_dat, 
@@ -142,7 +142,11 @@ p1 <- ggplot(
         panel.grid.minor = element_blank(),
         strip.background = element_blank())
 if(save_output){
-  ggsave(plot = p1, here("output", "plots", "range-overlap-diet-comp-1to1.pdf"), width = 4, height = 8, units = "in")  
+  ggsave(plot = p1, 
+         here("output", "plots", "range-overlap-diet-comp-1to1.pdf"), 
+         width = 85, 
+         height = 170, 
+         units = "mm")  
 }
 
 
@@ -174,10 +178,15 @@ p2 <- ggplot(
         panel.grid.minor = element_blank(),
         strip.background = element_blank())
 if(save_output){
-  ggsave(plot = p2, here("output", "plots", "assessment-diet-comp-1to1.pdf"), width = 4, height = 8, units = "in")  
+  ggsave(plot = p2, 
+         here("output", "plots", "assessment-diet-comp-1to1.pdf"), 
+         width = 85, 
+         height = 170, 
+         units = "mm")  
 }
 
 
+# Assessment vs. Overlap (not used) ---------------------------------------
 p3 <- ggplot(
   overlap_stock_dat, 
   aes(x = `Assessment index`, 
@@ -207,6 +216,10 @@ p3 <- ggplot(
         panel.grid.minor = element_blank(),
         strip.background = element_blank())
 if(save_output){
-  ggsave(plot = p3, here("output", "plots", "assessment-overlap-comp-1to1.pdf"), width = 4, height = 8, units = "in")  
+  ggsave(plot = p3, 
+         here("output", "plots", "assessment-overlap-comp-1to1.pdf"), 
+         width = 85, 
+         height = 170, 
+         units = "mm")  
 }
 

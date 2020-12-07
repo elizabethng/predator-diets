@@ -33,7 +33,12 @@ lendat <- obslen %>%
 
 lengthlimits <- obslen %>% 
   group_by(predator) %>% 
-  summarize(min_obs = min(pdlen), max_obs = max(pdlen)) 
+  summarize(
+    min_obs = min(pdlen), 
+    max_obs = max(pdlen)
+    ) %>%
+  mutate(max_obs = ifelse(predator == "silver hake", 180, max_obs))
+  # mutate(max_obs = ifelse(predator == "goosefish", 150, max_obs))
 
 obslenplot <- obslen %>%
   rename(Season = season) %>%
@@ -74,7 +79,7 @@ simpreds <- mean_vcov %>%
 
 
 # 3. Get predicted values for zscores
-plotdat <- expand_grid(simpreds, z_score = seq(-5, 5, length.out = 50)) %>%
+plotdat <- expand_grid(simpreds, z_score = seq(-5, 6, length.out = 50)) %>%
   mutate(length = sd*z_score + mean,
          pred1 = pdlenz_pred1*z_score + pdlenz2_pred1*(z_score^2),
          pred2 = pdlenz_pred2*z_score + pdlenz2_pred2*(z_score^2)) %>%
@@ -103,19 +108,40 @@ plotdat <- expand_grid(simpreds, z_score = seq(-5, 5, length.out = 50)) %>%
 p <- ggplot(plotdat, aes(x = `Length (cm)`, y = `log(Effect)`, color = Season)) +
   geom_ribbon(aes(ymin = lcb, ymax = ucb, fill = Season), alpha = 0.3, color = NA) +
   geom_line() +
-  scale_color_manual(aesthetics = c("color", "fill"),
-                     values = c(scales::muted("blue", l = 50, c = 100), scales::muted("red", l = 50, c = 100))) +
+  scale_color_manual(
+    name = NULL, 
+    aesthetics = c("color", "fill"),
+    values = c(scales::muted("blue", l = 50, c = 100), 
+               scales::muted("red", l = 50, c = 100)),
+    guide = guide_legend(
+      direction = "horizontal",
+      title.position = "left",
+      label.position = "left")
+    ) +
   facet_grid(predictor ~ predator,
              scales = "free_x",
              labeller = label_bquote(italic(.(predictor)))) + 
-  geom_rug(data = obslenplot,
-           aes(x = pdlen),
-           inherit.aes = FALSE,
-           size = 0.1,
-           color = "#00000088") +
+  # geom_rug(data = obslenplot,
+  #          aes(x = pdlen),
+  #          inherit.aes = FALSE,
+  #          size = 0.1,
+  #          color = "#00000088") +
   theme_bw() +
-  theme(panel.grid.major = element_blank(),
-        panel.grid.minor = element_blank(),
-        strip.background = element_blank(),
-        panel.spacing.x = unit(0.8, "lines"))
-ggsave(plot = p, filename = here("output", "plots", "length-effects.pdf"), width = 9, height = 4, units = "in")
+  scale_x_continuous(breaks = seq(25, 150, by = 50)) +
+  theme(
+    legend.position = c(0.87, -0.18), # "bottom", # c(0.7, 0.15), # x,y
+    plot.margin = unit(c(0,0,10,1),"mm"),
+    panel.grid.major = element_blank(),
+    panel.grid.minor = element_blank(),
+    strip.background = element_blank(),
+    panel.spacing.x = unit(0.8, "lines"))
+p
+ggsave(
+  plot = p, 
+  filename = here("output", "plots", "length-effects.pdf"), 
+  width = 170, 
+  height = 95, 
+  units = "mm")
+
+
+
