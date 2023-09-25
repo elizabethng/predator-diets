@@ -12,42 +12,42 @@ Diet-based annual biomass indices can potentially use predator stomach contents 
 
 Potential relationships (shading) between a diet-based index of prey biomass and true underlying prey abundance, illustrating accurate reflection of relative abundance (left panel), hyper-stable index of abundance due to Type II functional response or predator tracking of prey (centre panel), or absence of relationship between index and prey abundance (right panel).
 
-![figure 1](https://github.com/elizabethng/predator-diets/blob/master/figures/Figure%201%20conceptual%20diagram.png)
+![figure 1](https://github.com/elizabethng/predator-diets/blob/main/figures/Figure%201%20conceptual%20diagram.png)
 
 
 Annually averaged biomass $\hat{b}_{s,t}$ of Atlantic herring in predator stomachs (g/stomach) after controlling for predator length and standardizing (mean zero and standard deviation of one) across predator–season combinations. Warmer colours indicate regions where predators had, on average, higher masses of Atlantic herring per stomach, as predicted by spatio-temporal standardization models. No spatial estimates were generated for white hake in spring due to sparse data.
 
-![figure 2](https://github.com/elizabethng/predator-diets/blob/master/figures/Figure%202%20diet-map-quantile.png)
+![figure 2](https://github.com/elizabethng/predator-diets/blob/main/figures/Figure%202%20diet-map-quantile.png)
 
 
 Relationship between predator length (cm) on the log effect of the first linear predictor ($⁠n$⁠, top row) and second linear predictor (⁠$w$⁠, bottom row) of spatio-temporal models of mean Atlantic herring mass in predator stomachs. Shaded regions indicate 95% prediction intervals. Estimates are plotted for fall (blue lines) and spring (red lines) for each predator. Rug plots (black lines, bottom of each panel) depict the number of predators observed of each length.
 
-![figure 3](https://github.com/elizabethng/predator-diets/blob/master/figures/Figure%203%20length-effects.png)
+![figure 3](https://github.com/elizabethng/predator-diets/blob/main/figures/Figure%203%20length-effects.png)
 
 
 Diet-based annual biomass index estimated with spatio-temporal models from Atlantic herring mass in predator stomachs and controlling for predator length. Models were fit to predator diet data separately for each season. Estimated mean values are shown ± one standard error. Grey line indicates estimated Atlantic herring spawning stock biomass from stock assessment, scaled the mean and standard deviation of the diet index in each panel.
 
-![figure 4](https://github.com/elizabethng/predator-diets/blob/master/figures/Figure%204%20diet-index-ts_w-SSB.png)
+![figure 4](https://github.com/elizabethng/predator-diets/blob/main/figures/Figure%204%20diet-index-ts_w-SSB.png)
 
 
 Diet-based biomass index estimated using spatio-temporal models accounting for predator length plotted against Atlantic herring spawning stock biomass estimated from stock assessment. Indices are standardized across years (mean zero and standard deviation one), error bars represent ± 1 C.V. (SE of estimate), and grey lines indicate a fitted linear regression. Pearson correlation’s coefficient is shown in upper left corner of each panel.
 
 <p align="center">
-  <img src="https://github.com/elizabethng/predator-diets/blob/master/figures/Figure%205%20assessment-diet-comp-1to1.png" alt="figure 5" width="350"/>
+  <img src="https://github.com/elizabethng/predator-diets/blob/main/figures/Figure%205%20assessment-diet-comp-1to1.png" alt="figure 5" width="350"/>
 </p>
 
 Annually averaged spatially explicit range overlap $\hat{O}_t$ between Atlantic herring and five predators as estimated from spatio-temporal index standardization models fit to bottom trawl survey biomass data for two seasons for all predator–season combinations. Warmer colours indicate regions were where each predator tended to overlap more with Atlantic herring.
 
-![figure 6](https://github.com/elizabethng/predator-diets/blob/master/figures/Figure%206%20overlap-map_range-overlap.png)
+![figure 6](https://github.com/elizabethng/predator-diets/blob/main/figures/Figure%206%20overlap-map_range-overlap.png)
 
 
 Annual index of predator–prey overlap $O_t \in [0,1]$ between Atlantic herring and predators as estimated from spatio-temporal models fit to bottom trawl survey biomass data for two seasons (spring, and fall). Predator and prey biomasses were predicted at nearly continuous locations across the sampling region and the proportion of the prey range encompassed by the predator distribution was calculated for each season in each year.
 
-![figure 7](https://github.com/elizabethng/predator-diets/blob/master/figures/Figure%207%20overlap-index-ts_range-overlap.png)
+![figure 7](https://github.com/elizabethng/predator-diets/blob/main/figures/Figure%207%20overlap-index-ts_range-overlap.png)
 
 
 Diet-based biomass index estimated using spatio-temporal models accounting for predator length plotted against overlap index estimated using spatio-temporal models. Indices are standardized across years (mean zero and standard deviation one), error bars represent ± 1 C.V. (SE of estimate), and grey lines indicate a fitted linear regression. Pearson correlation coefficient is shown in upper left corner of each panel.
 
 <p align="center">
-  <img src="https://github.com/elizabethng/predator-diets/blob/master/figures/Figure%208%20range-overlap-diet-comp-1to1.png" alt="figure 8" width="350"/>
+  <img src="https://github.com/elizabethng/predator-diets/blob/main/figures/Figure%208%20range-overlap-diet-comp-1to1.png" alt="figure 8" width="350"/>
 </p>
