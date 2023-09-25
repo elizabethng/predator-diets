@@ -32,8 +32,9 @@ Diet-based annual biomass index estimated with spatio-temporal models from Atlan
 
 Diet-based biomass index estimated using spatio-temporal models accounting for predator length plotted against Atlantic herring spawning stock biomass estimated from stock assessment. Indices are standardized across years (mean zero and standard deviation one), error bars represent ± 1 C.V. (SE of estimate), and grey lines indicate a fitted linear regression. Pearson correlation’s coefficient is shown in upper left corner of each panel.
 
-![figure 5](https://github.com/elizabethng/predator-diets/blob/master/figures/Figure%205%20assessment-diet-comp-1to1.png)
-
+<p align="center">
+  <img src="https://github.com/elizabethng/predator-diets/blob/master/figures/Figure%205%20assessment-diet-comp-1to1.png" alt="figure 5" width="350"/>
+</p>
 
 Annually averaged spatially explicit range overlap $\hat{O}_t$ between Atlantic herring and five predators as estimated from spatio-temporal index standardization models fit to bottom trawl survey biomass data for two seasons for all predator–season combinations. Warmer colours indicate regions were where each predator tended to overlap more with Atlantic herring.
 
@@ -47,5 +48,6 @@ Annual index of predator–prey overlap $O_t \in [0,1]$ between Atlantic herring
 
 Diet-based biomass index estimated using spatio-temporal models accounting for predator length plotted against overlap index estimated using spatio-temporal models. Indices are standardized across years (mean zero and standard deviation one), error bars represent ± 1 C.V. (SE of estimate), and grey lines indicate a fitted linear regression. Pearson correlation coefficient is shown in upper left corner of each panel.
 
-![figure 8](https://github.com/elizabethng/predator-diets/blob/master/figures/Figure%208%20range-overlap-diet-comp-1to1.png)
-
+<p align="center">
+  <img src="https://github.com/elizabethng/predator-diets/blob/master/figures/Figure%208%20range-overlap-diet-comp-1to1.png" alt="figure 8" width="350"/>
+</p>
